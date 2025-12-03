@@ -104,7 +104,7 @@ npx @littlebearapps/wp-navigator-mcp ./wp-config.json
 
 ```bash
 npm install -g @littlebearapps/wp-navigator-mcp
-wpnav-mcp ./wp-config.json
+wp-navigator ./wp-config.json
 ```
 
 ### Local Development

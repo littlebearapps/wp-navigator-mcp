@@ -5,8 +5,8 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "wpnav-mcp": "dist/index.js",
-    "wpnav-mcp-setup": "dist/setup.js"
+    "wp-navigator": "dist/index.js",
+    "wp-navigator-setup": "dist/setup.js"
   },
   "scripts": {
     "build": "tsc",
