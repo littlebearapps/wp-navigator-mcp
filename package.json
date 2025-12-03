@@ -1,10 +1,11 @@
 {
   "name": "@littlebearapps/wp-navigator-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server for AI-assisted WordPress management via Claude Code, Claude Desktop, and other MCP clients",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
+    "wp-navigator-mcp": "dist/index.js",
     "wp-navigator": "dist/index.js",
     "wp-navigator-setup": "dist/setup.js"
   },
