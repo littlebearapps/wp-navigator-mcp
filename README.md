@@ -38,13 +38,16 @@ Create `wp-config.json` in your working directory:
 
 ```json
 {
-  "wordpress": {
-    "baseUrl": "https://your-site.com",
-    "username": "your-username",
-    "applicationPassword": "xxxx xxxx xxxx xxxx xxxx xxxx"
-  }
+  "WP_BASE_URL": "https://your-site.com",
+  "WP_REST_API": "https://your-site.com/wp-json",
+  "WPNAV_BASE": "https://your-site.com/wp-json/wpnav/v1",
+  "WPNAV_INTROSPECT": "https://your-site.com/wp-json/wpnav/v1/introspect",
+  "WP_APP_USER": "your-username",
+  "WP_APP_PASS": "xxxx xxxx xxxx xxxx xxxx xxxx"
 }
 ```
+
+**Tip**: Copy from `wp-config.json.example` and fill in your values.
 
 ### 4. Configure Your MCP Client
 
