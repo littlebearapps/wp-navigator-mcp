@@ -50,7 +50,7 @@ toolRegistry.setFeatureFlag('WP_PERFORMANCE_ANALYZER_ENABLED', config.featureFla
 // Initialize MCP server
 const server = new Server(
   {
-    name: 'wpnav-mcp',
+    name: 'wp-navigator',
     version: '1.0.0',
   },
   {

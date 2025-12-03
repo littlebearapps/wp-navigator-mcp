@@ -1,6 +1,6 @@
 #!/bin/bash
 # Check for Docker/wp-env dependencies in MCP tools
-# Run from mcp-servers/wpnav-mcp directory
+# Run from wp-navigator-mcp directory
 
 echo "=== Checking MCP tools for Docker/wp-env dependencies ==="
 echo ""

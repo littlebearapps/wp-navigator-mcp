@@ -188,7 +188,7 @@
 **Issue**: Tool definition allows `status: "all"` but WordPress API only accepts "active" or "inactive"
 **Impact**: Low - returns 400 error with clear message
 **Fix**: Remove "all" from enum in `src/tools.ts` line 432
-**File**: `mcp-servers/wpnav-mcp/src/tools.ts:432`
+**File**: `src/tools.ts:432`
 
 ### 2. Theme Activation/Deletion Not Supported (Limitation)
 **Issue**: WordPress core REST API doesn't provide endpoints for theme activation/deletion

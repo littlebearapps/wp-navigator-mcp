@@ -248,7 +248,7 @@ function createEnhancedError(
         `1. Open WordPress admin: ${baseUrl}/wp-admin\n` +
         `2. Login as user: ${username}\n` +
         `3. Go to: Users → Profile → Application Passwords\n` +
-        `4. Generate a new password named "wpnav-mcp"\n` +
+        `4. Generate a new password named "wp-navigator"\n` +
         `5. Update WP_APP_PASS in .local-wp.env (or your environment)\n` +
         `6. Restart your MCP server / AI agent session\n\n` +
         `Note: Application Passwords expire and can be revoked.\n` +

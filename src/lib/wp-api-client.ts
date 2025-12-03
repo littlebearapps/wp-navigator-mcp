@@ -1,7 +1,7 @@
 /**
  * Centralized WordPress REST API Client
  *
- * Provides enhanced error handling and consistent API access for all wpnav-mcp tools.
+ * Provides enhanced error handling and consistent API access for all wp-navigator tools.
  * All tools should use this client instead of making direct fetch() calls.
  */
 
@@ -169,7 +169,7 @@ export class WordPressAPIClient {
       `1. Open WordPress admin: ${this.baseUrl}/wp-admin\n` +
       `2. Login as user: ${this.username}\n` +
       `3. Go to: Users → Profile → Application Passwords\n` +
-      `4. Generate a new password named "wpnav-mcp"\n` +
+      `4. Generate a new password named "wp-navigator"\n` +
       `5. Update WP_APP_PASS in .local-wp.env (or your environment)\n` +
       `6. Restart your MCP server / AI agent session\n\n` +
       `Note: Application Passwords expire and can be revoked.\n` +

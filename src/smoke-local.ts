@@ -44,7 +44,7 @@ async function run() {
         WP_APP_USER: 'admin',
         WP_APP_PASS: 'password',
       };
-      cfgPath = path.join(os.tmpdir(), `wpnav-mcp-test-${Date.now()}.json`);
+      cfgPath = path.join(os.tmpdir(), `wp-navigator-test-${Date.now()}.json`);
       fs.writeFileSync(cfgPath, JSON.stringify(cfg));
     }
     args = [serverPath, cfgPath!];
@@ -139,7 +139,7 @@ async function run() {
   }
 
   proc.kill();
-  if (cfgPath && fs.existsSync(cfgPath) && cfgPath.includes('wpnav-mcp-test-')) fs.unlinkSync(cfgPath);
+  if (cfgPath && fs.existsSync(cfgPath) && cfgPath.includes('wp-navigator-test-')) fs.unlinkSync(cfgPath);
   console.log('Smoke tests passed.');
 }
 

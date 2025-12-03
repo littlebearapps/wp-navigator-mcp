@@ -178,7 +178,7 @@ export function getAgentHeaders(config?: {
 
   const headers: Record<string, string> = {
     'User-Agent': `WP-Navigator-MCP/1.0.0 (${agent})`,
-    'X-WP-Navigator-Client': 'wpnav-mcp',
+    'X-WP-Navigator-Client': 'wp-navigator',
     'X-WP-Navigator-Version': '1.0.0',
     'X-WP-Navigator-Agent': agent,
     'X-WP-Navigator-Agent-Name': agentName,

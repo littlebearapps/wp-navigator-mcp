@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * wpnav-mcp-setup — Phase 5: Cross-CLI Setup Wizard (STDIO)
+ * wp-navigator-setup — Cross-CLI Setup Wizard (STDIO)
  *
  * Generates client config blocks for Claude Desktop (JSON), Codex CLI (TOML),
  * and Gemini CLI (JSON). Optionally writes them to standard locations with a
