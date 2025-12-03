@@ -1,0 +1,63 @@
+{
+  "name": "@littlebearapps/wp-navigator-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for AI-assisted WordPress management via Claude Code, Claude Desktop, and other MCP clients",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "wpnav-mcp": "dist/index.js",
+    "wpnav-mcp-setup": "dist/setup.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "setup": "node dist/setup.js",
+    "smoke": "node dist/smoke-local.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "wordpress",
+    "claude",
+    "ai",
+    "cms",
+    "wp-navigator",
+    "anthropic"
+  ],
+  "author": "Little Bear Apps <hello@littlebearapps.com>",
+  "license": "MIT",
+  "homepage": "https://wpnav.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/littlebearapps/wp-navigator-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/littlebearapps/wp-navigator-mcp/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "cross-fetch": "^4.0.0",
+    "dotenv": "^16.4.0",
+    "form-data": "^4.0.5"
+  },
+  "devDependencies": {
+    "@types/form-data": "^2.2.1",
+    "@types/node": "^20.10.0",
+    "@types/node-fetch": "^2.6.13",
+    "@vitest/coverage-v8": "^2.1.0",
+    "typescript": "^5.3.0",
+    "vitest": "^2.1.0"
+  }
+}

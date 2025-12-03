@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Build output (regenerated on npm install)
+dist/
+
+# Logs
+*.log
+
+# Environment (managed at repo root)
+.env
+.env.local
+
+# WordPress credentials (contains Application Password)
+wp-config.json

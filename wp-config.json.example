@@ -1,0 +1,9 @@
+{
+  "WP_BASE_URL": "http://localhost:8888",
+  "WP_REST_API": "http://localhost:8888/wp-json",
+  "WPNAV_NAMESPACE": "wpnav/v1",
+  "WPNAV_BASE": "http://localhost:8888/wp-json/wpnav/v1",
+  "WPNAV_INTROSPECT": "http://localhost:8888/wp-json/wpnav/v1/introspect",
+  "WP_APP_USER": "your-wordpress-username",
+  "WP_APP_PASS": "your application password here"
+}
