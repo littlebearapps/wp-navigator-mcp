@@ -41,6 +41,8 @@ mcp__backlog__task_list with status: "In Progress"
 
 ## Quick Commands
 
+**Full Reference**: @docs/quickrefs/quick-commands.md
+
 ```bash
 # Build
 npm run build
@@ -54,8 +56,8 @@ npm run dev
 # Start server (requires wp-config.json)
 npm start
 
-# Test coverage
-npm run test:coverage
+# Generate tool authority
+npm run generate:authority
 ```
 
 ---
@@ -203,6 +205,8 @@ Test files: `tests/`, `src/**/*.test.ts`
 
 ## Security Features
 
+**Full Guide**: @docs/quickrefs/security.md
+
 - **Safe by default**: Writes disabled unless `WPNAV_ENABLE_WRITES=1`
 - **HTTPS enforced**: Non-localhost requires TLS
 - **Single-origin**: Only configured WordPress URL accessible (SSRF prevention)
@@ -327,7 +331,12 @@ npm start ./wp-config.json 2>&1 | head -20
 - **README.md** - User-facing documentation
 - **docs/MCP-TOOL-AUTHORITY.yaml** - Canonical tool-endpoint mappings (auto-generated)
 - **docs/TOOL-REGISTRY.md** - Tool registry system
-- **docs/quickrefs/** - Publishing guide, ecosystem overview
+
+**Quick References** (`docs/quickrefs/`):
+- `publishing.md` - npm publishing workflow
+- `wpnav-ecosystem.md` - WP Navigator ecosystem overview
+- `security.md` - Security practices
+- `quick-commands.md` - Common development commands
 
 ---
 
