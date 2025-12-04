@@ -6,9 +6,119 @@
  * @since 1.2.0
  */
 
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import type { WPConfig } from './config.js';
 import { logger } from './logger.js';
 import { detectAgent, getAgentName } from './agent-detection.js';
+
+/**
+ * Get MCP package version from package.json
+ */
+function getMcpVersion(): string {
+	try {
+		const __filename = fileURLToPath(import.meta.url);
+		const __dirname = dirname(__filename);
+		const packagePath = join(__dirname, '..', 'package.json');
+		const packageJson = JSON.parse(readFileSync(packagePath, 'utf-8'));
+		return packageJson.version || '0.0.0';
+	} catch {
+		return '0.0.0';
+	}
+}
+
+/**
+ * Compare semver versions.
+ * Returns: -1 if a < b, 0 if a == b, 1 if a > b
+ */
+function compareSemver(a: string, b: string): number {
+	const partsA = a.split('.').map(Number);
+	const partsB = b.split('.').map(Number);
+
+	for (let i = 0; i < 3; i++) {
+		const partA = partsA[i] || 0;
+		const partB = partsB[i] || 0;
+		if (partA < partB) return -1;
+		if (partA > partB) return 1;
+	}
+	return 0;
+}
+
+interface McpCompat {
+	min_version: string;
+	max_version: string;
+	tested_up_to: string;
+}
+
+interface CompatibilityResult {
+	compatible: boolean;
+	mcpVersion: string;
+	pluginVersion: string;
+	message: string;
+	warning?: string;
+}
+
+/**
+ * Check MCP compatibility with plugin.
+ */
+export function checkCompatibility(introspectData: any): CompatibilityResult {
+	const mcpVersion = getMcpVersion();
+	const pluginVersion = introspectData?.plugin?.version || 'unknown';
+	const mcpCompat: McpCompat | undefined = introspectData?.plugin?.mcp_compat;
+
+	// If plugin doesn't provide mcp_compat, assume compatible (backward compat)
+	if (!mcpCompat) {
+		return {
+			compatible: true,
+			mcpVersion,
+			pluginVersion,
+			message: `MCP ${mcpVersion} compatible (plugin does not report mcp_compat)`,
+		};
+	}
+
+	const { min_version, max_version, tested_up_to } = mcpCompat;
+
+	// Check if MCP version is below minimum
+	if (compareSemver(mcpVersion, min_version) < 0) {
+		return {
+			compatible: false,
+			mcpVersion,
+			pluginVersion,
+			message: `MCP ${mcpVersion} below minimum ${min_version}`,
+			warning: `Update MCP: npm install @littlebearapps/wp-navigator-mcp@latest`,
+		};
+	}
+
+	// Check if MCP version exceeds maximum
+	if (compareSemver(mcpVersion, max_version) > 0) {
+		return {
+			compatible: false,
+			mcpVersion,
+			pluginVersion,
+			message: `MCP ${mcpVersion} exceeds max ${max_version}`,
+			warning: `Plugin may need updating. Check wpnav.ai for latest version.`,
+		};
+	}
+
+	// Check if MCP version exceeds tested version (warning only)
+	if (compareSemver(mcpVersion, tested_up_to) > 0) {
+		return {
+			compatible: true,
+			mcpVersion,
+			pluginVersion,
+			message: `MCP ${mcpVersion} compatible (untested with plugin ${pluginVersion})`,
+			warning: `MCP ${mcpVersion} > tested ${tested_up_to}. Minor issues possible.`,
+		};
+	}
+
+	return {
+		compatible: true,
+		mcpVersion,
+		pluginVersion,
+		message: `MCP ${mcpVersion} compatible with plugin ${pluginVersion}`,
+	};
+}
 
 interface StartupCheckResult {
 	ok: boolean;
@@ -23,6 +133,7 @@ interface StartupValidation {
 		auth: StartupCheckResult;
 		plugin: StartupCheckResult;
 		policy: StartupCheckResult;
+		compat: StartupCheckResult;
 	};
 	warnings: string[];
 }
@@ -36,16 +147,42 @@ export async function validateStartup(
 ): Promise<StartupValidation> {
 	logger.info('Running startup validation...');
 
-	const checks = {
-		rest: await checkRestAPI(wpRequest, config),
-		auth: await checkAuthentication(wpRequest, config),
-		plugin: await checkPlugin(wpRequest, config),
-		policy: await checkPolicy(wpRequest, config),
-	};
+	const rest = await checkRestAPI(wpRequest, config);
+	const auth = await checkAuthentication(wpRequest, config);
+	const plugin = await checkPlugin(wpRequest, config);
+	const policy = await checkPolicy(wpRequest, config);
 
+	// Compatibility check (uses introspect data from policy check)
+	let compat: StartupCheckResult;
+	let compatResult: CompatibilityResult | null = null;
+	if (policy.details) {
+		compatResult = checkCompatibility(policy.details);
+		compat = {
+			ok: compatResult.compatible,
+			message: compatResult.message,
+			details: {
+				mcpVersion: compatResult.mcpVersion,
+				pluginVersion: compatResult.pluginVersion,
+			},
+		};
+	} else {
+		compat = {
+			ok: true,
+			message: 'Compatibility: skipped (no introspect data)',
+		};
+	}
+
+	const checks = { rest, auth, plugin, policy, compat };
 	const warnings = collectWarnings(config);
 
-	const allPassed = Object.values(checks).every(check => check.ok);
+	// Add compat warning if present
+	if (compatResult?.warning) {
+		warnings.push(compatResult.warning);
+	}
+
+	// Compat issues are warnings only, don't fail startup
+	const criticalChecks = { rest, auth, plugin, policy };
+	const allPassed = Object.values(criticalChecks).every(check => check.ok);
 
 	return { allPassed, checks, warnings };
 }
@@ -128,7 +265,7 @@ async function checkPlugin(
 }
 
 /**
- * Check policy configuration.
+ * Check policy configuration (also returns full introspect data for compat check).
  */
 async function checkPolicy(
 	wpRequest: (endpoint: string, options?: RequestInit) => Promise<any>,
@@ -144,7 +281,7 @@ async function checkPolicy(
 		return {
 			ok: true,
 			message: `Policy: ${enabled.join(', ') || 'None enabled'}`,
-			details: data.policy,
+			details: data,  // Full introspect data (includes plugin.mcp_compat)
 		};
 	} catch (error: any) {
 		return {
@@ -196,6 +333,12 @@ export function printStartupSummary(validation: StartupValidation, config: WPCon
 
 	if (validation.checks.policy.ok) {
 		console.log(`✓ ${validation.checks.policy.message}`);
+	}
+
+	// Compatibility status
+	if (validation.checks.compat) {
+		const icon = validation.checks.compat.ok ? '✓' : '⚠️';
+		console.log(`${icon} ${validation.checks.compat.message}`);
 	}
 
 	// Warnings

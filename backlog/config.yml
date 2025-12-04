@@ -1,0 +1,15 @@
+project_name: "WP Navigator MCP"
+default_status: "Ready"
+statuses: ["Triage", "Roadmap", "Ready", "In Progress", "In Review", "Done", "Blocked", "Wont Do"]
+labels: ["feature", "enhancement", "bug", "chore", "docs", "v1.0", "v1.1", "v2.0", "quick-win", "roadmap", "blocked", "breaking-change", "security", "performance", "mcp", "tooling", "registry"]
+milestones: []
+date_format: yyyy-mm-dd hh:mm
+max_column_width: 20
+default_editor: "code --wait"
+auto_open_browser: true
+default_port: 6420
+remote_operations: true
+auto_commit: false
+bypass_git_hooks: false
+check_active_branches: true
+active_branch_days: 30
