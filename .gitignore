@@ -13,3 +13,10 @@ dist/
 
 # WordPress credentials (contains Application Password)
 wp-config.json
+
+# Local Claude Code settings
+.claude-settings.json
+
+# Local MCP configurations
+.mcp.json
+.mcp.*.json
