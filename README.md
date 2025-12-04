@@ -60,11 +60,16 @@ Add to your project's `.mcp.json`:
   "mcpServers": {
     "wpnav": {
       "command": "npx",
-      "args": ["-y", "@littlebearapps/wp-navigator-mcp", "./wp-config.json"]
+      "args": ["-y", "@littlebearapps/wp-navigator-mcp", "./wp-config.json"],
+      "env": {
+        "WPNAV_ENABLE_WRITES": "1"
+      }
     }
   }
 }
 ```
+
+> **Note**: `WPNAV_ENABLE_WRITES=1` enables create/update/delete operations. Without it, only read operations work (safe by default).
 
 #### Claude Desktop
 
@@ -75,7 +80,10 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "wpnav": {
       "command": "npx",
-      "args": ["-y", "@littlebearapps/wp-navigator-mcp", "/path/to/wp-config.json"]
+      "args": ["-y", "@littlebearapps/wp-navigator-mcp", "/path/to/wp-config.json"],
+      "env": {
+        "WPNAV_ENABLE_WRITES": "1"
+      }
     }
   }
 }
