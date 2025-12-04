@@ -906,7 +906,7 @@ export function registerContentTools() {
               context: {
                 resource_type: 'comment',
                 resource_id: args.id,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check comment ID exists with wpnav_get_comment',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check comment ID exists with wpnav_get_comment',
               },
             }, null, 2),
           }],

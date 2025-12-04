@@ -140,7 +140,7 @@ export function registerUserTools() {
               context: {
                 resource_type: 'user',
                 username: args.username,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check username and email are unique',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check username and email are unique',
               },
             }, null, 2),
           }],
@@ -233,7 +233,7 @@ export function registerUserTools() {
               context: {
                 resource_type: 'user',
                 resource_id: args.id,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check user ID exists with wpnav_get_user',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check user ID exists with wpnav_get_user',
               },
             }, null, 2),
           }],
@@ -298,7 +298,7 @@ export function registerUserTools() {
               context: {
                 resource_type: 'user',
                 resource_id: args.id,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check user ID exists with wpnav_get_user',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check user ID exists with wpnav_get_user',
               },
             }, null, 2),
           }],

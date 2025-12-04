@@ -124,7 +124,7 @@ export function registerTaxonomyTools() {
               context: {
                 resource_type: 'category',
                 name: args.name,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check category name is unique',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check category name is unique',
               },
             }, null, 2),
           }],
@@ -206,7 +206,7 @@ export function registerTaxonomyTools() {
               context: {
                 resource_type: 'category',
                 resource_id: args.id,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check category ID exists with wpnav_get_category',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check category ID exists with wpnav_get_category',
               },
             }, null, 2),
           }],
@@ -263,7 +263,7 @@ export function registerTaxonomyTools() {
               context: {
                 resource_type: 'category',
                 resource_id: args.id,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check category ID exists with wpnav_get_category',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check category ID exists with wpnav_get_category',
               },
             }, null, 2),
           }],
@@ -381,7 +381,7 @@ export function registerTaxonomyTools() {
               context: {
                 resource_type: 'tag',
                 name: args.name,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check tag name is unique',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check tag name is unique',
               },
             }, null, 2),
           }],
@@ -461,7 +461,7 @@ export function registerTaxonomyTools() {
               context: {
                 resource_type: 'tag',
                 resource_id: args.id,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check tag ID exists with wpnav_get_tag',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check tag ID exists with wpnav_get_tag',
               },
             }, null, 2),
           }],
@@ -518,7 +518,7 @@ export function registerTaxonomyTools() {
               context: {
                 resource_type: 'tag',
                 resource_id: args.id,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check tag ID exists with wpnav_get_tag',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check tag ID exists with wpnav_get_tag',
               },
             }, null, 2),
           }],

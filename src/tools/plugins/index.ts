@@ -152,7 +152,7 @@ export function registerPluginTools() {
               context: {
                 resource_type: 'plugin',
                 slug: args.slug,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check plugin slug exists on WordPress.org',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check plugin slug exists on WordPress.org',
               },
             }, null, 2),
           }],
@@ -211,7 +211,7 @@ export function registerPluginTools() {
               context: {
                 resource_type: 'plugin',
                 plugin: args.plugin,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check plugin is installed with wpnav_list_plugins',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check plugin is installed with wpnav_list_plugins',
               },
             }, null, 2),
           }],
@@ -270,7 +270,7 @@ export function registerPluginTools() {
               context: {
                 resource_type: 'plugin',
                 plugin: args.plugin,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check plugin exists with wpnav_list_plugins',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check plugin exists with wpnav_list_plugins',
               },
             }, null, 2),
           }],
@@ -329,7 +329,7 @@ export function registerPluginTools() {
               context: {
                 resource_type: 'plugin',
                 plugin: args.plugin,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check plugin is installed with wpnav_list_plugins',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check plugin is installed with wpnav_list_plugins',
               },
             }, null, 2),
           }],
@@ -385,7 +385,7 @@ export function registerPluginTools() {
               context: {
                 resource_type: 'plugin',
                 plugin: args.plugin,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check plugin is deactivated first with wpnav_deactivate_plugin',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check plugin is deactivated first with wpnav_deactivate_plugin',
               },
             }, null, 2),
           }],

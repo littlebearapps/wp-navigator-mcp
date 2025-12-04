@@ -97,7 +97,7 @@ export function makeWpRequest(config: WPConfig) {
     // Default write-deny (safe-by-default). Phase 4 will route writes via plan/diff/apply.
     const isWrite = method !== 'GET' && method !== 'HEAD';
     if (isWrite && !config.toggles.enableWrites) {
-      throw new Error('WRITES_DISABLED: Set WPNAV_ENABLE_WRITES=1 to enable write operations.');
+      throw new Error('WRITES_DISABLED: MCP server env var WPNAV_ENABLE_WRITES=1 not set. Add to your .mcp.json env configuration (this is NOT a WordPress setting).');
     }
 
     const controller = new AbortController();

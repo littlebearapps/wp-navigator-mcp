@@ -120,7 +120,7 @@ export function registerThemeTools() {
               context: {
                 resource_type: 'theme',
                 slug: args.slug,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check theme slug exists on WordPress.org',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check theme slug exists on WordPress.org',
               },
             }, null, 2),
           }],
@@ -173,7 +173,7 @@ export function registerThemeTools() {
               context: {
                 resource_type: 'theme',
                 stylesheet: args.stylesheet,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check theme is installed with wpnav_list_themes',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check theme is installed with wpnav_list_themes',
               },
             }, null, 2),
           }],
@@ -226,7 +226,7 @@ export function registerThemeTools() {
               context: {
                 resource_type: 'theme',
                 stylesheet: args.stylesheet,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check theme is installed with wpnav_list_themes',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check theme is installed with wpnav_list_themes',
               },
             }, null, 2),
           }],
@@ -276,7 +276,7 @@ export function registerThemeTools() {
               context: {
                 resource_type: 'theme',
                 stylesheet: args.stylesheet,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Check theme is not active and exists with wpnav_list_themes',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check theme is not active and exists with wpnav_list_themes',
               },
             }, null, 2),
           }],
@@ -321,7 +321,7 @@ export function registerThemeTools() {
               message: errorMessage,
               context: {
                 resource_type: 'theme',
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 to enable write operations' : 'Ensure a previous theme exists to revert to',
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Ensure a previous theme exists to revert to',
               },
             }, null, 2),
           }],
