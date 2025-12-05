@@ -303,6 +303,24 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ---
 
+## 🗺️ Feature Roadmap (READ-ONLY)
+
+**⛔ DO NOT create or modify planning documents in this repo.**
+
+The canonical feature roadmap lives in: **`lba/plugins/wp-navigator-roadmap/main/`**
+
+### This Repo's Role
+- **Implements** tasks where `target_repo: wp-navigator-mcp`
+- Primary phases: **Phase A** (CLI Mode), **Phase B** (Config File), **Phase E** (Token Optimization)
+- **Does NOT** create phases, plan features, or modify roadmap files
+
+### Finding Assigned Tasks
+1. Read roadmap phases in `wp-navigator-roadmap/main/docs/roadmap/phases/`
+2. Look for tasks with `target_repo: wp-navigator-mcp`
+3. Implement in this repo's backlog
+
+---
+
 ## Troubleshooting
 
 ### Common Issues
