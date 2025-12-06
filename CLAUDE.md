@@ -17,25 +17,24 @@ MCP (Model Context Protocol) server enabling AI assistants to manage WordPress s
 
 ---
 
-## Task Management (Backlog.md)
-
-**Status**: Initialised
+## Task Management (MANDATORY)
 
 **Session Start**: Check for "In Progress" tasks first:
 ```
 mcp__backlog__task_list with status: "In Progress"
 ```
+If found: **Continue that task.** If not: proceed with user request.
 
 **Workflow**:
-1. Check for in-progress tasks before starting new work
-2. Create tasks for multi-step work with `mcp__backlog__task_create`
-3. Mark tasks "In Progress" when starting, "Done" when complete
-4. Use labels: `mcp`, `feature`, `bug`, `enhancement`, `chore`, `docs`
+1. Check in-progress tasks before new work
+2. Create tasks for multi-step work: `mcp__backlog__task_create`
+3. Mark "In Progress" when starting, "Done" when complete
+4. Labels: `mcp`, `feature`, `bug`, `enhancement`, `chore`, `docs`
 
-**Key Principles**:
-- Use MCP tools (`mcp__backlog__*`), not CLI commands
-- Don't edit markdown files directly
-- Log issues during testing as Triage tasks with appropriate labels
+**Rules**:
+- **USE** MCP tools (`mcp__backlog__*`), not CLI
+- **DON'T** edit backlog markdown files directly
+- **DO** log issues as Triage tasks immediately
 
 ---
 
