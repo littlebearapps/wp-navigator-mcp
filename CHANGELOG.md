@@ -5,6 +5,18 @@ All notable changes to @littlebearapps/wp-navigator-mcp will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0](https://github.com/littlebearapps/wp-navigator-mcp/compare/v1.0.1...v1.1.0) (2025-12-06)
+
+
+### Features
+
+* add release automation, tool authority, and plugin compatibility check ([3266e95](https://github.com/littlebearapps/wp-navigator-mcp/commit/3266e959e5fa223e67e2b6d4374e3d1b6a9917f7))
+
+
+### Bug Fixes
+
+* clarify WRITES_DISABLED error is MCP server config, not WordPress setting ([0af37cb](https://github.com/littlebearapps/wp-navigator-mcp/commit/0af37cbd44bfff4629c584a61ef4ca73b155bfb1))
+
 ## [1.0.1] - 2025-12-03
 
 ### Fixed
