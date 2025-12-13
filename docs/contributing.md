@@ -347,16 +347,13 @@ We use [Release Please](https://github.com/googleapis/release-please) for automa
 
 Issues and PRs are organized into [milestones](https://github.com/littlebearapps/wp-navigator-mcp/milestones):
 
-| Milestone | Description |
-|-----------|-------------|
-| **v1.1.0** | Phase C - Init wizard, plugin detection, AI handoff |
-| **v1.2.0** | Phase B3 - Roles and Cookbooks |
-| **v2.0.0** | Major release with breaking changes |
+- **Closed milestones** document completed releases (v1.0.0, v2.0.0, v2.1.0)
+- **Open milestones** track upcoming releases
 
 When working on an issue:
-1. Check if there's an appropriate milestone
-2. Maintainers will assign issues to milestones during triage
-3. PRs linked to issues inherit milestone tracking
+1. Maintainers assign issues to milestones during triage
+2. PRs linked to issues inherit milestone tracking
+3. Check [all milestones](https://github.com/littlebearapps/wp-navigator-mcp/milestones?state=all) for history
 
 ### Linking Issues to Changelog
 
