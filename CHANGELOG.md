@@ -5,6 +5,29 @@ All notable changes to @littlebearapps/wp-navigator-mcp will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.2](https://github.com/littlebearapps/wp-navigator-mcp-master/compare/v2.1.1...v2.1.2) (2025-12-13)
+
+
+### Bug Fixes
+
+* exclude release-please.yml from public sync ([cb76106](https://github.com/littlebearapps/wp-navigator-mcp-master/commit/cb7610681a0426d8aa770ea19351b22caa9651ad))
+
+## [2.1.1](https://github.com/littlebearapps/wp-navigator-mcp-master/compare/v2.1.0...v2.1.1) (2025-12-13)
+
+
+### Bug Fixes
+
+* restructure release workflow for npm provenance support ([daf08c7](https://github.com/littlebearapps/wp-navigator-mcp-master/commit/daf08c717a225582eb9f9fb6a6c98779bb911083))
+* use yaml library for YAML parsing instead of custom parser ([763b093](https://github.com/littlebearapps/wp-navigator-mcp-master/commit/763b0937a7cd57ab29eb1bf4ac6a9e14a9696bd4))
+
+## [2.1.0](https://github.com/littlebearapps/wp-navigator-mcp-master/compare/v2.0.2...v2.1.0) (2025-12-13)
+
+
+### Features
+
+* add dual-repo structure for public/private separation ([#14](https://github.com/littlebearapps/wp-navigator-mcp-master/issues/14)) ([a287c04](https://github.com/littlebearapps/wp-navigator-mcp-master/commit/a287c0422297a6949a0837a4484ad5db5fbfc830))
+* add Phase C init wizard, plugin detection, and roles system ([5e78206](https://github.com/littlebearapps/wp-navigator-mcp-master/commit/5e782061503357c99db94e2690c2d1b663254192))
+
 ## [2.0.2](https://github.com/littlebearapps/wp-navigator-mcp/compare/v2.0.1...v2.0.2) (2025-12-11)
 
 
