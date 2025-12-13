@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or Discussion
+    url: https://github.com/littlebearapps/wp-navigator-mcp/discussions
+    about: For questions, ideas, and general discussion - use Discussions instead of Issues
+  - name: Documentation
+    url: https://wpnav.ai/docs
+    about: Check the documentation first - it might answer your question
+  - name: Security Issue
+    url: https://github.com/littlebearapps/wp-navigator-mcp/security/advisories/new
+    about: For security vulnerabilities, please use private security advisories

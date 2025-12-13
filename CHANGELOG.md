@@ -1,0 +1,72 @@
+# Changelog
+
+All notable changes to @littlebearapps/wp-navigator-mcp will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [2.0.2](https://github.com/littlebearapps/wp-navigator-mcp/compare/v2.0.1...v2.0.2) (2025-12-11)
+
+
+### Bug Fixes
+
+* **ci:** add publish job to release-please workflow ([6b58397](https://github.com/littlebearapps/wp-navigator-mcp/commit/6b583974f96a8cadbb79e68c900bd1aa063d9172))
+
+## [2.0.1](https://github.com/littlebearapps/wp-navigator-mcp/compare/v2.0.0...v2.0.1) (2025-12-11)
+
+
+### Bug Fixes
+
+* **ci:** trigger publish workflow on release event ([9b59e7a](https://github.com/littlebearapps/wp-navigator-mcp/commit/9b59e7a306bfdb3cf4308e49070ce3954fa46a6a))
+
+## [2.0.0](https://github.com/littlebearapps/wp-navigator-mcp/compare/v1.0.1...v2.0.0) (2025-12-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** None - internal dev dependency only
+
+### Features
+
+* add release automation, tool authority, and plugin compatibility check ([3266e95](https://github.com/littlebearapps/wp-navigator-mcp/commit/3266e959e5fa223e67e2b6d4374e3d1b6a9917f7))
+* add snapshot schemas for Phase B2 (task-29, task-30) ([7a0531c](https://github.com/littlebearapps/wp-navigator-mcp/commit/7a0531c70ef9119c5218a06e56875f196f3acce5))
+* complete Phase A CLI mode implementation ([fd56b84](https://github.com/littlebearapps/wp-navigator-mcp/commit/fd56b844da1e5d7c8b03b24263d49373e5438c7e))
+* complete Phase B1 config and manifest implementation ([c808bee](https://github.com/littlebearapps/wp-navigator-mcp/commit/c808beef6118be8cbdc5eef972aeaf50c03a68bd))
+* complete Phase B2 snapshots and sync workflow ([cd13181](https://github.com/littlebearapps/wp-navigator-mcp/commit/cd1318183ef88a0e053670ca13df7b8725cfdf61))
+
+
+### Bug Fixes
+
+* clarify WRITES_DISABLED error is MCP server config, not WordPress setting ([0af37cb](https://github.com/littlebearapps/wp-navigator-mcp/commit/0af37cbd44bfff4629c584a61ef4ca73b155bfb1))
+* **deps:** update @modelcontextprotocol/sdk and glob to fix high severity vulnerabilities ([f3a4c7f](https://github.com/littlebearapps/wp-navigator-mcp/commit/f3a4c7f6b0712e36b6c94c88bb1fd16500452182))
+* **deps:** upgrade vitest and @vitest/coverage-v8 to 4.x ([03351fa](https://github.com/littlebearapps/wp-navigator-mcp/commit/03351fa9d22873be844c34df3735f649d33d9647))
+
+## [1.0.1] - 2025-12-03
+
+### Fixed
+- Added `wp-navigator-mcp` bin alias for npx compatibility
+- Re-enabled npm provenance after repo made public
+- Corrected config file format in README examples
+
+### Changed
+- Renamed package binaries from `wpnav-mcp` to `wp-navigator` for consistency
+
+## [1.0.0] - 2025-12-02
+
+### Added
+- Initial release as standalone npm package
+- 48+ WordPress management tools via MCP protocol
+- **Core tools**: `wpnav_introspect`, `wpnav_help`, `wpnav_test_metrics`
+- **Content tools**: posts, pages, media, comments (list, get, create, update, delete)
+- **Taxonomy tools**: categories, tags, taxonomies
+- **Theme tools**: list, get, activate, install, update, delete, revert
+- **Plugin tools**: list, get, activate, deactivate, install, update, delete
+- **User tools**: list, get, create, update
+- **Gutenberg tools**: introspect, list_blocks, insert, replace, delete, move, patterns
+- **Testing tools**: `wpnav_seed_test_data`, `wpnav_test_metrics`
+- Safe-by-default writes (opt-in via `WPNAV_ENABLE_WRITES=1`)
+- HTTPS enforcement for non-localhost connections
+- Single-origin SSRF protection
+- Configurable timeouts and response size limits
+- JSON file configuration support
+- Claude Desktop and Claude Code integration guides

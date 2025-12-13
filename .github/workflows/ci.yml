@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Run tests with coverage
+        run: npm test -- --coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+          verbose: true
+
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Security audit
+        run: npm audit --audit-level=high
+        # Fails on high/critical vulnerabilities
+        # Use --audit-level=moderate for stricter checks
+
+      - name: Write audit summary
+        if: always()
+        run: |
+          echo "## Security Audit Results" >> "$GITHUB_STEP_SUMMARY"
+          npm audit --json 2>/dev/null | jq -r '
+            if .metadata.vulnerabilities.high > 0 or .metadata.vulnerabilities.critical > 0 then
+              "### Warning: High/Critical vulnerabilities found\n" +
+              "- Critical: \(.metadata.vulnerabilities.critical // 0)\n" +
+              "- High: \(.metadata.vulnerabilities.high // 0)\n" +
+              "- Moderate: \(.metadata.vulnerabilities.moderate // 0)\n" +
+              "- Low: \(.metadata.vulnerabilities.low // 0)"
+            else
+              "### No high/critical vulnerabilities\n" +
+              "- Moderate: \(.metadata.vulnerabilities.moderate // 0)\n" +
+              "- Low: \(.metadata.vulnerabilities.low // 0)"
+            end
+          ' >> "$GITHUB_STEP_SUMMARY" || echo "Audit summary unavailable" >> "$GITHUB_STEP_SUMMARY"

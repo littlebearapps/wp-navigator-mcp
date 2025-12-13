@@ -1,0 +1,54 @@
+# Socket Security - Supply Chain Protection
+# Detects malicious packages, typosquatting, and supply chain attacks
+# Free for open source: https://socket.dev/pricing
+
+name: Socket Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: socket-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  socket-security:
+    name: Supply Chain Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Socket CLI
+        run: npm install -g @socketsecurity/cli
+
+      - name: Run Socket Security Scan
+        env:
+          SOCKET_SECURITY_API_KEY: ${{ secrets.SOCKET_SECURITY_API_KEY }}
+        run: socket npm audit
+
+      - name: Write scan summary
+        if: always()
+        run: |
+          echo "## Socket Security Scan" >> "$GITHUB_STEP_SUMMARY"
+          echo "Supply chain security scan completed." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Socket.dev detects:" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Malicious packages" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Typosquatting attacks" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Install script risks" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Protestware and sabotage" >> "$GITHUB_STEP_SUMMARY"

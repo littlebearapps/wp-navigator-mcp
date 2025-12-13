@@ -1,0 +1,75 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea to make WP Navigator MCP better? We'd love to hear it!
+
+        For general discussions, consider using [Discussions](https://github.com/littlebearapps/wp-navigator-mcp/discussions) instead.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? What use case does it address?
+      placeholder: |
+        I'm trying to [accomplish X] but currently I can't because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How would you like this to work? Be as specific as possible.
+      placeholder: |
+        I'd like a new tool called wpnav_xyz that...
+
+        Example usage:
+        "Use wpnav_xyz to..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What workarounds or alternative approaches have you tried?
+      placeholder: |
+        I've tried using wpnav_abc instead but it doesn't work because...
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: How important is this to you?
+      options:
+        - Nice to have
+        - Would help my workflow
+        - Blocking my use case
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: Which area does this feature relate to?
+      options:
+        - Content (posts, pages, media)
+        - Site Management (plugins, themes, users)
+        - Gutenberg Block Editor
+        - CLI Mode
+        - Configuration / Setup
+        - Security
+        - Performance
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other information, screenshots, or examples that would help

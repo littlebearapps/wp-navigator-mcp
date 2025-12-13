@@ -1,0 +1,25 @@
+# OS files
+.DS_Store
+
+# Dependencies
+node_modules/
+
+# Build output (regenerated on npm install)
+dist/
+
+# Logs
+*.log
+
+# Environment (managed at repo root)
+.env
+.env.local
+
+# WordPress credentials (contains Application Password)
+wp-config.json
+
+# Local Claude Code settings
+.claude-settings.json
+
+# Local MCP configurations
+.mcp.json
+.mcp.*.json
