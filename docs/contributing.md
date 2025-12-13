@@ -265,6 +265,19 @@ chore(deps): update vitest to v2.0
 - Documentation updated if needed
 - CHANGELOG.md updated for user-facing changes
 
+### Branch Protection
+
+The `main` branch is protected with the following requirements:
+
+| Check | Description |
+|-------|-------------|
+| **build-and-test** | TypeScript build + test suite |
+| **security-audit** | npm audit for vulnerabilities |
+| **Supply Chain Scan** | Socket.dev supply chain analysis |
+| **1 approval** | Maintainer review required |
+
+PRs cannot be merged until all checks pass and a maintainer approves.
+
 ---
 
 ## Changelog Format
@@ -309,14 +322,26 @@ Use the [feature request template](https://github.com/littlebearapps/wp-navigato
 
 ## Release Process
 
+### Dual-Repository Structure
+
+This project uses a dual-repo structure:
+- **Public repo** (`littlebearapps/wp-navigator-mcp`): Source code, issues, discussions
+- **Private master repo**: Development, internal docs, backlog
+
+**External contributors** submit PRs to the public repo. Maintainers review and apply changes to the internal repo, which then syncs back to public on release.
+
 ### How Releases Work
 
 We use [Release Please](https://github.com/googleapis/release-please) for automated releases:
 
 1. **Conventional commits** trigger changelog updates
 2. **Release Please** creates a release PR with version bump and changelog
-3. **Merging the release PR** creates a GitHub Release and git tag
-4. **Tag push** triggers npm publish via CI
+3. **Merging the release PR** triggers the release workflow:
+   - Creates GitHub Release in master repo
+   - Syncs filtered content to public repo
+   - Creates matching release in public repo
+   - Publishes to npm with provenance attestation
+   - Posts announcement to Discussions
 
 ### Milestones
 
@@ -347,6 +372,31 @@ Closes #456
 ```
 
 Release Please automatically includes these references in the changelog.
+
+---
+
+## For Maintainers: Handling External PRs
+
+When a contributor submits a PR to the public repo:
+
+1. **Review the PR** in the public repo as normal
+2. **If approved**, apply changes to the master repo:
+   ```bash
+   # In master repo
+   git fetch https://github.com/CONTRIBUTOR/wp-navigator-mcp.git BRANCH
+   git cherry-pick COMMIT_SHA
+   # Or apply as patch
+   ```
+3. **Close the public PR** with a comment:
+   > Thank you for your contribution! Applied to internal repository. Will be included in the next release.
+4. **Credit the contributor** in the commit message:
+   ```
+   feat: add new feature (#PR_NUMBER)
+
+   Co-authored-by: Contributor Name <email@example.com>
+   ```
+
+The next release will automatically sync the changes back to the public repo.
 
 ---
 
