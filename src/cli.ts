@@ -22,11 +22,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import {
-  inputPrompt,
-  selectPrompt,
-  confirmPrompt,
-} from './cli/tui/prompts.js';
+import { inputPrompt, selectPrompt, confirmPrompt } from './cli/tui/prompts.js';
 import {
   success,
   error as errorMessage,
@@ -41,12 +37,7 @@ import {
   list,
   modeIndicator,
 } from './cli/tui/components.js';
-import {
-  WPNAV_URLS,
-  resourceLinks,
-  troubleshootLink,
-  wpnavLink,
-} from './cli/tui/links.js';
+import { WPNAV_URLS, resourceLinks, troubleshootLink, wpnavLink } from './cli/tui/links.js';
 import { loadEnvFromArgOrDotEnv, getConfigOrExit, WPConfig } from './config.js';
 import {
   loadWpnavConfig,
@@ -90,11 +81,7 @@ import {
   type WordPressPage,
   type WordPressPlugin,
 } from './diff.js';
-import {
-  executeSync,
-  formatSyncText,
-  formatSyncJson,
-} from './sync.js';
+import { executeSync, formatSyncText, formatSyncJson } from './sync.js';
 import {
   findKeyPosition,
   formatValidationErrorJson,
@@ -106,7 +93,11 @@ import { toolRegistry } from './tool-registry/index.js';
 import { registerAllTools } from './tools/index.js';
 import { logger } from './logger.js';
 import { clampText } from './output.js';
-import { summarizePageContent, isFirstSnapshot, getFirstSnapshotMessage } from './snapshot-summary.js';
+import {
+  summarizePageContent,
+  isFirstSnapshot,
+  getFirstSnapshotMessage,
+} from './snapshot-summary.js';
 import { checkBackupReminder } from './backup-reminder.js';
 import {
   detectPlugin,
@@ -114,6 +105,12 @@ import {
   formatPluginMessage,
   type PluginDetectionResult,
 } from './plugin-detection.js';
+import {
+  checkNodeVersion,
+  displayNodeVersionError,
+  EXIT_CODE_NODE_VERSION,
+} from './cli/startup/node-check.js';
+import { checkSafetyAcknowledgment } from './cli/safety/acknowledgment.js';
 import {
   generateSyncId,
   createPreSyncSnapshot,
@@ -127,6 +124,7 @@ import {
 } from './rollback.js';
 import { handleInit } from './cli/commands/init.js';
 import { handleCleanup } from './cli/commands/cleanup.js';
+import { isLocalUrl } from './cli/init/defaults.js';
 import { handleCodexSetup } from './cli/commands/codex-setup.js';
 import { handleClaudeSetup } from './cli/commands/claude-setup.js';
 import { handleGeminiSetup } from './cli/commands/gemini-setup.js';
@@ -149,7 +147,7 @@ import {
 } from './cli/output/index.js';
 
 // CLI version (matches package.json)
-const CLI_VERSION = '2.1.3';
+const CLI_VERSION = '2.4.0';
 
 // Dry-run request collector
 interface DryRunRequest {
@@ -164,7 +162,9 @@ let dryRunRequests: DryRunRequest[] = [];
 /**
  * Create a dry-run wrapper around wpRequest that captures requests instead of executing them
  */
-function createDryRunRequest(realWpRequest: (endpoint: string, options?: RequestInit) => Promise<any>) {
+function createDryRunRequest(
+  realWpRequest: (endpoint: string, options?: RequestInit) => Promise<any>
+) {
   return async function dryRunWpRequest(endpoint: string, options?: RequestInit): Promise<any> {
     const method = (options?.method || 'GET').toUpperCase();
     const isWrite = method !== 'GET' && method !== 'HEAD';
@@ -205,12 +205,18 @@ interface CLIContext {
   role?: LoadedRole;
   /** Source of the resolved role */
   roleSource?: 'cli' | 'env' | 'config' | 'none';
+  /** Resolved config from wpnav.config.json (if available) */
+  resolved?: ResolvedConfig;
 }
 
 /**
  * Parse command-line arguments into command and options
  */
-function parseArgs(argv: string[]): { command: string; args: string[]; options: Record<string, string> } {
+function parseArgs(argv: string[]): {
+  command: string;
+  args: string[];
+  options: Record<string, string>;
+} {
   // Skip node and script path
   const rawArgs = argv.slice(2);
 
@@ -315,6 +321,8 @@ Global Options:
   --config <path>               Path to wpnav.config.json (or legacy wp-config.json)
   --env <name>                  Environment to use (local, staging, production)
   --role <name>                 AI role to use (e.g., content-editor, developer)
+  --local                       Allow HTTP for local development URLs (auto-detected)
+  --insecure                    Allow HTTP for any URL (use with caution)
   --help                        Show this help message
   --version                     Show version number
 
@@ -360,6 +368,7 @@ Doctor Options:
 
 Init Options:
   --mode <mode>                 Skip entry screen: guided, scaffold, ai-handoff
+  --repair                      Repair/validate existing configuration
   --skip-confirm                Skip confirmation for existing projects
   --skip-smoke-test             Skip connection verification after config saved
 
@@ -369,6 +378,7 @@ Cleanup Options:
 Examples:
   npx wpnav init
   npx wpnav init --mode scaffold
+  npx wpnav init --repair
   npx wpnav call wpnav_list_posts --limit 5
   npx wpnav call wpnav_get_post --id 123 --env production
   npx wpnav call wpnav_create_post --role content-editor --title "New Post"
@@ -377,6 +387,7 @@ Examples:
   npx wpnav roles content-editor
   npx wpnav roles --json
   npx wpnav status --env staging
+  npx wpnav status --local                          # Allow HTTP for local dev
   npx wpnav snapshot site
   npx wpnav snapshot page about
   npx wpnav snapshot pages --output ./my-snapshots
@@ -402,13 +413,16 @@ Configuration:
   {
     "config_version": "1.0",
     "environments": {
-      "local": { "site": "http://localhost:8080", "user": "admin", "password": "$WP_APP_PASS" },
-      "production": { "site": "https://example.com", "user": "admin", "password": "$WP_APP_PASS" }
+      "local": { "site": "http://localhost:8080", "user": "admin", "password": "$WPNAV_APP_PASSWORD" },
+      "production": { "site": "https://example.com", "user": "admin", "password": "$WPNAV_APP_PASSWORD" }
     }
   }
 
-  Or set environment variables:
-    WP_BASE_URL, WP_REST_API, WP_APP_USER, WP_APP_PASS, WPNAV_ROLE
+  Or set environment variables (v2.4.0+):
+    WPNAV_SITE_URL, WPNAV_USERNAME, WPNAV_APP_PASSWORD
+
+  Legacy env vars (still supported):
+    WP_BASE_URL, WP_REST_API, WP_APP_USER, WP_APP_PASS
 
   Environment selection (in order of precedence):
     1. --env flag
@@ -491,9 +505,7 @@ async function handleCall(
 
   try {
     // In dry-run mode, use the wrapper that captures write requests
-    const wpRequestFn = isDryRun
-      ? createDryRunRequest(context.wpRequest)
-      : context.wpRequest;
+    const wpRequestFn = isDryRun ? createDryRunRequest(context.wpRequest) : context.wpRequest;
 
     if (isDryRun) {
       dryRunMode = true;
@@ -518,9 +530,10 @@ async function handleCall(
         args: toolArgs,
         role: context.role ? { name: context.role.name, source: context.roleSource } : null,
         would_execute: dryRunRequests.length > 0 ? dryRunRequests : null,
-        message: dryRunRequests.length > 0
-          ? `${dryRunRequests.length} write operation(s) would be executed`
-          : 'No write operations would be executed (read-only tool)',
+        message:
+          dryRunRequests.length > 0
+            ? `${dryRunRequests.length} write operation(s) would be executed`
+            : 'No write operations would be executed (read-only tool)',
       });
     } else {
       outputJSON({
@@ -531,11 +544,10 @@ async function handleCall(
       });
     }
   } catch (error) {
-    outputError(
-      'EXECUTION_ERROR',
-      error instanceof Error ? error.message : String(error),
-      { tool: toolName, dry_run: isDryRun }
-    );
+    outputError('EXECUTION_ERROR', error instanceof Error ? error.message : String(error), {
+      tool: toolName,
+      dry_run: isDryRun,
+    });
     process.exit(1);
   }
 }
@@ -551,7 +563,10 @@ async function handleTools(options: Record<string, string>): Promise<void> {
 
   // Validate format option
   if (format !== 'json' && format !== 'markdown') {
-    outputError('INVALID_FORMAT', `Invalid format: "${options.format}". Supported formats: json, markdown`);
+    outputError(
+      'INVALID_FORMAT',
+      `Invalid format: "${options.format}". Supported formats: json, markdown`
+    );
     process.exit(1);
   }
 
@@ -592,7 +607,7 @@ async function handleTools(options: Record<string, string>): Promise<void> {
     // JSON format (default) - simplified for backward compatibility
     const simplifiedTools: Record<string, Array<{ name: string; description: string }>> = {};
     for (const [category, tools] of Object.entries(toolsByCategory)) {
-      simplifiedTools[category] = tools.map(t => ({ name: t.name, description: t.description }));
+      simplifiedTools[category] = tools.map((t) => ({ name: t.name, description: t.description }));
     }
 
     outputJSON({
@@ -607,10 +622,7 @@ async function handleTools(options: Record<string, string>): Promise<void> {
 /**
  * Handle 'roles' command - list available roles or show role details
  */
-async function handleRoles(
-  args: string[],
-  options: Record<string, string>
-): Promise<void> {
+async function handleRoles(args: string[], options: Record<string, string>): Promise<void> {
   const jsonOutput = options.json === 'true';
   const roleName = args[0];
 
@@ -786,11 +798,9 @@ async function handleStatus(context: CLIContext): Promise<void> {
     );
 
     if (!detection.detected) {
-      outputError(
-        'PLUGIN_NOT_FOUND',
-        detection.error || 'WP Navigator plugin not detected',
-        { url: context.config.baseUrl }
-      );
+      outputError('PLUGIN_NOT_FOUND', detection.error || 'WP Navigator plugin not detected', {
+        url: context.config.baseUrl,
+      });
       process.exit(1);
     }
 
@@ -805,7 +815,8 @@ async function handleStatus(context: CLIContext): Promise<void> {
     }
 
     // Determine environment from introspect or env
-    const environment = detection.fullResponse?.environment || process.env.WPNAV_ENVIRONMENT || 'default';
+    const environment =
+      detection.fullResponse?.environment || process.env.WPNAV_ENVIRONMENT || 'default';
 
     // Display TUI status box (human-readable output)
     newline();
@@ -1469,9 +1480,7 @@ function checkEnvVarResolution(
   const fileSource = source ?? readFileSource(configPath);
 
   // Determine which environments to check
-  const envsToCheck = targetEnv
-    ? [targetEnv]
-    : Object.keys(config.environments);
+  const envsToCheck = targetEnv ? [targetEnv] : Object.keys(config.environments);
 
   for (const envName of envsToCheck) {
     const env = config.environments[envName];
@@ -1588,7 +1597,10 @@ function parseWpnavEnv(content: string): Record<string, string> {
       const key = trimmed.slice(0, eqIndex).trim();
       let value = trimmed.slice(eqIndex + 1).trim();
       // Remove surrounding quotes
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
         value = value.slice(1, -1);
       }
       result[key] = value;
@@ -1601,11 +1613,7 @@ function parseWpnavEnv(content: string): Record<string, string> {
 /**
  * Generate .wpnav.env content
  */
-function generateWpnavEnvContent(
-  siteUrl: string,
-  username: string,
-  password: string
-): string {
+function generateWpnavEnvContent(siteUrl: string, username: string, password: string): string {
   const timestamp = new Date().toISOString();
   return `# WP Navigator Connection Settings
 # Generated by wpnav configure on ${timestamp}
@@ -1710,15 +1718,24 @@ async function testConnection(
     }
 
     if (response.status === 401) {
-      return { success: false, error: 'Authentication failed. Check your username and Application Password.' };
+      return {
+        success: false,
+        error: 'Authentication failed. Check your username and Application Password.',
+      };
     }
 
     if (response.status === 403) {
-      return { success: false, error: 'Access denied. Ensure the user has Administrator permissions.' };
+      return {
+        success: false,
+        error: 'Access denied. Ensure the user has Administrator permissions.',
+      };
     }
 
     if (response.status === 404) {
-      return { success: false, error: 'WP Navigator plugin not found. Install and activate the plugin first.' };
+      return {
+        success: false,
+        error: 'WP Navigator plugin not found. Install and activate the plugin first.',
+      };
     }
 
     if (!response.ok) {
@@ -1734,7 +1751,10 @@ async function testConnection(
   } catch (err) {
     if (err instanceof Error) {
       if (err.name === 'AbortError' || err.message.includes('timeout')) {
-        return { success: false, error: 'Connection timed out. Check the URL and network connectivity.' };
+        return {
+          success: false,
+          error: 'Connection timed out. Check the URL and network connectivity.',
+        };
       }
       if (err.message.includes('ENOTFOUND') || err.message.includes('getaddrinfo')) {
         return { success: false, error: 'Host not found. Check the URL is correct.' };
@@ -1743,7 +1763,10 @@ async function testConnection(
         return { success: false, error: 'Connection refused. Is the WordPress server running?' };
       }
       if (err.message.includes('certificate')) {
-        return { success: false, error: 'SSL certificate error. Try using http:// for local development.' };
+        return {
+          success: false,
+          error: 'SSL certificate error. Try using http:// for local development.',
+        };
       }
       return { success: false, error: err.message };
     }
@@ -1810,13 +1833,17 @@ async function handleConfigure(options: Record<string, string>): Promise<void> {
     const password = options.password || options.pass;
 
     if (!siteUrl || !username || !password) {
-      outputError('MISSING_OPTIONS', 'Silent mode requires --site, --user, and --password options', {
-        provided: {
-          site: !!siteUrl,
-          user: !!username,
-          password: !!password,
-        },
-      });
+      outputError(
+        'MISSING_OPTIONS',
+        'Silent mode requires --site, --user, and --password options',
+        {
+          provided: {
+            site: !!siteUrl,
+            user: !!username,
+            password: !!password,
+          },
+        }
+      );
       process.exit(1);
     }
 
@@ -1858,7 +1885,10 @@ async function handleConfigure(options: Record<string, string>): Promise<void> {
         site: siteUrl,
       });
     } catch (err) {
-      outputError('WRITE_FAILED', err instanceof Error ? err.message : 'Failed to write .wpnav.env');
+      outputError(
+        'WRITE_FAILED',
+        err instanceof Error ? err.message : 'Failed to write .wpnav.env'
+      );
       process.exit(1);
     }
     return;
@@ -2178,7 +2208,9 @@ async function runDiagnostics(options: Record<string, string>): Promise<Diagnost
     });
 
     // 4. Test WordPress connectivity (only if config loaded)
-    const spinner = !options.json ? createSpinner({ text: 'Testing WordPress connection...' }) : null;
+    const spinner = !options.json
+      ? createSpinner({ text: 'Testing WordPress connection...' })
+      : null;
 
     try {
       const testResult = await testConnection(
@@ -2471,9 +2503,7 @@ async function mergePluginsIntoManifest(
     const content = fs.readFileSync(manifestPath, 'utf8');
 
     // Parse JSONC (strip comments)
-    const stripped = content
-      .replace(/\/\/.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
+    const stripped = content.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
     const manifest = JSON.parse(stripped);
 
     // Initialize plugins section if needed
@@ -2499,7 +2529,9 @@ async function mergePluginsIntoManifest(
     }
   } catch (err) {
     if (!isJson) {
-      errorMessage(`Failed to merge into manifest: ${err instanceof Error ? err.message : String(err)}`);
+      errorMessage(
+        `Failed to merge into manifest: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 }
@@ -2510,7 +2542,18 @@ async function mergePluginsIntoManifest(
 async function captureSiteSnapshot(context: CLIContext): Promise<SiteIndexSnapshot> {
   const { wpRequest, config } = context;
 
-  const [siteSettings, activeTheme, plugins, pages, posts, media, introspect, themeMods, widgets, sidebars] = await Promise.all([
+  const [
+    siteSettings,
+    activeTheme,
+    plugins,
+    pages,
+    posts,
+    media,
+    introspect,
+    themeMods,
+    widgets,
+    sidebars,
+  ] = await Promise.all([
     wpRequest('/wp/v2/settings').catch(() => ({})),
     wpRequest('/wp/v2/themes?status=active').catch(() => []),
     wpRequest('/wp/v2/plugins').catch(() => []),
@@ -2520,8 +2563,8 @@ async function captureSiteSnapshot(context: CLIContext): Promise<SiteIndexSnapsh
     wpRequest('/introspect').catch(() => ({})),
     // Theme customizer data (v2.1.0 - task-81.11)
     wpRequest('/wpnav/v1/theme_mods').catch(() => ({})),
-    wpRequest('/wp/v2/widgets').catch(() => []),       // WP 5.8+
-    wpRequest('/wp/v2/sidebars').catch(() => []),      // WP 5.8+
+    wpRequest('/wp/v2/widgets').catch(() => []), // WP 5.8+
+    wpRequest('/wp/v2/sidebars').catch(() => []), // WP 5.8+
   ]);
 
   const theme = Array.isArray(activeTheme) && activeTheme.length > 0 ? activeTheme[0] : null;
@@ -2620,8 +2663,10 @@ async function captureSiteSnapshot(context: CLIContext): Promise<SiteIndexSnapsh
         name: theme?.name?.rendered || theme?.stylesheet || '',
         slug: theme?.stylesheet || '',
         version: theme?.version || '',
-        parent: theme?.template && theme.template !== theme.stylesheet ? theme.name?.rendered : undefined,
-        parent_slug: theme?.template && theme.template !== theme.stylesheet ? theme.template : undefined,
+        parent:
+          theme?.template && theme.template !== theme.stylesheet ? theme.name?.rendered : undefined,
+        parent_slug:
+          theme?.template && theme.template !== theme.stylesheet ? theme.template : undefined,
         customizer,
         widgets: sidebarWidgets,
       },
@@ -2636,10 +2681,12 @@ async function captureSiteSnapshot(context: CLIContext): Promise<SiteIndexSnapsh
       media: { count: Array.isArray(media) ? media.length : 0 },
     },
     plugins: { active: activePlugins, inactive: inactivePlugins },
-    wpnav: introspect.plugin ? {
-      version: introspect.plugin.version || introspect.version || '',
-      tier: introspect.plugin.tier || undefined,
-    } : undefined,
+    wpnav: introspect.plugin
+      ? {
+          version: introspect.plugin.version || introspect.version || '',
+          tier: introspect.plugin.tier || undefined,
+        }
+      : undefined,
   };
 
   return snapshot;
@@ -2662,7 +2709,9 @@ async function capturePageSnapshot(context: CLIContext, slug: string): Promise<P
     try {
       const author = await wpRequest(`/wp/v2/users/${page.author}?_fields=name`);
       authorName = author.name || '';
-    } catch { /* Author not accessible */ }
+    } catch {
+      /* Author not accessible */
+    }
   }
 
   let featuredImage: { url?: string; id?: number } | undefined;
@@ -2849,8 +2898,11 @@ async function handleSnapshot(
         const pages = await context.wpRequest('/wp/v2/pages?per_page=100&status=publish');
         if (!Array.isArray(pages) || pages.length === 0) {
           spinner?.warn('No published pages found');
-          if (isJson) { outputJSON({ success: true, pages: [], count: 0 }); }
-          else { warning('No published pages found'); }
+          if (isJson) {
+            outputJSON({ success: true, pages: [], count: 0 });
+          } else {
+            warning('No published pages found');
+          }
           return;
         }
         spinner?.succeed(`Found ${pages.length} pages`);
@@ -2863,23 +2915,39 @@ async function handleSnapshot(
         // Capture each page with progress
         for (let i = 0; i < pages.length; i++) {
           const page = pages[i];
-          const pageSpinner = !isJson ? createSpinner({
-            text: `[${i + 1}/${pages.length}] Taking snapshot of "${page.slug}"...`
-          }) : null;
+          const pageSpinner = !isJson
+            ? createSpinner({
+                text: `[${i + 1}/${pages.length}] Taking snapshot of "${page.slug}"...`,
+              })
+            : null;
           try {
             const snapshot = await capturePageSnapshot(context, page.slug);
             const filePath = path.join(pagesDir, `${page.slug}.json`);
-            if (!isJson) { writeSnapshotFile(filePath, snapshot); }
-            results.push({ slug: page.slug, file: filePath, blocks: snapshot.content.blocks.length });
+            if (!isJson) {
+              writeSnapshotFile(filePath, snapshot);
+            }
+            results.push({
+              slug: page.slug,
+              file: filePath,
+              blocks: snapshot.content.blocks.length,
+            });
             pageSpinner?.succeed(`pages/${page.slug}.json created`);
           } catch (err) {
-            errors.push({ slug: page.slug, error: err instanceof Error ? err.message : String(err) });
+            errors.push({
+              slug: page.slug,
+              error: err instanceof Error ? err.message : String(err),
+            });
             pageSpinner?.fail(`Failed: ${page.slug}`);
           }
         }
 
         if (isJson) {
-          outputJSON({ success: errors.length === 0, count: results.length, pages: results, errors: errors.length > 0 ? errors : undefined });
+          outputJSON({
+            success: errors.length === 0,
+            count: results.length,
+            pages: results,
+            errors: errors.length > 0 ? errors : undefined,
+          });
         } else {
           newline();
           keyValue('Total Pages', String(results.length));
@@ -2887,7 +2955,9 @@ async function handleSnapshot(
           if (errors.length > 0) {
             newline();
             warning(`${errors.length} page(s) failed:`);
-            for (const err of errors) { console.error(`  • ${err.slug}: ${err.error}`); }
+            for (const err of errors) {
+              console.error(`  • ${err.slug}: ${err.error}`);
+            }
           }
           newline();
           success(`${results.length} page snapshots saved`);
@@ -2911,7 +2981,9 @@ async function handleSnapshot(
 
       if (!isJson) {
         newline();
-        box(targetSlug ? `Plugin Settings: ${targetSlug}` : 'Plugin Settings Snapshot', { title: 'wpnav snapshot plugins' });
+        box(targetSlug ? `Plugin Settings: ${targetSlug}` : 'Plugin Settings Snapshot', {
+          title: 'wpnav snapshot plugins',
+        });
         newline();
       }
 
@@ -2931,19 +3003,24 @@ async function handleSnapshot(
 
         if (activePlugins.length === 0) {
           spinner?.warn('No active plugins found');
-          if (isJson) { outputJSON({ success: true, plugins: {}, count: 0 }); }
-          else { warning('No active plugins found'); }
+          if (isJson) {
+            outputJSON({ success: true, plugins: {}, count: 0 });
+          } else {
+            warning('No active plugins found');
+          }
           return;
         }
 
         // Filter to target plugin if specified
         const pluginsToExtract = targetSlug
-          ? activePlugins.filter(p => p.slug === targetSlug || p.slug.includes(targetSlug))
+          ? activePlugins.filter((p) => p.slug === targetSlug || p.slug.includes(targetSlug))
           : activePlugins;
 
         if (targetSlug && pluginsToExtract.length === 0) {
           spinner?.fail(`Plugin not found: ${targetSlug}`);
-          outputError('PLUGIN_NOT_FOUND', `No active plugin matching "${targetSlug}"`, { available: activePlugins.map(p => p.slug) });
+          outputError('PLUGIN_NOT_FOUND', `No active plugin matching "${targetSlug}"`, {
+            available: activePlugins.map((p) => p.slug),
+          });
           process.exit(1);
         }
 
@@ -2957,9 +3034,11 @@ async function handleSnapshot(
 
         // Extract settings for each plugin
         for (const plugin of pluginsToExtract) {
-          const extractSpinner = !isJson ? createSpinner({
-            text: `Extracting settings for "${plugin.name}"...`
-          }) : null;
+          const extractSpinner = !isJson
+            ? createSpinner({
+                text: `Extracting settings for "${plugin.name}"...`,
+              })
+            : null;
 
           try {
             const { extractor, isGeneric } = getExtractor(plugin.slug, plugin.name);
@@ -2968,7 +3047,9 @@ async function handleSnapshot(
             let allOptions: Record<string, unknown> = {};
             for (const prefix of extractor.optionPrefixes) {
               try {
-                const options = await context.wpRequest(`/wpnav/v1/options?prefix=${encodeURIComponent(prefix)}`);
+                const options = await context.wpRequest(
+                  `/wpnav/v1/options?prefix=${encodeURIComponent(prefix)}`
+                );
                 if (options && typeof options === 'object') {
                   allOptions = { ...allOptions, ...options };
                 }
@@ -2991,7 +3072,9 @@ async function handleSnapshot(
             };
 
             result.plugins[plugin.slug] = snapshot;
-            extractSpinner?.succeed(`${plugin.name}: ${Object.keys(settings).length} settings extracted`);
+            extractSpinner?.succeed(
+              `${plugin.name}: ${Object.keys(settings).length} settings extracted`
+            );
           } catch (err) {
             result.errors.push({
               slug: plugin.slug,
@@ -3040,7 +3123,9 @@ async function handleSnapshot(
     }
 
     default:
-      outputError('UNKNOWN_SUBCOMMAND', `Unknown snapshot subcommand: ${subcommand}`, { available: ['site', 'page', 'pages', 'plugins'] });
+      outputError('UNKNOWN_SUBCOMMAND', `Unknown snapshot subcommand: ${subcommand}`, {
+        available: ['site', 'page', 'pages', 'plugins'],
+      });
       process.exit(1);
   }
 }
@@ -3051,12 +3136,22 @@ async function handleSnapshot(
  * Priority:
  * 1. Try wpnav.config.json (new format) with directory walk-up
  * 2. Fall back to legacy config loading (wp-config.json / env vars)
+ *
+ * v2.4.0: Handles --local and --insecure flags for HTTP connections
  */
-function loadConfiguration(options: Record<string, string>): { config: WPConfig; resolved?: ResolvedConfig } {
+function loadConfiguration(options: Record<string, string>): {
+  config: WPConfig;
+  resolved?: ResolvedConfig;
+  insecureMode: 'flag' | 'auto' | false;
+} {
   // Determine environment from --env flag or WPNAV_ENVIRONMENT
   const envFlag = options.env;
   const envVar = process.env.WPNAV_ENVIRONMENT;
   const environment = envFlag || envVar || undefined;
+
+  // v2.4.0: Check for --local or --insecure flags
+  const localFlag = options.local === 'true';
+  const insecureFlag = options.insecure === 'true';
 
   // Try new wpnav.config.json first
   const result = loadWpnavConfig({
@@ -3065,39 +3160,58 @@ function loadConfiguration(options: Record<string, string>): { config: WPConfig;
     fallbackToEnv: false, // Don't fallback yet, try legacy loader
   });
 
+  let config: WPConfig;
+  let resolved: ResolvedConfig | undefined;
+
   if (result.success && result.config) {
     // Log config source
     if (result.source === 'file') {
       console.error(`✓ Loaded config from: ${result.config.config_path}`);
       console.error(`  Environment: ${result.config.environment}`);
     }
-    return {
-      config: toLegacyConfig(result.config),
-      resolved: result.config,
-    };
+    config = toLegacyConfig(result.config);
+    resolved = result.config;
+  } else {
+    // Fall back to legacy config loading
+    try {
+      loadEnvFromArgOrDotEnv(options.config);
+      config = getConfigOrExit();
+    } catch {
+      // If legacy also fails, report the wpnav-config error
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      throw new Error('Failed to load configuration');
+    }
   }
 
-  // Fall back to legacy config loading
-  try {
-    loadEnvFromArgOrDotEnv(options.config);
-    const config = getConfigOrExit();
-    return { config };
-  } catch {
-    // If legacy also fails, report the wpnav-config error
-    if (result.error) {
-      throw new Error(result.error);
+  // v2.4.0: Apply --local or --insecure flags
+  let insecureMode: 'flag' | 'auto' | false = false;
+
+  if (insecureFlag) {
+    // --insecure: Allow HTTP for any URL
+    config.toggles.allowInsecureHttp = true;
+    insecureMode = 'flag';
+  } else if (localFlag) {
+    // --local: Allow HTTP for local development URLs
+    config.toggles.allowInsecureHttp = true;
+    insecureMode = 'flag';
+  } else {
+    // Auto-detect local URLs and allow HTTP
+    const siteUrl = config.baseUrl || '';
+    if (isLocalUrl(siteUrl)) {
+      config.toggles.allowInsecureHttp = true;
+      insecureMode = 'auto';
     }
-    throw new Error('Failed to load configuration');
   }
+
+  return { config, resolved, insecureMode };
 }
 
 /**
  * Handle diff command - compare manifest with WordPress state
  */
-async function handleDiff(
-  options: Record<string, string>,
-  context: CLIContext
-): Promise<void> {
+async function handleDiff(options: Record<string, string>, context: CLIContext): Promise<void> {
   const isJson = options.json === 'true';
   const strictMode = options.strict === 'true';
   const snapshotPath = options.snapshot;
@@ -3145,9 +3259,14 @@ async function handleDiff(
       }
     } catch (err) {
       if (isJson) {
-        outputError('SNAPSHOT_ERROR', `Failed to load snapshot: ${err instanceof Error ? err.message : String(err)}`);
+        outputError(
+          'SNAPSHOT_ERROR',
+          `Failed to load snapshot: ${err instanceof Error ? err.message : String(err)}`
+        );
       } else {
-        errorMessage(`Failed to load snapshot: ${err instanceof Error ? err.message : String(err)}`);
+        errorMessage(
+          `Failed to load snapshot: ${err instanceof Error ? err.message : String(err)}`
+        );
       }
       process.exit(1);
     }
@@ -3196,9 +3315,14 @@ async function handleDiff(
     } catch (err) {
       spinner?.stop();
       if (isJson) {
-        outputError('FETCH_ERROR', `Failed to fetch WordPress state: ${err instanceof Error ? err.message : String(err)}`);
+        outputError(
+          'FETCH_ERROR',
+          `Failed to fetch WordPress state: ${err instanceof Error ? err.message : String(err)}`
+        );
       } else {
-        errorMessage(`Failed to fetch WordPress state: ${err instanceof Error ? err.message : String(err)}`);
+        errorMessage(
+          `Failed to fetch WordPress state: ${err instanceof Error ? err.message : String(err)}`
+        );
       }
       process.exit(1);
     }
@@ -3239,10 +3363,7 @@ async function handleDiff(
  * Handle 'sync' command
  * Apply wpnavigator.jsonc manifest to WordPress
  */
-async function handleSync(
-  options: Record<string, string>,
-  context: CLIContext
-): Promise<void> {
+async function handleSync(options: Record<string, string>, context: CLIContext): Promise<void> {
   const isJson = options.json === 'true';
   const dryRun = options['dry-run'] === 'true';
   const skipConfirm = options.yes === 'true';
@@ -3274,6 +3395,49 @@ async function handleSync(
   }
 
   const manifest = manifestResult.manifest;
+
+  // Check first-sync safety acknowledgment (JIT prompt, before backup reminder)
+  if (!isJson && !dryRun) {
+    const isPro = context.resolved?.detected_plugin?.edition === 'pro';
+    const siteName = context.resolved?.site || context.config.baseUrl;
+
+    const safetyResult = await checkSafetyAcknowledgment({
+      projectDir: process.cwd(),
+      skipConfirm,
+      isPro,
+      siteName,
+      dryRun,
+      isInteractive: true,
+    });
+
+    if (!safetyResult.confirmed) {
+      warning('Sync cancelled.');
+      process.exit(0);
+    }
+
+    // Create rollback point if requested (Pro feature)
+    if (safetyResult.createRollback) {
+      const rollbackSpinner = createSpinner({ text: 'Creating rollback point...' });
+      try {
+        const snapshot = await captureSiteSnapshot(context);
+        // Save to .wpnav/rollback/ with timestamp
+        const rollbackDir = path.join(process.cwd(), '.wpnav', 'rollback');
+        if (!fs.existsSync(rollbackDir)) {
+          fs.mkdirSync(rollbackDir, { recursive: true });
+        }
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const rollbackPath = path.join(rollbackDir, `pre-sync-${timestamp}.json`);
+        fs.writeFileSync(rollbackPath, JSON.stringify(snapshot, null, 2), 'utf-8');
+        rollbackSpinner.succeed('Rollback point created');
+      } catch (err) {
+        rollbackSpinner.fail('Failed to create rollback point');
+        // Non-fatal: warn and continue with sync
+        warning(
+          `Could not create rollback point: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    }
+  }
 
   // Check backup reminder (before any sync operations)
   if (!isJson && !dryRun) {
@@ -3331,7 +3495,10 @@ async function handleSync(
   } catch (err) {
     spinner?.fail('Failed to fetch WordPress state');
     if (isJson) {
-      outputError('FETCH_FAILED', err instanceof Error ? err.message : 'Failed to fetch WordPress state');
+      outputError(
+        'FETCH_FAILED',
+        err instanceof Error ? err.message : 'Failed to fetch WordPress state'
+      );
     } else {
       errorMessage(`Failed to fetch WordPress state: ${err instanceof Error ? err.message : err}`);
     }
@@ -3368,7 +3535,8 @@ async function handleSync(
 
   // Ask for confirmation (unless --yes or --dry-run)
   if (!skipConfirm && !dryRun && !isJson) {
-    const operationCount = diff.summary.additions + diff.summary.removals + diff.summary.modifications;
+    const operationCount =
+      diff.summary.additions + diff.summary.removals + diff.summary.modifications;
     const confirmed = await confirmPrompt({
       message: `Apply ${operationCount} change(s) to WordPress?`,
       defaultValue: false,
@@ -3458,14 +3626,20 @@ async function handleRollback(
     }
 
     if (isJson) {
-      console.log(JSON.stringify({
-        snapshots: snapshots.map(s => ({
-          syncId: s.syncId,
-          capturedAt: s.capturedAt.toISOString(),
-          pages: s.summary.pages,
-          plugins: s.summary.plugins,
-        })),
-      }, null, 2));
+      console.log(
+        JSON.stringify(
+          {
+            snapshots: snapshots.map((s) => ({
+              syncId: s.syncId,
+              capturedAt: s.capturedAt.toISOString(),
+              pages: s.summary.pages,
+              plugins: s.summary.plugins,
+            })),
+          },
+          null,
+          2
+        )
+      );
     } else {
       newline();
       box('Available Rollback Points', { title: 'wpnav rollback' });
@@ -3513,9 +3687,12 @@ async function handleRollback(
     if (snapshot.pages.length > 0) {
       info('Pages to restore:');
       for (const page of snapshot.pages) {
-        const operation = page.planned_operation === 'create' ? 'delete (was created)'
-          : page.planned_operation === 'update' ? `restore "${page.title}"`
-          : `recreate "${page.title}"`;
+        const operation =
+          page.planned_operation === 'create'
+            ? 'delete (was created)'
+            : page.planned_operation === 'update'
+              ? `restore "${page.title}"`
+              : `recreate "${page.title}"`;
         console.error(`  • ${page.slug}: ${operation}`);
       }
       newline();
@@ -3590,8 +3767,36 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
+  // Check Node.js version early (unless bypassed with --skip-node-check)
+  if (options['skip-node-check'] !== 'true') {
+    const nodeCheck = checkNodeVersion();
+    if (!nodeCheck.ok) {
+      displayNodeVersionError(nodeCheck);
+      process.exit(EXIT_CODE_NODE_VERSION);
+    }
+  }
+
   // Check for known commands before loading config
-  const knownCommands = ['init', 'call', 'tools', 'roles', 'status', 'validate', 'configure', 'doctor', 'snapshot', 'diff', 'sync', 'rollback', 'cleanup', 'codex-setup', 'claude-setup', 'gemini-setup', 'export-env', 'mcp-config'];
+  const knownCommands = [
+    'init',
+    'call',
+    'tools',
+    'roles',
+    'status',
+    'validate',
+    'configure',
+    'doctor',
+    'snapshot',
+    'diff',
+    'sync',
+    'rollback',
+    'cleanup',
+    'codex-setup',
+    'claude-setup',
+    'gemini-setup',
+    'export-env',
+    'mcp-config',
+  ];
   if (!knownCommands.includes(command)) {
     outputError('UNKNOWN_COMMAND', `Unknown command: ${command}`, {
       available: [...knownCommands, 'help'],
@@ -3603,6 +3808,7 @@ async function main(): Promise<void> {
   if (command === 'init') {
     const exitCode = await handleInit({
       mode: options.mode as 'guided' | 'scaffold' | 'ai-handoff' | undefined,
+      repair: options.repair === 'true',
       skipConfirm: options['skip-confirm'] === 'true',
       skipSmokeTest: options['skip-smoke-test'] === 'true',
       json: options.json === 'true',
@@ -3727,10 +3933,12 @@ async function main(): Promise<void> {
   let config: WPConfig;
   // resolvedConfig available for future use (environment info, config path)
   let _resolvedConfig: ResolvedConfig | undefined;
+  let insecureMode: 'flag' | 'auto' | false = false;
   try {
     const loaded = loadConfiguration(options);
     config = loaded.config;
     _resolvedConfig = loaded.resolved;
+    insecureMode = loaded.insecureMode;
   } catch (error) {
     outputError('CONFIG_ERROR', 'Failed to load configuration', {
       error: error instanceof Error ? error.message : String(error),
@@ -3738,16 +3946,35 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // v2.4.0: Display warning when insecure mode is active
+  if (insecureMode === 'flag') {
+    console.error('⚠  WARNING: Running in insecure mode - HTTP connections allowed');
+  } else if (insecureMode === 'auto') {
+    console.error(`ℹ  Local development URL detected - HTTP allowed automatically`);
+  }
+
   // Initialize tools
   registerAllTools();
 
   // Configure feature flags
   toolRegistry.setFeatureFlag('WORKFLOWS_ENABLED', config.featureFlags.workflowsEnabled);
-  toolRegistry.setFeatureFlag('WP_BULK_VALIDATOR_ENABLED', config.featureFlags.bulkValidatorEnabled);
+  toolRegistry.setFeatureFlag(
+    'WP_BULK_VALIDATOR_ENABLED',
+    config.featureFlags.bulkValidatorEnabled
+  );
   toolRegistry.setFeatureFlag('WP_SEO_AUDIT_ENABLED', config.featureFlags.seoAuditEnabled);
-  toolRegistry.setFeatureFlag('WP_CONTENT_REVIEWER_ENABLED', config.featureFlags.contentReviewerEnabled);
-  toolRegistry.setFeatureFlag('WP_MIGRATION_PLANNER_ENABLED', config.featureFlags.migrationPlannerEnabled);
-  toolRegistry.setFeatureFlag('WP_PERFORMANCE_ANALYZER_ENABLED', config.featureFlags.performanceAnalyzerEnabled);
+  toolRegistry.setFeatureFlag(
+    'WP_CONTENT_REVIEWER_ENABLED',
+    config.featureFlags.contentReviewerEnabled
+  );
+  toolRegistry.setFeatureFlag(
+    'WP_MIGRATION_PLANNER_ENABLED',
+    config.featureFlags.migrationPlannerEnabled
+  );
+  toolRegistry.setFeatureFlag(
+    'WP_PERFORMANCE_ANALYZER_ENABLED',
+    config.featureFlags.performanceAnalyzerEnabled
+  );
 
   // Resolve role (CLI > env > config)
   let resolvedRoleResult: ResolvedRole | undefined;
@@ -3772,6 +3999,7 @@ async function main(): Promise<void> {
     wpRequest,
     role: resolvedRoleResult?.role ?? undefined,
     roleSource: resolvedRoleResult?.source,
+    resolved: _resolvedConfig,
   };
 
   // Route command
@@ -3802,7 +4030,26 @@ async function main(): Promise<void> {
 
     default:
       outputError('UNKNOWN_COMMAND', `Unknown command: ${command}`, {
-        available: ['init', 'call', 'tools', 'status', 'snapshot', 'diff', 'sync', 'rollback', 'validate', 'configure', 'doctor', 'cleanup', 'codex-setup', 'claude-setup', 'gemini-setup', 'export-env', 'mcp-config', 'help'],
+        available: [
+          'init',
+          'call',
+          'tools',
+          'status',
+          'snapshot',
+          'diff',
+          'sync',
+          'rollback',
+          'validate',
+          'configure',
+          'doctor',
+          'cleanup',
+          'codex-setup',
+          'claude-setup',
+          'gemini-setup',
+          'export-env',
+          'mcp-config',
+          'help',
+        ],
       });
       process.exit(1);
   }

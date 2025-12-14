@@ -44,12 +44,15 @@ export interface FormatOptions {
 export function extractParameters(tool: Tool): ParameterInfo[] {
   const schema = tool.inputSchema as {
     type?: string;
-    properties?: Record<string, {
-      type?: string;
-      description?: string;
-      enum?: string[];
-      default?: unknown;
-    }>;
+    properties?: Record<
+      string,
+      {
+        type?: string;
+        description?: string;
+        enum?: string[];
+        default?: unknown;
+      }
+    >;
     required?: string[];
   };
 
@@ -97,7 +100,7 @@ function escapeTableCell(text: string): string {
 function formatType(param: ParameterInfo): string {
   let type = param.type;
   if (param.enum && param.enum.length > 0) {
-    type = param.enum.map(v => `"${v}"`).join(' \\| ');
+    type = param.enum.map((v) => `"${v}"`).join(' \\| ');
   }
   return type;
 }
@@ -108,9 +111,8 @@ function formatType(param: ParameterInfo): string {
 function formatDescription(param: ParameterInfo): string {
   let desc = param.description;
   if (param.default !== undefined) {
-    const defaultStr = typeof param.default === 'string'
-      ? `"${param.default}"`
-      : String(param.default);
+    const defaultStr =
+      typeof param.default === 'string' ? `"${param.default}"` : String(param.default);
     desc += ` (default: ${defaultStr})`;
   }
   return escapeTableCell(desc);
@@ -152,7 +154,7 @@ export function generateExample(params: ParameterInfo[]): string {
     if (param.required) {
       // Always include required params
       example[param.name] = getExampleValue(param);
-    } else if (params.filter(p => p.required).length === 0) {
+    } else if (params.filter((p) => p.required).length === 0) {
       // If no required params, show first 2 optional ones
       if (Object.keys(example).length < 2) {
         example[param.name] = getExampleValue(param);
@@ -205,10 +207,7 @@ function formatCategoryName(category: string): string {
 /**
  * Format a single tool as markdown
  */
-export function formatToolMarkdown(
-  tool: ToolDocumentation,
-  options: FormatOptions = {}
-): string {
+export function formatToolMarkdown(tool: ToolDocumentation, options: FormatOptions = {}): string {
   const lines: string[] = [];
 
   // Tool heading

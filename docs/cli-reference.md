@@ -104,6 +104,33 @@ The CLI searches for configuration in this order:
 | `WPNAV_TOOL_TIMEOUT_MS` | `600000` | Per-tool timeout (10 minutes) |
 | `WPNAV_MAX_RESPONSE_KB` | `64` | Maximum response size before truncation |
 | `WPNAV_DEBUG_HTTP_TIMING` | `0` | Enable HTTP timing debug output |
+| `WP_APP_USER` | - | WordPress username (for env-based credential loading) |
+| `WP_APP_PASS` | - | WordPress application password (for env-based credential loading) |
+
+### Environment Variable Credentials (v2.4.0+)
+
+Credentials can reference environment variables in configuration files using the `$VAR` syntax:
+
+```json
+{
+  "environments": {
+    "local": {
+      "WP_BASE_URL": "http://localhost:8080",
+      "WP_REST_API": "http://localhost:8080/wp-json",
+      "WPNAV_BASE": "http://localhost:8080/wp-json/wpnav/v1",
+      "WPNAV_INTROSPECT": "http://localhost:8080/wp-json/wpnav/v1/introspect",
+      "WP_APP_USER": "$WP_APP_USER",
+      "WP_APP_PASS": "$WP_APP_PASS"
+    }
+  }
+}
+```
+
+This allows credentials to be stored in environment variables rather than config files, which is useful for:
+- CI/CD pipelines
+- Docker containers
+- Shared team configurations
+- Keeping secrets out of version control
 
 ---
 
@@ -125,7 +152,20 @@ npx wpnav init --mode scaffold
 
 # Create files + AI handoff document
 npx wpnav init --mode ai-handoff
+
+# Repair existing configuration (v2.4.0+)
+npx wpnav init --repair
 ```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--mode <type>` | Setup mode: `guided`, `scaffold`, or `ai-handoff` |
+| `--repair` | Validate and fix existing configuration files (v2.4.0+) |
+| `--express` | Use detected defaults without prompts |
+| `--skip-smoke-test` | Skip the connection test |
+| `--json` | Output results as JSON |
 
 **Modes:**
 
@@ -134,6 +174,22 @@ npx wpnav init --mode ai-handoff
 | `guided` | Interactive wizard that walks you through setup |
 | `scaffold` | Creates template files without prompts |
 | `ai-handoff` | Creates files + AI-ready handoff document for agents |
+
+**Repair Mode (v2.4.0+):**
+
+The `--repair` flag provides idempotent configuration management:
+- Detects existing configuration files
+- Validates each file for syntax and schema compliance
+- Offers to regenerate missing or broken files
+- Preserves valid credentials and settings
+
+```bash
+# Check and fix configuration
+npx wpnav init --repair
+
+# Automatically offered when init detects existing config
+npx wpnav init  # Will prompt: "Repair existing config?"
+```
 
 **Generated files:**
 

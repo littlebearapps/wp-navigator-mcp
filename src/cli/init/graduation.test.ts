@@ -115,7 +115,8 @@ describe('Graduation Prompt', () => {
     });
 
     it('wraps long text at word boundaries', () => {
-      const text = 'This is a very long prompt that should be wrapped across multiple lines for better terminal display';
+      const text =
+        'This is a very long prompt that should be wrapped across multiple lines for better terminal display';
       const formatted = formatPromptForTerminal(text, 30);
 
       const lines = formatted.split('\n');

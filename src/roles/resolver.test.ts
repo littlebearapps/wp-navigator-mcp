@@ -110,9 +110,7 @@ describe('resolveRole', () => {
     it('throws RoleNotFoundError for invalid CLI role', () => {
       mockGetRole.mockImplementation(() => null);
 
-      expect(() =>
-        resolveRole({ cliRole: 'nonexistent' })
-      ).toThrow(RoleNotFoundError);
+      expect(() => resolveRole({ cliRole: 'nonexistent' })).toThrow(RoleNotFoundError);
 
       try {
         resolveRole({ cliRole: 'nonexistent' });
@@ -142,9 +140,7 @@ describe('resolveRole', () => {
     it('throws RoleNotFoundError for invalid config role', () => {
       mockGetRole.mockImplementation(() => null);
 
-      expect(() =>
-        resolveRole({ configDefaultRole: 'nonexistent' })
-      ).toThrow(RoleNotFoundError);
+      expect(() => resolveRole({ configDefaultRole: 'nonexistent' })).toThrow(RoleNotFoundError);
 
       try {
         resolveRole({ configDefaultRole: 'nonexistent' });
@@ -166,11 +162,7 @@ describe('resolveRole', () => {
 
 describe('RoleNotFoundError', () => {
   it('includes helpful error message', () => {
-    const err = new RoleNotFoundError(
-      'test-role',
-      ['content-editor', 'developer'],
-      'cli'
-    );
+    const err = new RoleNotFoundError('test-role', ['content-editor', 'developer'], 'cli');
 
     expect(err.message).toContain('test-role');
     expect(err.message).toContain('--role flag');
@@ -219,16 +211,20 @@ describe('formatRoleInfo', () => {
   });
 
   it('shows different sources correctly', () => {
-    expect(formatRoleInfo({
-      role: contentEditorRole,
-      source: 'env',
-      roleName: 'content-editor',
-    })).toContain('WPNAV_ROLE');
+    expect(
+      formatRoleInfo({
+        role: contentEditorRole,
+        source: 'env',
+        roleName: 'content-editor',
+      })
+    ).toContain('WPNAV_ROLE');
 
-    expect(formatRoleInfo({
-      role: contentEditorRole,
-      source: 'config',
-      roleName: 'content-editor',
-    })).toContain('config default_role');
+    expect(
+      formatRoleInfo({
+        role: contentEditorRole,
+        source: 'config',
+        roleName: 'content-editor',
+      })
+    ).toContain('config default_role');
   });
 });

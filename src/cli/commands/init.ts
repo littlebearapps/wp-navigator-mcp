@@ -13,12 +13,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import {
-  inputPrompt,
-  selectPrompt,
-  confirmPrompt,
-  pressEnterToContinue,
-} from '../tui/prompts.js';
+import { inputPrompt, selectPrompt, confirmPrompt, pressEnterToContinue } from '../tui/prompts.js';
 import {
   success,
   error as errorMessage,
@@ -38,13 +33,7 @@ import {
   supportsColor,
   modeIndicator,
 } from '../tui/components.js';
-import {
-  printResourceLinks,
-  demoLink,
-  helpLink,
-  docsLink,
-  WPNAV_URLS,
-} from '../tui/links.js';
+import { printResourceLinks, demoLink, helpLink, docsLink, WPNAV_URLS } from '../tui/links.js';
 import {
   detectPlugin,
   checkMcpCompatibility,
@@ -60,10 +49,7 @@ import {
   generateMcpJson,
   getDefaultClaudeMdContext,
 } from '../init/generators.js';
-import {
-  runSmokeTest,
-  displaySmokeTestResult,
-} from '../init/smoke-test.js';
+import { runSmokeTest, displaySmokeTestResult } from '../init/smoke-test.js';
 import {
   detectEnvironment,
   getExpressDefaults,
@@ -71,14 +57,13 @@ import {
   describeDefaults,
   isLocalUrl,
 } from '../init/defaults.js';
-import {
-  displayGraduationPrompt,
-} from '../init/graduation.js';
+import { displayGraduationPrompt } from '../init/graduation.js';
 import {
   generateGitignore,
   checkTrackedSensitiveFiles,
   generateGitignoreAppend,
 } from '../init/gitignore.js';
+import { handleRepairMode, shouldOfferRepair, buildRepairState } from '../init/repair.js';
 
 // =============================================================================
 // Types
@@ -90,6 +75,7 @@ export type AIPlatform = 'claude' | 'codex' | 'gemini' | 'all';
 
 export interface InitOptions {
   mode?: InitMode;
+  repair?: boolean;
   skipConfirm?: boolean;
   skipSmokeTest?: boolean;
   silent?: boolean;
@@ -1082,7 +1068,12 @@ These are the important files in this WP Navigator project:
   }
 
   // If everything is done, provide next-level steps
-  if (state.projectScaffolded && state.credentialsExist && state.snapshotsExist && state.manifestConfigured) {
+  if (
+    state.projectScaffolded &&
+    state.credentialsExist &&
+    state.snapshotsExist &&
+    state.manifestConfigured
+  ) {
     nextSteps.push('Help user plan their first site changes');
     nextSteps.push('When ready, guide user through `npx wpnav sync --dry-run`');
   }
@@ -1352,7 +1343,9 @@ async function scaffoldProject(cwd: string, platform: AIPlatform = 'all'): Promi
         result.skipped.push(`sample-prompts/${filename}`);
       }
     } catch (err) {
-      result.errors.push(`sample-prompts/${filename}: ${err instanceof Error ? err.message : String(err)}`);
+      result.errors.push(
+        `sample-prompts/${filename}: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 
@@ -1395,7 +1388,12 @@ function displayScaffoldResults(result: ScaffoldResult): void {
 /**
  * Smart URL validation with auto-correction suggestions
  */
-function smartValidateUrl(url: string): { valid: boolean; corrected?: string; warning?: string; error?: string } {
+function smartValidateUrl(url: string): {
+  valid: boolean;
+  corrected?: string;
+  warning?: string;
+  error?: string;
+} {
   if (!url || url.trim() === '') {
     return { valid: false, error: 'URL is required' };
   }
@@ -1440,7 +1438,11 @@ function smartValidateUrl(url: string): { valid: boolean; corrected?: string; wa
 /**
  * Validate Application Password format with feedback
  */
-function validateAppPassword(password: string): { valid: boolean; feedback?: string; error?: string } {
+function validateAppPassword(password: string): {
+  valid: boolean;
+  feedback?: string;
+  error?: string;
+} {
   if (!password || password.trim() === '') {
     return { valid: false, error: 'Password is required' };
   }
@@ -1452,7 +1454,8 @@ function validateAppPassword(password: string): { valid: boolean; feedback?: str
   if (cleaned.length < 16) {
     return {
       valid: false,
-      error: 'Password seems too short. WordPress Application Passwords are typically 24 characters.',
+      error:
+        'Password seems too short. WordPress Application Passwords are typically 24 characters.',
     };
   }
 
@@ -1467,7 +1470,7 @@ function validateAppPassword(password: string): { valid: boolean; feedback?: str
   // Non-standard format, allow but warn
   return {
     valid: true,
-    feedback: 'Password format looks unusual, but we\'ll test it.',
+    feedback: "Password format looks unusual, but we'll test it.",
   };
 }
 
@@ -1710,7 +1713,7 @@ If MCP is configured correctly, it will fetch and display your pages.
 async function showEntryScreen(): Promise<InitMode> {
   displayHeader();
 
-  console.error('Welcome! Let\'s get your project ready.');
+  console.error("Welcome! Let's get your project ready.");
   newline();
 
   const choice = await selectPrompt({
@@ -1758,7 +1761,7 @@ async function selectPlatform(): Promise<AIPlatform> {
         value: 'gemini',
       },
       {
-        label: 'All of them / I\'m not sure',
+        label: "All of them / I'm not sure",
         value: 'all',
       },
     ],
@@ -1892,7 +1895,6 @@ async function handleAIHandoffMode(cwd: string): Promise<void> {
   console.error('     Upload this folder or connect via GitHub');
   newline();
 
-
   divider(50);
   newline();
 
@@ -1919,7 +1921,9 @@ complete my WP Navigator setup."`,
   ].filter(Boolean).length;
 
   if (pendingCount > 0) {
-    info(`The AI will help you complete ${pendingCount} remaining step${pendingCount > 1 ? 's' : ''}.`);
+    info(
+      `The AI will help you complete ${pendingCount} remaining step${pendingCount > 1 ? 's' : ''}.`
+    );
   } else {
     success('All setup steps are complete! The AI can help you start managing your site.');
   }
@@ -1934,12 +1938,14 @@ complete my WP Navigator setup."`,
  * Step 1: Scaffold project files
  * @returns Object with success status and selected platform
  */
-async function guidedStep1Scaffold(cwd: string): Promise<{ success: boolean; platform: AIPlatform }> {
+async function guidedStep1Scaffold(
+  cwd: string
+): Promise<{ success: boolean; platform: AIPlatform }> {
   displayStep(1, TOTAL_GUIDED_STEPS, 'Create project files');
 
-  info('We\'ll create:');
+  info("We'll create:");
   list([
-    'wpnavigator.jsonc        (your site\'s configuration / intent)',
+    "wpnavigator.jsonc        (your site's configuration / intent)",
     'snapshots/               (where site snapshots will live)',
     'roles/                   (AI behaviour definitions)',
     'docs/README.md           (quick reference)',
@@ -2003,7 +2009,7 @@ async function guidedStep2Plugin(): Promise<boolean> {
     return true; // Continue but note the skip
   }
 
-  success('Great! Let\'s connect to your site.');
+  success("Great! Let's connect to your site.");
   return true;
 }
 
@@ -2017,17 +2023,35 @@ interface ConnectResult {
   pluginVersion?: string;
 }
 
-async function guidedStep3Connect(cwd: string, options: { skipSmokeTest?: boolean } = {}): Promise<ConnectResult> {
+async function guidedStep3Connect(
+  cwd: string,
+  options: { skipSmokeTest?: boolean } = {}
+): Promise<ConnectResult> {
   displayStep(3, TOTAL_GUIDED_STEPS, 'Connect to WordPress');
 
   info('We only store your details locally in a .wpnav.env file (which is git-ignored).');
   newline();
+
+  // v2.4.0: Pre-populate from environment variables (for Docker/CI)
+  const envSiteUrl = process.env.WPNAV_SITE_URL || process.env.WP_BASE_URL || '';
+  const envUsername = process.env.WPNAV_USERNAME || process.env.WP_APP_USER || '';
+  const envPassword = process.env.WPNAV_APP_PASSWORD || process.env.WP_APP_PASS || '';
+
+  // Inform user if credentials detected from environment
+  if (envSiteUrl || envUsername || envPassword) {
+    info('Detected credentials from environment variables:');
+    if (envSiteUrl) info(`  Site URL: ${envSiteUrl}`);
+    if (envUsername) info(`  Username: ${envUsername}`);
+    if (envPassword) info(`  Password: ****`);
+    newline();
+  }
 
   // Get WordPress URL with smart validation
   let siteUrl = '';
   while (true) {
     const urlInput = await inputPrompt({
       message: 'WordPress URL (e.g. https://example.com)',
+      defaultValue: envSiteUrl || undefined,
     });
 
     const urlResult = smartValidateUrl(urlInput);
@@ -2051,32 +2075,51 @@ async function guidedStep3Connect(cwd: string, options: { skipSmokeTest?: boolea
   // Get username
   const username = await inputPrompt({
     message: 'WordPress username (Administrator)',
+    defaultValue: envUsername || undefined,
     validate: (v) => (v.length < 2 ? 'Username must be at least 2 characters' : null),
   });
 
   // Get Application Password with validation
   newline();
-  info(`Generate an Application Password at:`);
-  info(`${siteUrl}/wp-admin/profile.php#application-passwords`);
-  newline();
 
   let password = '';
-  while (true) {
-    password = await inputPrompt({
-      message: 'Application Password',
-      secret: true,
+
+  // If password was detected from env, offer to use it or override
+  if (envPassword) {
+    const useEnvPassword = await confirmPrompt({
+      message: 'Use Application Password from environment variable?',
+      defaultValue: true,
     });
 
-    const passResult = validateAppPassword(password);
-    if (!passResult.valid) {
-      errorMessage(passResult.error || 'Invalid password');
-      continue;
+    if (useEnvPassword) {
+      password = envPassword;
+      success('Using password from environment');
     }
+  }
 
-    if (passResult.feedback) {
-      success(passResult.feedback);
+  // If no env password or user chose to override, prompt for it
+  if (!password) {
+    info(`Generate an Application Password at:`);
+    info(`${siteUrl}/wp-admin/profile.php#application-passwords`);
+    newline();
+
+    while (true) {
+      password = await inputPrompt({
+        message: 'Application Password',
+        secret: true,
+      });
+
+      const passResult = validateAppPassword(password);
+      if (!passResult.valid) {
+        errorMessage(passResult.error || 'Invalid password');
+        continue;
+      }
+
+      if (passResult.feedback) {
+        success(passResult.feedback);
+      }
+      break;
     }
-    break;
   }
 
   // Test connection
@@ -2222,7 +2265,9 @@ async function guidedStep4Setup(cwd: string, siteUrl?: string): Promise<boolean>
     // Check if we have valid connection
     const envPath = path.join(cwd, '.wpnav.env');
     if (!fs.existsSync(envPath)) {
-      warning('No connection configured. Run "npx wpnav configure" first, then "npx wpnav snapshot site"');
+      warning(
+        'No connection configured. Run "npx wpnav configure" first, then "npx wpnav snapshot site"'
+      );
       return true;
     }
 
@@ -2239,7 +2284,7 @@ async function guidedStep4Setup(cwd: string, siteUrl?: string): Promise<boolean>
   } else {
     // Full Setup: Brand and style config
     newline();
-    info('Let\'s configure your brand settings.');
+    info("Let's configure your brand settings.");
     newline();
 
     // Read manifest to update
@@ -2342,10 +2387,10 @@ async function guidedStep5Summary(cwd: string): Promise<void> {
   modeIndicator(false);
   newline();
 
-  info('Here\'s what we\'ve set up for you:');
+  info("Here's what we've set up for you:");
   newline();
   list([
-    'wpnavigator.jsonc   (your site\'s configuration / intent)',
+    "wpnavigator.jsonc   (your site's configuration / intent)",
     'snapshots/          (structured data about your site)',
     'roles/              (reserved for future AI roles)',
     'sample-prompts/     (ready-to-use AI prompts)',
@@ -2445,7 +2490,11 @@ async function handleInitJson(cwd: string, options: InitOptions): Promise<number
     // Save credentials
     const envPath = path.join(cwd, '.wpnav.env');
     try {
-      const envContent = generateWpnavEnvContent(options.siteUrl, options.username, options.password);
+      const envContent = generateWpnavEnvContent(
+        options.siteUrl,
+        options.username,
+        options.password
+      );
       writeWpnavEnvAtomic(envPath, envContent);
       result.files_created.push('.wpnav.env');
     } catch (err) {
@@ -2504,7 +2553,9 @@ async function handleInitExpress(cwd: string, options: InitOptions): Promise<num
     errorMessage('Express mode requires --site, --user, and --password flags');
     newline();
     info('Example:');
-    console.error('  wpnav init --express --site https://example.com --user admin --password "xxxx xxxx xxxx xxxx"');
+    console.error(
+      '  wpnav init --express --site https://example.com --user admin --password "xxxx xxxx xxxx xxxx"'
+    );
     return 1;
   }
 
@@ -2611,6 +2662,7 @@ export async function handleInit(options: InitOptions = {}): Promise<number> {
   const cwd = process.cwd();
   const isJson = options.json === true;
   const isExpress = options.express === true;
+  const isRepair = options.repair === true;
 
   // JSON mode: non-interactive, use handleInitJson
   if (isJson) {
@@ -2622,20 +2674,55 @@ export async function handleInit(options: InitOptions = {}): Promise<number> {
     return handleInitExpress(cwd, options);
   }
 
-  // Check if already initialized
-  const manifestExists = fs.existsSync(path.join(cwd, 'wpnavigator.jsonc'));
+  // Repair mode: explicitly requested via --repair flag
+  if (isRepair) {
+    if (!shouldOfferRepair(cwd)) {
+      warning('No existing WP Navigator configuration found.');
+      info('Running full init instead...');
+      newline();
+    } else {
+      return handleRepairMode(cwd);
+    }
+  }
 
-  if (manifestExists && !options.skipConfirm) {
-    warning('This directory already has a wpnavigator.jsonc file.');
+  // Check if existing config detected (idempotent behavior)
+  const hasExistingConfig = shouldOfferRepair(cwd);
+
+  if (hasExistingConfig && !options.skipConfirm && !options.mode) {
+    // Offer repair mode when existing config is detected
+    warning('Existing WP Navigator configuration detected.');
     newline();
-    const continueInit = await confirmPrompt({
-      message: 'Continue anyway? (existing files will be preserved)',
-      defaultValue: false,
+
+    const action = await selectPrompt({
+      message: 'What would you like to do?',
+      choices: [
+        {
+          label: 'Repair/validate existing configuration',
+          value: 'repair',
+          recommended: true,
+        },
+        {
+          label: 'Start fresh (preserve existing files)',
+          value: 'continue',
+        },
+        {
+          label: 'Exit',
+          value: 'exit',
+        },
+      ],
     });
-    if (!continueInit) {
-      info('Init cancelled. Use "npx wpnav configure" to update credentials.');
+
+    if (action === 'repair') {
+      return handleRepairMode(cwd);
+    }
+
+    if (action === 'exit') {
+      info('Use "npx wpnav init --repair" anytime to validate configuration.');
       return 0;
     }
+
+    // Continue with fresh init (preserving files)
+    newline();
   }
 
   // Determine mode

@@ -59,7 +59,12 @@ const validCookbook: Cookbook = {
         tag: 'products',
         description: 'Display a grid of products',
         params: [
-          { name: 'limit', type: 'number', default: '10', description: 'Number of products to display' },
+          {
+            name: 'limit',
+            type: 'number',
+            default: '10',
+            description: 'Number of products to display',
+          },
           { name: 'category', type: 'string', description: 'Product category slug' },
         ],
         example: '[products limit="12" category="clothing"]',
@@ -275,9 +280,7 @@ describe('validateCookbook', () => {
       const cookbook = {
         ...minimalCookbook,
         capabilities: {
-          rest_endpoints: [
-            { route: '/api/test', description: 'Test', methods: ['INVALID'] },
-          ],
+          rest_endpoints: [{ route: '/api/test', description: 'Test', methods: ['INVALID'] }],
         },
       };
       expect(() => validateCookbook(cookbook, '/test/cookbook.yaml')).toThrow(
@@ -310,9 +313,7 @@ describe('validateCookbook', () => {
     it('rejects invalid difficulty', () => {
       const cookbook = {
         ...minimalCookbook,
-        common_tasks: [
-          { id: 'task1', title: 'Task', steps: ['Step 1'], difficulty: 'expert' },
-        ],
+        common_tasks: [{ id: 'task1', title: 'Task', steps: ['Step 1'], difficulty: 'expert' }],
       };
       expect(() => validateCookbook(cookbook, '/test/cookbook.yaml')).toThrow(
         CookbookValidationError
@@ -324,9 +325,7 @@ describe('validateCookbook', () => {
       for (const difficulty of difficulties) {
         const cookbook = {
           ...minimalCookbook,
-          common_tasks: [
-            { id: 'task1', title: 'Task', steps: ['Step 1'], difficulty },
-          ],
+          common_tasks: [{ id: 'task1', title: 'Task', steps: ['Step 1'], difficulty }],
         };
         expect(() => validateCookbook(cookbook, '/test/cookbook.yaml')).not.toThrow();
       }
@@ -622,10 +621,7 @@ capabilities: {}
   });
 
   it('tracks errors separately', () => {
-    fs.writeFileSync(
-      path.join(projectCookbooksDir, 'invalid.yaml'),
-      'invalid yaml content'
-    );
+    fs.writeFileSync(path.join(projectCookbooksDir, 'invalid.yaml'), 'invalid yaml content');
 
     const result = discoverCookbooks({ projectDir: tempDir, includeBundled: false });
     expect(result.errors).toHaveLength(1);

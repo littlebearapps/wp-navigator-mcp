@@ -34,7 +34,11 @@ export const logger = {
 function redactMeta(meta: Record<string, any>) {
   const out: Record<string, any> = {};
   for (const [k, v] of Object.entries(meta)) {
-    if (k.toLowerCase().includes('password') || k.toLowerCase().includes('authorization') || k.toLowerCase().includes('token')) {
+    if (
+      k.toLowerCase().includes('password') ||
+      k.toLowerCase().includes('authorization') ||
+      k.toLowerCase().includes('token')
+    ) {
       out[k] = redact(String(v));
     } else {
       out[k] = v;
@@ -42,4 +46,3 @@ function redactMeta(meta: Record<string, any>) {
   }
   return out;
 }
-

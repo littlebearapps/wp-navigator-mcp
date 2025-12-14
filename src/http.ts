@@ -61,7 +61,9 @@ export function makeWpRequest(config: WPConfig) {
         throw new Error(`Unsupported URL scheme: ${u.protocol}`);
       }
       if (!isLocal && u.protocol !== 'https:' && !config.toggles.allowInsecureHttp) {
-        throw new Error(`Non-HTTPS request blocked to ${origin}. Set ALLOW_INSECURE_HTTP=1 for dev.`);
+        throw new Error(
+          `Non-HTTPS request blocked to ${origin}. Set ALLOW_INSECURE_HTTP=1 for dev.`
+        );
       }
       return u.toString();
     }
@@ -72,7 +74,9 @@ export function makeWpRequest(config: WPConfig) {
   return async function wpRequest(endpoint: string, options: RequestInitEx = {}): Promise<any> {
     // Debug: log endpoint to trace URL encoding
     console.error(`[wpRequest] endpoint received: ${endpoint}`);
-    const authHeader = Buffer.from(`${config.auth.username}:${config.auth.password}`).toString('base64');
+    const authHeader = Buffer.from(`${config.auth.username}:${config.auth.password}`).toString(
+      'base64'
+    );
     const url = buildUrl(endpoint);
     console.error(`[wpRequest] final URL: ${url}`);
     const method = (options.method || 'GET').toUpperCase();
@@ -97,7 +101,9 @@ export function makeWpRequest(config: WPConfig) {
     // Default write-deny (safe-by-default). Phase 4 will route writes via plan/diff/apply.
     const isWrite = method !== 'GET' && method !== 'HEAD';
     if (isWrite && !config.toggles.enableWrites) {
-      throw new Error('WRITES_DISABLED: MCP server env var WPNAV_ENABLE_WRITES=1 not set. Add to your .mcp.json env configuration (this is NOT a WordPress setting).');
+      throw new Error(
+        'WRITES_DISABLED: MCP server env var WPNAV_ENABLE_WRITES=1 not set. Add to your .mcp.json env configuration (this is NOT a WordPress setting).'
+      );
     }
 
     const controller = new AbortController();
@@ -172,9 +178,25 @@ export function makeWpRequest(config: WPConfig) {
           const parsed = parseWpError(errorText);
           if (parsed) {
             const { code, message } = parsed;
-            throw createEnhancedError(res.status, code || 'WP_ERROR', message, method, endpoint, config.auth.username, baseOrigin);
+            throw createEnhancedError(
+              res.status,
+              code || 'WP_ERROR',
+              message,
+              method,
+              endpoint,
+              config.auth.username,
+              baseOrigin
+            );
           }
-          throw createEnhancedError(res.status, 'unknown', errorText, method, endpoint, config.auth.username, baseOrigin);
+          throw createEnhancedError(
+            res.status,
+            'unknown',
+            errorText,
+            method,
+            endpoint,
+            config.auth.username,
+            baseOrigin
+          );
         } catch (e: any) {
           if (e?.name === 'AbortError') {
             lastErr = new Error(`Request timed out after ${timeoutMs}ms`);
@@ -239,55 +261,55 @@ function createEnhancedError(
     case 401:
       return new Error(
         `❌ Authentication Failed (401)\n\n` +
-        `Problem: ${message}\n` +
-        `Code: ${code}\n` +
-        `Context: ${method} ${endpoint}\n` +
-        `Username: ${username}\n\n` +
-        `Likely Cause: Your Application Password is invalid or expired.\n\n` +
-        `How to Fix:\n` +
-        `1. Open WordPress admin: ${baseUrl}/wp-admin\n` +
-        `2. Login as user: ${username}\n` +
-        `3. Go to: Users → Profile → Application Passwords\n` +
-        `4. Generate a new password named "wp-navigator"\n` +
-        `5. Update WP_APP_PASS in .local-wp.env (or your environment)\n` +
-        `6. Restart your MCP server / AI agent session\n\n` +
-        `Note: Application Passwords expire and can be revoked.\n` +
-        `      You'll need to regenerate them periodically.\n\n`
+          `Problem: ${message}\n` +
+          `Code: ${code}\n` +
+          `Context: ${method} ${endpoint}\n` +
+          `Username: ${username}\n\n` +
+          `Likely Cause: Your Application Password is invalid or expired.\n\n` +
+          `How to Fix:\n` +
+          `1. Open WordPress admin: ${baseUrl}/wp-admin\n` +
+          `2. Login as user: ${username}\n` +
+          `3. Go to: Users → Profile → Application Passwords\n` +
+          `4. Generate a new password named "wp-navigator"\n` +
+          `5. Update WP_APP_PASS in .local-wp.env (or your environment)\n` +
+          `6. Restart your MCP server / AI agent session\n\n` +
+          `Note: Application Passwords expire and can be revoked.\n` +
+          `      You'll need to regenerate them periodically.\n\n`
       );
 
     case 403:
       return new Error(
         `❌ Permission Denied (403)\n\n` +
-        `Problem: ${message}\n` +
-        `Code: ${code}\n` +
-        `Context: ${method} ${endpoint}\n` +
-        `Username: ${username}\n\n` +
-        `Likely Causes:\n` +
-        `1. User doesn't have required WordPress capabilities\n` +
-        `2. WP Navigator policy settings are blocking this action\n` +
-        `3. WordPress nonce validation failed\n\n` +
-        `How to Fix:\n` +
-        `1. Check user capabilities: ${baseUrl}/wp-admin/user-edit.php\n` +
-        `2. Review WP Navigator policy: ${baseUrl}/wp-admin/admin.php?page=wp-navigator\n` +
-        `3. Ensure user has 'edit_posts' or higher capability\n` +
-        `4. Check if site is frozen (kill switch active)\n\n`
+          `Problem: ${message}\n` +
+          `Code: ${code}\n` +
+          `Context: ${method} ${endpoint}\n` +
+          `Username: ${username}\n\n` +
+          `Likely Causes:\n` +
+          `1. User doesn't have required WordPress capabilities\n` +
+          `2. WP Navigator policy settings are blocking this action\n` +
+          `3. WordPress nonce validation failed\n\n` +
+          `How to Fix:\n` +
+          `1. Check user capabilities: ${baseUrl}/wp-admin/user-edit.php\n` +
+          `2. Review WP Navigator policy: ${baseUrl}/wp-admin/admin.php?page=wp-navigator\n` +
+          `3. Ensure user has 'edit_posts' or higher capability\n` +
+          `4. Check if site is frozen (kill switch active)\n\n`
       );
 
     case 404:
       return new Error(
         `❌ Resource Not Found (404)\n\n` +
-        `Problem: ${message}\n` +
-        `Code: ${code}\n` +
-        `Context: ${method} ${endpoint}\n\n` +
-        `Likely Causes:\n` +
-        `1. The resource ID doesn't exist\n` +
-        `2. The endpoint is not registered\n` +
-        `3. The wp-navigator-pro plugin is not activated\n\n` +
-        `How to Fix:\n` +
-        `1. Verify the resource exists in WordPress\n` +
-        `2. Check plugin is activated: ${baseUrl}/wp-admin/plugins.php\n` +
-        `3. Test introspect endpoint: ${baseUrl}/?rest_route=/wpnav/v1/introspect\n` +
-        `4. Review available endpoints in introspect response\n\n`
+          `Problem: ${message}\n` +
+          `Code: ${code}\n` +
+          `Context: ${method} ${endpoint}\n\n` +
+          `Likely Causes:\n` +
+          `1. The resource ID doesn't exist\n` +
+          `2. The endpoint is not registered\n` +
+          `3. The wp-navigator-pro plugin is not activated\n\n` +
+          `How to Fix:\n` +
+          `1. Verify the resource exists in WordPress\n` +
+          `2. Check plugin is activated: ${baseUrl}/wp-admin/plugins.php\n` +
+          `3. Test introspect endpoint: ${baseUrl}/?rest_route=/wpnav/v1/introspect\n` +
+          `4. Review available endpoints in introspect response\n\n`
       );
 
     case 500:
@@ -295,30 +317,30 @@ function createEnhancedError(
     case 503:
       return new Error(
         `❌ Server Error (${status})\n\n` +
-        `Problem: ${message}\n` +
-        `Code: ${code}\n` +
-        `Context: ${method} ${endpoint}\n\n` +
-        `Likely Causes:\n` +
-        `1. PHP error in WordPress or plugin code\n` +
-        `2. Database connection issue\n` +
-        `3. Memory limit exceeded\n` +
-        `4. Plugin conflict\n\n` +
-        `How to Debug:\n` +
-        `1. Check WordPress debug log: wp-content/debug.log\n` +
-        `2. Check PHP error logs (location varies by server)\n` +
-        `3. Try disabling other plugins to isolate conflict\n` +
-        `4. Increase PHP memory limit if needed (wp-config.php)\n\n` +
-        `Enable WordPress Debug Mode:\n` +
-        `  In wp-config.php, set: define('WP_DEBUG', true);\n` +
-        `  And: define('WP_DEBUG_LOG', true);\n\n`
+          `Problem: ${message}\n` +
+          `Code: ${code}\n` +
+          `Context: ${method} ${endpoint}\n\n` +
+          `Likely Causes:\n` +
+          `1. PHP error in WordPress or plugin code\n` +
+          `2. Database connection issue\n` +
+          `3. Memory limit exceeded\n` +
+          `4. Plugin conflict\n\n` +
+          `How to Debug:\n` +
+          `1. Check WordPress debug log: wp-content/debug.log\n` +
+          `2. Check PHP error logs (location varies by server)\n` +
+          `3. Try disabling other plugins to isolate conflict\n` +
+          `4. Increase PHP memory limit if needed (wp-config.php)\n\n` +
+          `Enable WordPress Debug Mode:\n` +
+          `  In wp-config.php, set: define('WP_DEBUG', true);\n` +
+          `  And: define('WP_DEBUG_LOG', true);\n\n`
       );
 
     default:
       return new Error(
         `❌ HTTP ${status} Error\n\n` +
-        `Problem: ${message}\n` +
-        `Code: ${code}\n` +
-        `Context: ${method} ${endpoint}\n\n`
+          `Problem: ${message}\n` +
+          `Code: ${code}\n` +
+          `Context: ${method} ${endpoint}\n\n`
       );
   }
 }
@@ -336,20 +358,20 @@ function createFormatError(
 ): Error {
   return new Error(
     `❌ Invalid Response Format\n\n` +
-    `Problem: WordPress returned HTML instead of JSON\n` +
-    `Context: ${method} ${endpoint}\n` +
-    `Response Type: ${contentType || 'unknown'}\n` +
-    `Status: ${status}\n\n` +
-    `Likely Causes:\n` +
-    `1. WordPress permalink settings causing redirect issues\n` +
-    `2. Plugin not activated on WordPress site\n` +
-    `3. REST API endpoint not registered\n` +
-    `4. WordPress is showing an error page\n\n` +
-    `How to Fix:\n` +
-    `1. Verify WordPress is running: ${baseUrl}/wp-admin\n` +
-    `2. Check if wp-navigator-pro plugin is activated\n` +
-    `3. Test REST API directly: ${baseUrl}/wp-json/\n` +
-    `4. Check WordPress debug log for errors (wp-content/debug.log)\n` +
-    `5. Verify permalink structure is set (Settings → Permalinks)\n\n`
+      `Problem: WordPress returned HTML instead of JSON\n` +
+      `Context: ${method} ${endpoint}\n` +
+      `Response Type: ${contentType || 'unknown'}\n` +
+      `Status: ${status}\n\n` +
+      `Likely Causes:\n` +
+      `1. WordPress permalink settings causing redirect issues\n` +
+      `2. Plugin not activated on WordPress site\n` +
+      `3. REST API endpoint not registered\n` +
+      `4. WordPress is showing an error page\n\n` +
+      `How to Fix:\n` +
+      `1. Verify WordPress is running: ${baseUrl}/wp-admin\n` +
+      `2. Check if wp-navigator-pro plugin is activated\n` +
+      `3. Test REST API directly: ${baseUrl}/wp-json/\n` +
+      `4. Check WordPress debug log for errors (wp-content/debug.log)\n` +
+      `5. Verify permalink structure is set (Settings → Permalinks)\n\n`
   );
 }

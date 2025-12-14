@@ -460,11 +460,7 @@ export function validateManifest(manifest: unknown, filePath: string): WPNavMani
 
   // Validate meta (required)
   if (!obj.meta || typeof obj.meta !== 'object') {
-    throw new ManifestValidationError(
-      'Missing or invalid meta section',
-      filePath,
-      'meta'
-    );
+    throw new ManifestValidationError('Missing or invalid meta section', filePath, 'meta');
   }
 
   const meta = obj.meta as Record<string, unknown>;
@@ -479,11 +475,7 @@ export function validateManifest(manifest: unknown, filePath: string): WPNavMani
   // Validate pages array if present
   if (obj.pages !== undefined) {
     if (!Array.isArray(obj.pages)) {
-      throw new ManifestValidationError(
-        'pages must be an array',
-        filePath,
-        'pages'
-      );
+      throw new ManifestValidationError('pages must be an array', filePath, 'pages');
     }
 
     for (let i = 0; i < obj.pages.length; i++) {

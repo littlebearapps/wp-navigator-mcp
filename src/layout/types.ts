@@ -306,7 +306,10 @@ export interface ShortcodeAttributes extends LayoutAttributes {
 /**
  * Base layout element (abstract)
  */
-export interface LayoutElementBase<T extends LayoutElementType, A extends LayoutAttributes = LayoutAttributes> {
+export interface LayoutElementBase<
+  T extends LayoutElementType,
+  A extends LayoutAttributes = LayoutAttributes,
+> {
   /** Element type identifier */
   type: T;
   /** Element attributes (styling hints) */
@@ -318,8 +321,10 @@ export interface LayoutElementBase<T extends LayoutElementType, A extends Layout
 /**
  * Text content for simple elements
  */
-export interface TextLayoutElement<T extends LayoutElementType, A extends LayoutAttributes = LayoutAttributes>
-  extends LayoutElementBase<T, A> {
+export interface TextLayoutElement<
+  T extends LayoutElementType,
+  A extends LayoutAttributes = LayoutAttributes,
+> extends LayoutElementBase<T, A> {
   /** Text/HTML content */
   content: string;
 }
@@ -404,7 +409,9 @@ export interface NeutralLayout {
 /**
  * Check if element has text content
  */
-export function hasTextContent(element: LayoutElement): element is LayoutElement & { content: string } {
+export function hasTextContent(
+  element: LayoutElement
+): element is LayoutElement & { content: string } {
   return 'content' in element && typeof (element as any).content === 'string';
 }
 
@@ -419,7 +426,14 @@ export function hasChildren(element: LayoutElement): boolean {
  * Check if element is structural (container)
  */
 export function isStructuralElement(element: LayoutElement): boolean {
-  const structuralTypes: LayoutElementType[] = ['section', 'container', 'row', 'column', 'group', 'buttons'];
+  const structuralTypes: LayoutElementType[] = [
+    'section',
+    'container',
+    'row',
+    'column',
+    'group',
+    'buttons',
+  ];
   return structuralTypes.includes(element.type);
 }
 
@@ -427,7 +441,14 @@ export function isStructuralElement(element: LayoutElement): boolean {
  * Check if element is content (text-based)
  */
 export function isContentElement(element: LayoutElement): boolean {
-  const contentTypes: LayoutElementType[] = ['heading', 'paragraph', 'text', 'list', 'quote', 'code'];
+  const contentTypes: LayoutElementType[] = [
+    'heading',
+    'paragraph',
+    'text',
+    'list',
+    'quote',
+    'code',
+  ];
   return contentTypes.includes(element.type);
 }
 
@@ -470,7 +491,11 @@ export function createEmptyLayout(builder: string = 'unknown'): NeutralLayout {
 /**
  * Create a heading element
  */
-export function createHeading(level: 1 | 2 | 3 | 4 | 5 | 6, content: string, attrs?: Partial<HeadingAttributes>): TextLayoutElement<'heading', HeadingAttributes> {
+export function createHeading(
+  level: 1 | 2 | 3 | 4 | 5 | 6,
+  content: string,
+  attrs?: Partial<HeadingAttributes>
+): TextLayoutElement<'heading', HeadingAttributes> {
   return {
     type: 'heading',
     attrs: { level, ...attrs },
@@ -481,7 +506,10 @@ export function createHeading(level: 1 | 2 | 3 | 4 | 5 | 6, content: string, att
 /**
  * Create a paragraph element
  */
-export function createParagraph(content: string, attrs?: LayoutAttributes): TextLayoutElement<'paragraph'> {
+export function createParagraph(
+  content: string,
+  attrs?: LayoutAttributes
+): TextLayoutElement<'paragraph'> {
   return {
     type: 'paragraph',
     attrs: attrs || {},
@@ -492,7 +520,10 @@ export function createParagraph(content: string, attrs?: LayoutAttributes): Text
 /**
  * Create an image element
  */
-export function createImage(src: string, attrs?: Partial<ImageAttributes>): LayoutElementBase<'image', ImageAttributes> {
+export function createImage(
+  src: string,
+  attrs?: Partial<ImageAttributes>
+): LayoutElementBase<'image', ImageAttributes> {
   return {
     type: 'image',
     attrs: { src, ...attrs },
@@ -502,7 +533,10 @@ export function createImage(src: string, attrs?: Partial<ImageAttributes>): Layo
 /**
  * Create a button element
  */
-export function createButton(content: string, attrs?: Partial<ButtonAttributes>): TextLayoutElement<'button', ButtonAttributes> {
+export function createButton(
+  content: string,
+  attrs?: Partial<ButtonAttributes>
+): TextLayoutElement<'button', ButtonAttributes> {
   return {
     type: 'button',
     attrs: attrs || {},
@@ -513,7 +547,10 @@ export function createButton(content: string, attrs?: Partial<ButtonAttributes>)
 /**
  * Create a section element with children
  */
-export function createSection(children: LayoutElement[], attrs?: Partial<SectionAttributes>): LayoutElementBase<'section', SectionAttributes> {
+export function createSection(
+  children: LayoutElement[],
+  attrs?: Partial<SectionAttributes>
+): LayoutElementBase<'section', SectionAttributes> {
   return {
     type: 'section',
     attrs: attrs || {},
@@ -524,7 +561,10 @@ export function createSection(children: LayoutElement[], attrs?: Partial<Section
 /**
  * Create a column element
  */
-export function createColumn(children: LayoutElement[], attrs?: Partial<ColumnAttributes>): LayoutElementBase<'column', ColumnAttributes> {
+export function createColumn(
+  children: LayoutElement[],
+  attrs?: Partial<ColumnAttributes>
+): LayoutElementBase<'column', ColumnAttributes> {
   return {
     type: 'column',
     attrs: attrs || {},
@@ -535,7 +575,10 @@ export function createColumn(children: LayoutElement[], attrs?: Partial<ColumnAt
 /**
  * Create a row element with columns
  */
-export function createRow(columns: LayoutElementBase<'column', ColumnAttributes>[], attrs?: Partial<SectionAttributes>): LayoutElementBase<'row', SectionAttributes> {
+export function createRow(
+  columns: LayoutElementBase<'column', ColumnAttributes>[],
+  attrs?: Partial<SectionAttributes>
+): LayoutElementBase<'row', SectionAttributes> {
   return {
     type: 'row',
     attrs: attrs || {},

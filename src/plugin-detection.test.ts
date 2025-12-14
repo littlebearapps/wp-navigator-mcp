@@ -375,9 +375,11 @@ describe('detectPlugin', () => {
   });
 
   it('should return NETWORK_ERROR on timeout', async () => {
-    global.fetch = vi.fn().mockRejectedValue(
-      Object.assign(new Error('The operation was aborted'), { name: 'AbortError' })
-    );
+    global.fetch = vi
+      .fn()
+      .mockRejectedValue(
+        Object.assign(new Error('The operation was aborted'), { name: 'AbortError' })
+      );
 
     const result = await detectPlugin('https://example.com', 'admin', 'password');
 
@@ -387,9 +389,7 @@ describe('detectPlugin', () => {
   });
 
   it('should return NETWORK_ERROR on host not found', async () => {
-    global.fetch = vi.fn().mockRejectedValue(
-      new Error('getaddrinfo ENOTFOUND example.com')
-    );
+    global.fetch = vi.fn().mockRejectedValue(new Error('getaddrinfo ENOTFOUND example.com'));
 
     const result = await detectPlugin('https://example.com', 'admin', 'password');
 
@@ -399,9 +399,7 @@ describe('detectPlugin', () => {
   });
 
   it('should return NETWORK_ERROR on connection refused', async () => {
-    global.fetch = vi.fn().mockRejectedValue(
-      new Error('connect ECONNREFUSED 127.0.0.1:443')
-    );
+    global.fetch = vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED 127.0.0.1:443'));
 
     const result = await detectPlugin('https://example.com', 'admin', 'password');
 
@@ -411,9 +409,7 @@ describe('detectPlugin', () => {
   });
 
   it('should return NETWORK_ERROR on SSL certificate error', async () => {
-    global.fetch = vi.fn().mockRejectedValue(
-      new Error('unable to verify the first certificate')
-    );
+    global.fetch = vi.fn().mockRejectedValue(new Error('unable to verify the first certificate'));
 
     const result = await detectPlugin('https://example.com', 'admin', 'password');
 

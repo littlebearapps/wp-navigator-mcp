@@ -16,7 +16,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { parse as yamlParse } from 'yaml';
-import { validateCookbook, CookbookValidationError, CookbookSchemaVersionError } from './validation.js';
+import {
+  validateCookbook,
+  CookbookValidationError,
+  CookbookSchemaVersionError,
+} from './validation.js';
 import { parseSkillMd, extractPluginSlug, SkillParseError } from './skill-parser.js';
 import { COOKBOOK_SCHEMA_VERSION } from './types.js';
 import type { Cookbook, LoadedCookbook, CookbookLoadResult } from './types.js';
@@ -121,10 +125,7 @@ function getBundledCookbooksPath(): string {
  * @param source - Source type ('bundled' or 'project')
  * @returns CookbookLoadResult with success status and cookbook or error
  */
-export function loadCookbook(
-  filePath: string,
-  source: 'bundled' | 'project'
-): CookbookLoadResult {
+export function loadCookbook(filePath: string, source: 'bundled' | 'project'): CookbookLoadResult {
   const ext = path.extname(filePath).toLowerCase();
 
   // Read file
@@ -154,7 +155,10 @@ export function loadCookbook(
     const cookbook = skillToCookbook(skill);
     const allowedToolsStr = skill.frontmatter['allowed-tools'];
     const allowedTools = allowedToolsStr
-      ? allowedToolsStr.split(',').map((t) => t.trim()).filter((t) => t.length > 0)
+      ? allowedToolsStr
+          .split(',')
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0)
       : [];
 
     const loadedCookbook: LoadedSkillCookbook = {
@@ -380,9 +384,6 @@ export function getBundledPath(): string {
  * @param options - Discovery options
  * @returns true if cookbook exists
  */
-export function hasCookbook(
-  pluginSlug: string,
-  options?: CookbookDiscoveryOptions
-): boolean {
+export function hasCookbook(pluginSlug: string, options?: CookbookDiscoveryOptions): boolean {
   return getCookbook(pluginSlug, options) !== null;
 }

@@ -235,7 +235,10 @@ export async function handleCodexSetup(options: CodexSetupOptions = {}): Promise
         },
       });
     } else {
-      errorMessage('No wpnav.config.json found.', 'Run "wpnav init" first to initialize your project.');
+      errorMessage(
+        'No wpnav.config.json found.',
+        'Run "wpnav init" first to initialize your project.'
+      );
     }
     return 1;
   }

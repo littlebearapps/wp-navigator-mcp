@@ -23,11 +23,16 @@ export function registerThemeTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_list_themes',
-      description: 'List all installed WordPress themes. Returns theme identifier in "stylesheet" field (use this exact value for get/activate/delete operations), name, version, and status (active/inactive). Stylesheet is typically a lowercase hyphenated name (e.g., "twentytwentyfour", "developer-starter").',
+      description:
+        'List all installed WordPress themes. Returns theme identifier in "stylesheet" field (use this exact value for get/activate/delete operations), name, version, and status (active/inactive). Stylesheet is typically a lowercase hyphenated name (e.g., "twentytwentyfour", "developer-starter").',
       inputSchema: {
         type: 'object',
         properties: {
-          status: { type: 'string', description: 'Optional filter by status (e.g., "active" or "inactive"). If omitted or set to "all", returns all themes.' },
+          status: {
+            type: 'string',
+            description:
+              'Optional filter by status (e.g., "active" or "inactive"). If omitted or set to "all", returns all themes.',
+          },
         },
         required: [],
       },
@@ -55,11 +60,16 @@ export function registerThemeTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_get_theme',
-      description: 'Get details about a specific theme by slug. Returns full metadata including description, author, and version.',
+      description:
+        'Get details about a specific theme by slug. Returns full metadata including description, author, and version.',
       inputSchema: {
         type: 'object',
         properties: {
-          stylesheet: { type: 'string', description: 'Theme stylesheet from wpnav_list_themes "stylesheet" field (e.g., "twentytwentyfour")' },
+          stylesheet: {
+            type: 'string',
+            description:
+              'Theme stylesheet from wpnav_list_themes "stylesheet" field (e.g., "twentytwentyfour")',
+          },
         },
         required: ['stylesheet'],
       },
@@ -82,12 +92,20 @@ export function registerThemeTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_install_theme',
-      description: 'Install a WordPress theme from WordPress.org by slug. Optionally activate after installation. Uses WP Navigator custom endpoint.',
+      description:
+        'Install a WordPress theme from WordPress.org by slug. Optionally activate after installation. Uses WP Navigator custom endpoint.',
       inputSchema: {
         type: 'object',
         properties: {
-          slug: { type: 'string', description: 'Theme slug from WordPress.org (e.g., "flavor", "flavor-developer")' },
-          activate: { type: 'boolean', description: 'Activate theme after installation (default: false)', default: false },
+          slug: {
+            type: 'string',
+            description: 'Theme slug from WordPress.org (e.g., "flavor", "flavor-developer")',
+          },
+          activate: {
+            type: 'boolean',
+            description: 'Activate theme after installation (default: false)',
+            default: false,
+          },
         },
         required: ['slug'],
       },
@@ -111,19 +129,27 @@ export function registerThemeTools() {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'INSTALL_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'theme',
-                slug: args.slug,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check theme slug exists on WordPress.org',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'INSTALL_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'theme',
+                    slug: args.slug,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check theme slug exists on WordPress.org',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -137,11 +163,16 @@ export function registerThemeTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_activate_theme',
-      description: 'Activate a WordPress theme by stylesheet. The theme must already be installed. Use wpnav_list_themes to see available themes.',
+      description:
+        'Activate a WordPress theme by stylesheet. The theme must already be installed. Use wpnav_list_themes to see available themes.',
       inputSchema: {
         type: 'object',
         properties: {
-          stylesheet: { type: 'string', description: 'Theme stylesheet from wpnav_list_themes "stylesheet" field (e.g., "twentytwentyfour")' },
+          stylesheet: {
+            type: 'string',
+            description:
+              'Theme stylesheet from wpnav_list_themes "stylesheet" field (e.g., "twentytwentyfour")',
+          },
         },
         required: ['stylesheet'],
       },
@@ -164,19 +195,27 @@ export function registerThemeTools() {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'ACTIVATE_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'theme',
-                stylesheet: args.stylesheet,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check theme is installed with wpnav_list_themes',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'ACTIVATE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'theme',
+                    stylesheet: args.stylesheet,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check theme is installed with wpnav_list_themes',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -190,11 +229,16 @@ export function registerThemeTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_update_theme',
-      description: 'Update an installed WordPress theme to the latest version. The theme must be installed from WordPress.org.',
+      description:
+        'Update an installed WordPress theme to the latest version. The theme must be installed from WordPress.org.',
       inputSchema: {
         type: 'object',
         properties: {
-          stylesheet: { type: 'string', description: 'Theme stylesheet from wpnav_list_themes "stylesheet" field (e.g., "flavor")' },
+          stylesheet: {
+            type: 'string',
+            description:
+              'Theme stylesheet from wpnav_list_themes "stylesheet" field (e.g., "flavor")',
+          },
         },
         required: ['stylesheet'],
       },
@@ -217,19 +261,27 @@ export function registerThemeTools() {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'UPDATE_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'theme',
-                stylesheet: args.stylesheet,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check theme is installed with wpnav_list_themes',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'UPDATE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'theme',
+                    stylesheet: args.stylesheet,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check theme is installed with wpnav_list_themes',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -243,11 +295,16 @@ export function registerThemeTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_delete_theme',
-      description: 'Delete an installed WordPress theme. The theme must not be active - switch to a different theme first. Cannot delete parent theme while child theme is active.',
+      description:
+        'Delete an installed WordPress theme. The theme must not be active - switch to a different theme first. Cannot delete parent theme while child theme is active.',
       inputSchema: {
         type: 'object',
         properties: {
-          stylesheet: { type: 'string', description: 'Theme stylesheet from wpnav_list_themes "stylesheet" field (e.g., "flavor")' },
+          stylesheet: {
+            type: 'string',
+            description:
+              'Theme stylesheet from wpnav_list_themes "stylesheet" field (e.g., "flavor")',
+          },
         },
         required: ['stylesheet'],
       },
@@ -267,19 +324,27 @@ export function registerThemeTools() {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'DELETE_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'theme',
-                stylesheet: args.stylesheet,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check theme is not active and exists with wpnav_list_themes',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'DELETE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'theme',
+                    stylesheet: args.stylesheet,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check theme is not active and exists with wpnav_list_themes',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -293,7 +358,8 @@ export function registerThemeTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_revert_theme',
-      description: 'Revert to the previously active theme. WordPress stores the previous theme when switching. Use this to quickly undo a theme change.',
+      description:
+        'Revert to the previously active theme. WordPress stores the previous theme when switching. Use this to quickly undo a theme change.',
       inputSchema: {
         type: 'object',
         properties: {},
@@ -313,18 +379,26 @@ export function registerThemeTools() {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'REVERT_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'theme',
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Ensure a previous theme exists to revert to',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'REVERT_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'theme',
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Ensure a previous theme exists to revert to',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }

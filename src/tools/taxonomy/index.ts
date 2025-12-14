@@ -8,7 +8,12 @@
  */
 
 import { toolRegistry, ToolCategory } from '../../tool-registry/index.js';
-import { validateRequired, validatePagination, validateId, buildQueryString } from '../../tool-registry/utils.js';
+import {
+  validateRequired,
+  validatePagination,
+  validateId,
+  buildQueryString,
+} from '../../tool-registry/utils.js';
 
 /**
  * Register taxonomy management tools (categories, tags, taxonomies)
@@ -20,12 +25,16 @@ export function registerTaxonomyTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_list_categories',
-      description: 'List all WordPress categories with optional filtering. Returns category ID, name, slug, count, and parent.',
+      description:
+        'List all WordPress categories with optional filtering. Returns category ID, name, slug, count, and parent.',
       inputSchema: {
         type: 'object',
         properties: {
           page: { type: 'number', description: 'Page number for pagination (default: 1)' },
-          per_page: { type: 'number', description: 'Number of categories to return (default: 10, max: 100)' },
+          per_page: {
+            type: 'number',
+            description: 'Number of categories to return (default: 10, max: 100)',
+          },
           search: { type: 'string', description: 'Search term to filter categories by name' },
           parent: { type: 'number', description: 'Filter by parent category ID' },
         },
@@ -48,7 +57,8 @@ export function registerTaxonomyTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_get_category',
-      description: 'Get a single WordPress category by ID. Returns full category details including description and post count.',
+      description:
+        'Get a single WordPress category by ID. Returns full category details including description and post count.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -73,14 +83,21 @@ export function registerTaxonomyTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_create_category',
-      description: 'Create a new WordPress category. Requires name. Changes are logged in audit trail.',
+      description:
+        'Create a new WordPress category. Requires name. Changes are logged in audit trail.',
       inputSchema: {
         type: 'object',
         properties: {
           name: { type: 'string', description: 'Category name' },
           description: { type: 'string', description: 'Category description (optional)' },
-          slug: { type: 'string', description: 'Category slug (optional, auto-generated from name if not provided)' },
-          parent: { type: 'number', description: 'Parent category ID (optional, for hierarchical categories)' },
+          slug: {
+            type: 'string',
+            description: 'Category slug (optional, auto-generated from name if not provided)',
+          },
+          parent: {
+            type: 'number',
+            description: 'Parent category ID (optional, for hierarchical categories)',
+          },
         },
         required: ['name'],
       },
@@ -100,34 +117,50 @@ export function registerTaxonomyTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              id: result.id,
-              name: result.name,
-              slug: result.slug,
-              link: result.link,
-              message: 'Category created successfully',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    id: result.id,
+                    name: result.name,
+                    slug: result.slug,
+                    link: result.link,
+                    message: 'Category created successfully',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'CREATE_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'category',
-                name: args.name,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check category name is unique',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'CREATE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'category',
+                    name: args.name,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check category name is unique',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -138,7 +171,8 @@ export function registerTaxonomyTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_update_category',
-      description: 'Update a WordPress category. Requires category ID and at least one field to update. Changes are logged in audit trail.',
+      description:
+        'Update a WordPress category. Requires category ID and at least one field to update. Changes are logged in audit trail.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -164,15 +198,22 @@ export function registerTaxonomyTools() {
 
         if (Object.keys(updateData).length === 0) {
           return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify({
-                error: 'validation_failed',
-                code: 'VALIDATION_FAILED',
-                message: 'At least one field (name, description, slug, or parent) must be provided',
-                context: { resource_type: 'category', resource_id: args.id },
-              }, null, 2),
-            }],
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    error: 'validation_failed',
+                    code: 'VALIDATION_FAILED',
+                    message:
+                      'At least one field (name, description, slug, or parent) must be provided',
+                    context: { resource_type: 'category', resource_id: args.id },
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
             isError: true,
           };
         }
@@ -183,33 +224,49 @@ export function registerTaxonomyTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              id: result.id,
-              name: result.name,
-              slug: result.slug,
-              message: 'Category updated successfully',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    id: result.id,
+                    name: result.name,
+                    slug: result.slug,
+                    message: 'Category updated successfully',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'UPDATE_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'category',
-                resource_id: args.id,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check category ID exists with wpnav_get_category',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'UPDATE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'category',
+                    resource_id: args.id,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check category ID exists with wpnav_get_category',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -220,12 +277,17 @@ export function registerTaxonomyTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_delete_category',
-      description: 'Delete a WordPress category by ID. Posts in this category will be reassigned to Uncategorized. WARNING: This action cannot be undone.',
+      description:
+        'Delete a WordPress category by ID. Posts in this category will be reassigned to Uncategorized. WARNING: This action cannot be undone.',
       inputSchema: {
         type: 'object',
         properties: {
           id: { type: 'number', description: 'WordPress category ID' },
-          force: { type: 'boolean', description: 'Force permanent deletion. Default: true', default: true },
+          force: {
+            type: 'boolean',
+            description: 'Force permanent deletion. Default: true',
+            default: true,
+          },
         },
         required: ['id'],
       },
@@ -242,31 +304,47 @@ export function registerTaxonomyTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              id: result.id,
-              message: 'Category deleted successfully',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    id: result.id,
+                    message: 'Category deleted successfully',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'DELETE_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'category',
-                resource_id: args.id,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check category ID exists with wpnav_get_category',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'DELETE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'category',
+                    resource_id: args.id,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check category ID exists with wpnav_get_category',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -280,12 +358,16 @@ export function registerTaxonomyTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_list_tags',
-      description: 'List all WordPress tags with optional filtering. Returns tag ID, name, slug, and count.',
+      description:
+        'List all WordPress tags with optional filtering. Returns tag ID, name, slug, and count.',
       inputSchema: {
         type: 'object',
         properties: {
           page: { type: 'number', description: 'Page number for pagination (default: 1)' },
-          per_page: { type: 'number', description: 'Number of tags to return (default: 10, max: 100)' },
+          per_page: {
+            type: 'number',
+            description: 'Number of tags to return (default: 10, max: 100)',
+          },
           search: { type: 'string', description: 'Search term to filter tags by name' },
         },
         required: [],
@@ -307,7 +389,8 @@ export function registerTaxonomyTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_get_tag',
-      description: 'Get a single WordPress tag by ID. Returns full tag details including description and post count.',
+      description:
+        'Get a single WordPress tag by ID. Returns full tag details including description and post count.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -338,7 +421,10 @@ export function registerTaxonomyTools() {
         properties: {
           name: { type: 'string', description: 'Tag name' },
           description: { type: 'string', description: 'Tag description (optional)' },
-          slug: { type: 'string', description: 'Tag slug (optional, auto-generated from name if not provided)' },
+          slug: {
+            type: 'string',
+            description: 'Tag slug (optional, auto-generated from name if not provided)',
+          },
         },
         required: ['name'],
       },
@@ -357,34 +443,50 @@ export function registerTaxonomyTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              id: result.id,
-              name: result.name,
-              slug: result.slug,
-              link: result.link,
-              message: 'Tag created successfully',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    id: result.id,
+                    name: result.name,
+                    slug: result.slug,
+                    link: result.link,
+                    message: 'Tag created successfully',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'CREATE_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'tag',
-                name: args.name,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check tag name is unique',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'CREATE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'tag',
+                    name: args.name,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check tag name is unique',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -395,7 +497,8 @@ export function registerTaxonomyTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_update_tag',
-      description: 'Update a WordPress tag. Requires tag ID and at least one field to update. Changes are logged in audit trail.',
+      description:
+        'Update a WordPress tag. Requires tag ID and at least one field to update. Changes are logged in audit trail.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -419,15 +522,21 @@ export function registerTaxonomyTools() {
 
         if (Object.keys(updateData).length === 0) {
           return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify({
-                error: 'validation_failed',
-                code: 'VALIDATION_FAILED',
-                message: 'At least one field (name, description, or slug) must be provided',
-                context: { resource_type: 'tag', resource_id: args.id },
-              }, null, 2),
-            }],
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    error: 'validation_failed',
+                    code: 'VALIDATION_FAILED',
+                    message: 'At least one field (name, description, or slug) must be provided',
+                    context: { resource_type: 'tag', resource_id: args.id },
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
             isError: true,
           };
         }
@@ -438,33 +547,49 @@ export function registerTaxonomyTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              id: result.id,
-              name: result.name,
-              slug: result.slug,
-              message: 'Tag updated successfully',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    id: result.id,
+                    name: result.name,
+                    slug: result.slug,
+                    message: 'Tag updated successfully',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'UPDATE_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'tag',
-                resource_id: args.id,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check tag ID exists with wpnav_get_tag',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'UPDATE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'tag',
+                    resource_id: args.id,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check tag ID exists with wpnav_get_tag',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -475,12 +600,17 @@ export function registerTaxonomyTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_delete_tag',
-      description: 'Delete a WordPress tag by ID. Posts with this tag will have it removed. WARNING: This action cannot be undone.',
+      description:
+        'Delete a WordPress tag by ID. Posts with this tag will have it removed. WARNING: This action cannot be undone.',
       inputSchema: {
         type: 'object',
         properties: {
           id: { type: 'number', description: 'WordPress tag ID' },
-          force: { type: 'boolean', description: 'Force permanent deletion. Default: true', default: true },
+          force: {
+            type: 'boolean',
+            description: 'Force permanent deletion. Default: true',
+            default: true,
+          },
         },
         required: ['id'],
       },
@@ -497,31 +627,47 @@ export function registerTaxonomyTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              id: result.id,
-              message: 'Tag deleted successfully',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    id: result.id,
+                    message: 'Tag deleted successfully',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'DELETE_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'tag',
-                resource_id: args.id,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check tag ID exists with wpnav_get_tag',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'DELETE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'tag',
+                    resource_id: args.id,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check tag ID exists with wpnav_get_tag',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -535,7 +681,8 @@ export function registerTaxonomyTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_list_taxonomies',
-      description: 'List all registered WordPress taxonomies (categories, tags, custom). Returns taxonomy name, labels, and capabilities. Always available for site structure discovery.',
+      description:
+        'List all registered WordPress taxonomies (categories, tags, custom). Returns taxonomy name, labels, and capabilities. Always available for site structure discovery.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -559,11 +706,15 @@ export function registerTaxonomyTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_get_taxonomy',
-      description: 'Get details about a specific taxonomy by name. Returns full taxonomy configuration including hierarchical status, REST base, and labels. Always available for site structure discovery.',
+      description:
+        'Get details about a specific taxonomy by name. Returns full taxonomy configuration including hierarchical status, REST base, and labels. Always available for site structure discovery.',
       inputSchema: {
         type: 'object',
         properties: {
-          taxonomy: { type: 'string', description: 'Taxonomy name (e.g., "category", "post_tag", or custom taxonomy)' },
+          taxonomy: {
+            type: 'string',
+            description: 'Taxonomy name (e.g., "category", "post_tag", or custom taxonomy)',
+          },
         },
         required: ['taxonomy'],
       },

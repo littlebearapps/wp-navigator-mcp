@@ -12,7 +12,14 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { buildHandoffState, generateAIHandoff, writeHandoffFile, generateSelfTestPrompt, handleInit, type HandoffState } from './init.js';
+import {
+  buildHandoffState,
+  generateAIHandoff,
+  writeHandoffFile,
+  generateSelfTestPrompt,
+  handleInit,
+  type HandoffState,
+} from './init.js';
 
 // Test scaffold-related functions directly from init module
 // Since the module exports handleInit as default, we need to test internal functions
@@ -146,7 +153,12 @@ Use this prompt to have AI help you design and modify WordPress pages.
       const promptsDir = path.join(tempDir, 'sample-prompts');
       fs.mkdirSync(promptsDir, { recursive: true });
 
-      const expectedPrompts = ['self-test.txt', 'page-builder.txt', 'manifest-refinement.txt', 'seo.txt'];
+      const expectedPrompts = [
+        'self-test.txt',
+        'page-builder.txt',
+        'manifest-refinement.txt',
+        'seo.txt',
+      ];
 
       for (const filename of expectedPrompts) {
         const promptPath = path.join(promptsDir, filename);
@@ -387,10 +399,7 @@ Add this to your Claude Code MCP settings:
 
     it('detects manifest exists but not configured', () => {
       const manifestPath = path.join(tempDir, 'wpnavigator.jsonc');
-      fs.writeFileSync(
-        manifestPath,
-        JSON.stringify({ site: { name: '', tagline: '', url: '' } })
-      );
+      fs.writeFileSync(manifestPath, JSON.stringify({ site: { name: '', tagline: '', url: '' } }));
 
       const state = buildHandoffState(tempDir);
 
@@ -423,10 +432,7 @@ Add this to your Claude Code MCP settings:
     it('detects snapshots exist', () => {
       const snapshotsDir = path.join(tempDir, 'snapshots');
       fs.mkdirSync(snapshotsDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(snapshotsDir, 'site_index.json'),
-        JSON.stringify({ pages: [] })
-      );
+      fs.writeFileSync(path.join(snapshotsDir, 'site_index.json'), JSON.stringify({ pages: [] }));
 
       const state = buildHandoffState(tempDir);
 
@@ -657,7 +663,7 @@ Add this to your Claude Code MCP settings:
       expect(content).toContain('Help interpret snapshot JSON');
 
       // MUST NOT instructions
-      expect(content).toContain('Access the user\'s WordPress site directly');
+      expect(content).toContain("Access the user's WordPress site directly");
       expect(content).toContain('Modify `.wpnav.env`');
       expect(content).toContain('destructive changes without explicit user consent');
     });
@@ -839,7 +845,7 @@ Add this to your Claude Code MCP settings:
       expect(content).toContain('## Step 4: Propose Non-Destructive Improvements');
       expect(content).toContain('### Manifest Enhancements');
       expect(content).toContain('MINIMAL edits');
-      expect(content).toContain('Only suggest changes that won\'t break anything');
+      expect(content).toContain("Only suggest changes that won't break anything");
       expect(content).toContain('Never suggest removing existing configuration');
     });
 
@@ -882,7 +888,9 @@ Add this to your Claude Code MCP settings:
 
       // AC#10: File is human-readable and AI-friendly
       // Human-readable: has clear section headers with ===
-      expect(content).toContain('================================================================================');
+      expect(content).toContain(
+        '================================================================================'
+      );
 
       // Has numbered steps
       expect(content).toContain('## Step 1:');

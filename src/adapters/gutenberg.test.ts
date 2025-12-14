@@ -257,9 +257,7 @@ describe('GutenbergAdapter', () => {
       const layout: NeutralLayout = {
         layout_version: '1.0',
         source: { builder: 'gutenberg' },
-        elements: [
-          { type: 'paragraph', attrs: {}, content: '<p>Hello World</p>' },
-        ],
+        elements: [{ type: 'paragraph', attrs: {}, content: '<p>Hello World</p>' }],
       };
       const result = gutenbergAdapter.applyLayout(layout);
 
@@ -273,9 +271,7 @@ describe('GutenbergAdapter', () => {
       const layout: NeutralLayout = {
         layout_version: '1.0',
         source: { builder: 'gutenberg' },
-        elements: [
-          { type: 'heading', attrs: { level: 2 }, content: 'My Heading' },
-        ],
+        elements: [{ type: 'heading', attrs: { level: 2 }, content: 'My Heading' }],
       };
       const result = gutenbergAdapter.applyLayout(layout);
 
@@ -331,9 +327,7 @@ describe('GutenbergAdapter', () => {
       const layout: NeutralLayout = {
         layout_version: '1.0',
         source: { builder: 'gutenberg' },
-        elements: [
-          { type: 'separator', attrs: { style: 'wide' } },
-        ],
+        elements: [{ type: 'separator', attrs: { style: 'wide' } }],
       };
       const result = gutenbergAdapter.applyLayout(layout);
 
@@ -346,9 +340,7 @@ describe('GutenbergAdapter', () => {
       const layout: NeutralLayout = {
         layout_version: '1.0',
         source: { builder: 'gutenberg' },
-        elements: [
-          { type: 'spacer', attrs: { height: '50px' } },
-        ],
+        elements: [{ type: 'spacer', attrs: { height: '50px' } }],
       };
       const result = gutenbergAdapter.applyLayout(layout);
 
@@ -369,16 +361,12 @@ describe('GutenbergAdapter', () => {
               {
                 type: 'column',
                 attrs: { width: '50%' },
-                children: [
-                  { type: 'paragraph', attrs: {}, content: 'Left' },
-                ],
+                children: [{ type: 'paragraph', attrs: {}, content: 'Left' }],
               },
               {
                 type: 'column',
                 attrs: { width: '50%' },
-                children: [
-                  { type: 'paragraph', attrs: {}, content: 'Right' },
-                ],
+                children: [{ type: 'paragraph', attrs: {}, content: 'Right' }],
               },
             ],
           },

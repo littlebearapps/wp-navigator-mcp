@@ -56,11 +56,7 @@ describe('smoke-test', () => {
         },
       });
 
-      const result = await runSmokeTest(
-        'https://example.com',
-        'admin',
-        'password'
-      );
+      const result = await runSmokeTest('https://example.com', 'admin', 'password');
 
       expect(result.success).toBe(true);
       expect(result.siteName).toBe('My Site');
@@ -77,11 +73,7 @@ describe('smoke-test', () => {
         error: 'Authentication failed',
       });
 
-      const result = await runSmokeTest(
-        'https://example.com',
-        'admin',
-        'wrong-password'
-      );
+      const result = await runSmokeTest('https://example.com', 'admin', 'wrong-password');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('AUTH_FAILED');
@@ -95,11 +87,7 @@ describe('smoke-test', () => {
         error: 'WP Navigator plugin not found',
       });
 
-      const result = await runSmokeTest(
-        'https://example.com',
-        'admin',
-        'password'
-      );
+      const result = await runSmokeTest('https://example.com', 'admin', 'password');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('NOT_FOUND');
@@ -113,11 +101,7 @@ describe('smoke-test', () => {
         error: 'Connection refused',
       });
 
-      const result = await runSmokeTest(
-        'https://example.com',
-        'admin',
-        'password'
-      );
+      const result = await runSmokeTest('https://example.com', 'admin', 'password');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('NETWORK_ERROR');
@@ -131,11 +115,7 @@ describe('smoke-test', () => {
         error: 'SSL certificate expired',
       });
 
-      const result = await runSmokeTest(
-        'https://example.com',
-        'admin',
-        'password'
-      );
+      const result = await runSmokeTest('https://example.com', 'admin', 'password');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('SSL_ERROR');
@@ -149,11 +129,7 @@ describe('smoke-test', () => {
         error: 'Unexpected response format',
       });
 
-      const result = await runSmokeTest(
-        'https://example.com',
-        'admin',
-        'password'
-      );
+      const result = await runSmokeTest('https://example.com', 'admin', 'password');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('INVALID_RESPONSE');
@@ -163,11 +139,7 @@ describe('smoke-test', () => {
     it('handles thrown errors gracefully', async () => {
       mockDetectPlugin.mockRejectedValue(new Error('ECONNREFUSED'));
 
-      const result = await runSmokeTest(
-        'https://example.com',
-        'admin',
-        'password'
-      );
+      const result = await runSmokeTest('https://example.com', 'admin', 'password');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('NETWORK_ERROR');
@@ -176,11 +148,7 @@ describe('smoke-test', () => {
     it('handles 401 in thrown error message', async () => {
       mockDetectPlugin.mockRejectedValue(new Error('HTTP 401 Unauthorized'));
 
-      const result = await runSmokeTest(
-        'https://example.com',
-        'admin',
-        'password'
-      );
+      const result = await runSmokeTest('https://example.com', 'admin', 'password');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('AUTH_FAILED');
@@ -205,11 +173,7 @@ describe('smoke-test', () => {
         },
       });
 
-      const result = await runSmokeTest(
-        'https://example.com',
-        'admin',
-        'password'
-      );
+      const result = await runSmokeTest('https://example.com', 'admin', 'password');
 
       expect(result.success).toBe(true);
       expect(result.pluginEdition).toBe('free');

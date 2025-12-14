@@ -26,8 +26,7 @@ export const tools = [
   },
   {
     name: 'wpnav.help',
-    description:
-      'Alias for wpnav_help. Returns connection status, env hints and next steps.',
+    description: 'Alias for wpnav_help. Returns connection status, env hints and next steps.',
     inputSchema: {
       type: 'object' as const,
       properties: {},
@@ -136,8 +135,7 @@ export const tools = [
         },
         content: {
           type: 'string' as const,
-          description:
-            'New page content (HTML). WordPress will auto-save revisions.',
+          description: 'New page content (HTML). WordPress will auto-save revisions.',
         },
         status: {
           type: 'string' as const,
@@ -305,8 +303,7 @@ export const tools = [
   // ============================================================================
   {
     name: 'wpnav_list_media',
-    description:
-      'List WordPress media library items. Returns media ID, title, URL, and mime type.',
+    description: 'List WordPress media library items. Returns media ID, title, URL, and mime type.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -442,8 +439,7 @@ export const tools = [
   },
   {
     name: 'wpnav_delete_comment',
-    description:
-      'Delete a comment by ID. WARNING: This action cannot be undone.',
+    description: 'Delete a comment by ID. WARNING: This action cannot be undone.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -632,8 +628,7 @@ export const tools = [
   },
   {
     name: 'wpnav_create_tag',
-    description:
-      'Create a new WordPress tag. Requires name. Changes are logged in audit trail.',
+    description: 'Create a new WordPress tag. Requires name. Changes are logged in audit trail.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -877,7 +872,7 @@ export const tools = [
         },
         reassign: {
           type: 'number' as const,
-          description: 'User ID to reassign deleted user\'s content to (required)',
+          description: "User ID to reassign deleted user's content to (required)",
         },
         force: {
           type: 'boolean' as const,
@@ -901,7 +896,8 @@ export const tools = [
       properties: {
         status: {
           type: 'string' as const,
-          description: 'Optional filter by status (e.g., "active" or "inactive"). If omitted or set to "all", returns all plugins.',
+          description:
+            'Optional filter by status (e.g., "active" or "inactive"). If omitted or set to "all", returns all plugins.',
         },
       },
       required: [],
@@ -944,8 +940,7 @@ export const tools = [
   },
   {
     name: 'wpnav_activate_plugin',
-    description:
-      'Activate a WordPress plugin by slug. Changes are logged in audit trail.',
+    description: 'Activate a WordPress plugin by slug. Changes are logged in audit trail.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -959,8 +954,7 @@ export const tools = [
   },
   {
     name: 'wpnav_deactivate_plugin',
-    description:
-      'Deactivate a WordPress plugin by slug. Changes are logged in audit trail.',
+    description: 'Deactivate a WordPress plugin by slug. Changes are logged in audit trail.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -1015,7 +1009,8 @@ export const tools = [
       properties: {
         status: {
           type: 'string' as const,
-          description: 'Optional filter by status (e.g., "active" or "inactive"). If omitted or set to "all", returns all themes.',
+          description:
+            'Optional filter by status (e.g., "active" or "inactive"). If omitted or set to "all", returns all themes.',
         },
       },
       required: [],

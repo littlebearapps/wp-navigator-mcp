@@ -5,7 +5,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { summarizePageContent, isFirstSnapshot, getFirstSnapshotMessage } from './snapshot-summary.js';
+import {
+  summarizePageContent,
+  isFirstSnapshot,
+  getFirstSnapshotMessage,
+} from './snapshot-summary.js';
 import type { PageSnapshot, BlockSnapshot } from './snapshots/types.js';
 
 /**
@@ -85,9 +89,7 @@ describe('summarizePageContent', () => {
         createBlock('core/paragraph', {}, [], '<p>Inner</p>'),
         createBlock('core/paragraph', {}, [], '<p>Content</p>'),
       ];
-      const blocks = [
-        createBlock('core/group', {}, innerBlocks),
-      ];
+      const blocks = [createBlock('core/group', {}, innerBlocks)];
       const snapshot = createPageSnapshot(blocks);
       const summary = summarizePageContent(snapshot);
 
@@ -109,62 +111,50 @@ describe('summarizePageContent', () => {
       const snapshot = createPageSnapshot(blocks);
       const summary = summarizePageContent(snapshot);
 
-      expect(summary.sections.some(s => s.type === 'hero')).toBe(true);
+      expect(summary.sections.some((s) => s.type === 'hero')).toBe(true);
     });
 
     it('should detect grid/columns pattern', () => {
       const blocks = [
         createBlock('core/columns', {}, [
-          createBlock('core/column', {}, [
-            createBlock('core/paragraph', {}, [], '<p>Col 1</p>'),
-          ]),
-          createBlock('core/column', {}, [
-            createBlock('core/paragraph', {}, [], '<p>Col 2</p>'),
-          ]),
-          createBlock('core/column', {}, [
-            createBlock('core/paragraph', {}, [], '<p>Col 3</p>'),
-          ]),
+          createBlock('core/column', {}, [createBlock('core/paragraph', {}, [], '<p>Col 1</p>')]),
+          createBlock('core/column', {}, [createBlock('core/paragraph', {}, [], '<p>Col 2</p>')]),
+          createBlock('core/column', {}, [createBlock('core/paragraph', {}, [], '<p>Col 3</p>')]),
         ]),
       ];
       const snapshot = createPageSnapshot(blocks);
       const summary = summarizePageContent(snapshot);
 
-      expect(summary.sections.some(s => s.description.includes('column'))).toBe(true);
+      expect(summary.sections.some((s) => s.description.includes('column'))).toBe(true);
     });
 
     it('should detect CTA section pattern', () => {
       const blocks = [
         createBlock('core/group', {}, [
           createBlock('core/heading', { level: 2 }, [], '<h2>Get Started</h2>'),
-          createBlock('core/buttons', {}, [
-            createBlock('core/button', {}, [], '<a>Sign Up</a>'),
-          ]),
+          createBlock('core/buttons', {}, [createBlock('core/button', {}, [], '<a>Sign Up</a>')]),
         ]),
       ];
       const snapshot = createPageSnapshot(blocks);
       const summary = summarizePageContent(snapshot);
 
-      expect(summary.sections.some(s => s.type === 'cta')).toBe(true);
+      expect(summary.sections.some((s) => s.type === 'cta')).toBe(true);
     });
 
     it('should detect testimonial pattern', () => {
-      const blocks = [
-        createBlock('core/quote', {}, [], '<blockquote>Great product!</blockquote>'),
-      ];
+      const blocks = [createBlock('core/quote', {}, [], '<blockquote>Great product!</blockquote>')];
       const snapshot = createPageSnapshot(blocks);
       const summary = summarizePageContent(snapshot);
 
-      expect(summary.sections.some(s => s.type === 'testimonial')).toBe(true);
+      expect(summary.sections.some((s) => s.type === 'testimonial')).toBe(true);
     });
 
     it('should detect gallery pattern', () => {
-      const blocks = [
-        createBlock('core/gallery', { ids: [1, 2, 3] }),
-      ];
+      const blocks = [createBlock('core/gallery', { ids: [1, 2, 3] })];
       const snapshot = createPageSnapshot(blocks);
       const summary = summarizePageContent(snapshot);
 
-      expect(summary.sections.some(s => s.type === 'gallery')).toBe(true);
+      expect(summary.sections.some((s) => s.type === 'gallery')).toBe(true);
     });
   });
 
@@ -175,10 +165,7 @@ describe('summarizePageContent', () => {
           createBlock('core/heading', { level: 1 }, [], '<h1>Hero</h1>'),
           createBlock('core/paragraph', {}, [], '<p>Text</p>'),
         ]),
-        createBlock('core/columns', {}, [
-          createBlock('core/column'),
-          createBlock('core/column'),
-        ]),
+        createBlock('core/columns', {}, [createBlock('core/column'), createBlock('core/column')]),
       ];
       const snapshot = createPageSnapshot(blocks);
       const summary = summarizePageContent(snapshot);
@@ -197,7 +184,7 @@ describe('summarizePageContent', () => {
       const snapshot = createPageSnapshot(blocks);
       const summary = summarizePageContent(snapshot);
 
-      const heroSection = summary.sections.find(s => s.type === 'hero');
+      const heroSection = summary.sections.find((s) => s.type === 'hero');
       expect(heroSection?.components).toBeDefined();
     });
   });

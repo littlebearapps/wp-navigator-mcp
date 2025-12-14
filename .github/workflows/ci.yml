@@ -7,33 +7,20 @@ on:
     branches: [main]
 
 jobs:
-  validate-workflows:
+  lint-workflows:
+    name: Lint Workflows
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate YAML syntax
-        run: |
-          echo "## Workflow YAML Validation" >> "$GITHUB_STEP_SUMMARY"
-          ERRORS=0
-          for file in .github/workflows/*.yml .github/workflows/*.yaml; do
-            [ -f "$file" ] || continue
-            if python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
-              echo "- $file: valid" >> "$GITHUB_STEP_SUMMARY"
-            else
-              echo "- $file: INVALID" >> "$GITHUB_STEP_SUMMARY"
-              echo "::error file=$file::Invalid YAML syntax"
-              ERRORS=$((ERRORS + 1))
-            fi
-          done
-          if [ $ERRORS -gt 0 ]; then
-            echo "::error::$ERRORS workflow file(s) have invalid YAML syntax"
-            exit 1
-          fi
-          echo "All workflow files have valid YAML syntax"
+      - name: Run actionlint
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color
 
-  build-and-test:
+  lint-code:
+    name: Lint Code
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -48,13 +35,48 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Check Prettier formatting
+        run: npm run format:check
+
+      - name: Type check
+        run: npm run typecheck
+
+  build-and-test:
+    name: Build & Test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['18', '20', '22']
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Build TypeScript
         run: npm run build
 
       - name: Run tests with coverage
+        if: matrix.node-version != '18'
         run: npm test -- --coverage
 
+      - name: Run tests (no coverage)
+        if: matrix.node-version == '18'
+        run: npm test
+
       - name: Upload coverage to Codecov
+        if: matrix.node-version == '20'
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -99,3 +121,25 @@ jobs:
               "- Low: \(.metadata.vulnerabilities.low // 0)"
             end
           ' >> "$GITHUB_STEP_SUMMARY" || echo "Audit summary unavailable" >> "$GITHUB_STEP_SUMMARY"
+
+  commitlint:
+    name: Lint Commits
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate PR commits
+        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose

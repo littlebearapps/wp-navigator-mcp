@@ -113,7 +113,8 @@ describe('Gutenberg Block Parser', () => {
   });
 
   it('should parse namespaced block', () => {
-    const content = '<!-- wp:acf/testimonial {"id":"block_123"} -->\n<div>Test</div>\n<!-- /wp:acf/testimonial -->';
+    const content =
+      '<!-- wp:acf/testimonial {"id":"block_123"} -->\n<div>Test</div>\n<!-- /wp:acf/testimonial -->';
     const blocks = parseGutenbergBlocks(content);
     expect(blocks).toHaveLength(1);
     expect(blocks[0].blockName).toBe('acf/testimonial');

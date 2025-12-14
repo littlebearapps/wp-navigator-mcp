@@ -88,10 +88,10 @@ export function normalizeStatus(status?: string): string {
 /**
  * Validate pagination parameters
  */
-export function validatePagination(args: {
-  page?: number;
-  per_page?: number;
-}): { page: number; per_page: number } {
+export function validatePagination(args: { page?: number; per_page?: number }): {
+  page: number;
+  per_page: number;
+} {
   const page = Math.max(1, args.page ?? 1);
   const per_page = Math.min(250, Math.max(1, args.per_page ?? 10));
 
@@ -224,9 +224,7 @@ export function validateEnum<T extends string>(
 
   const strValue = String(value);
   if (!validValues.includes(strValue as T)) {
-    throw new Error(
-      `Invalid ${fieldName}: ${strValue}. Valid values: ${validValues.join(', ')}`
-    );
+    throw new Error(`Invalid ${fieldName}: ${strValue}. Valid values: ${validValues.join(', ')}`);
   }
 
   return strValue as T;

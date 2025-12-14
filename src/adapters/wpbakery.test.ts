@@ -48,7 +48,8 @@ describe('WPBakeryAdapter', () => {
 
   describe('detect', () => {
     it('should detect WPBakery content by shortcodes', () => {
-      const content = '[vc_row][vc_column][vc_column_text]Hello[/vc_column_text][/vc_column][/vc_row]';
+      const content =
+        '[vc_row][vc_column][vc_column_text]Hello[/vc_column_text][/vc_column][/vc_row]';
       const page = createPageData(content);
       const result = wpbakeryAdapter.detect(page);
 

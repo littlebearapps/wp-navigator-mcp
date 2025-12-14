@@ -216,9 +216,7 @@ describe('markdown-formatter', () => {
         name: 'wpnav_list_posts',
         description: 'List WordPress posts',
         category: 'content',
-        parameters: [
-          { name: 'limit', type: 'number', required: false, description: 'Max posts' },
-        ],
+        parameters: [{ name: 'limit', type: 'number', required: false, description: 'Max posts' }],
       };
 
       const markdown = formatToolMarkdown(tool);
@@ -234,9 +232,7 @@ describe('markdown-formatter', () => {
         name: 'wpnav_test',
         description: 'Test',
         category: 'core',
-        parameters: [
-          { name: 'id', type: 'number', required: true, description: 'ID' },
-        ],
+        parameters: [{ name: 'id', type: 'number', required: true, description: 'ID' }],
       };
 
       const markdown = formatToolMarkdown(tool, { includeExamples: true });
@@ -250,9 +246,7 @@ describe('markdown-formatter', () => {
         name: 'wpnav_test',
         description: 'Test',
         category: 'core',
-        parameters: [
-          { name: 'id', type: 'number', required: true, description: 'ID' },
-        ],
+        parameters: [{ name: 'id', type: 'number', required: true, description: 'ID' }],
       };
 
       const markdown = formatToolMarkdown(tool);

@@ -70,10 +70,7 @@ export function loadRole(filePath: string, source: RoleSource = 'project'): Role
  * @param source - Source type for all roles in this directory
  * @returns Array of RoleLoadResult (success or failure for each file)
  */
-export function loadRolesFromDirectory(
-  directory: string,
-  source: RoleSource
-): RoleLoadResult[] {
+export function loadRolesFromDirectory(directory: string, source: RoleSource): RoleLoadResult[] {
   if (!fs.existsSync(directory)) {
     return [];
   }

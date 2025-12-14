@@ -55,12 +55,7 @@ export {
 } from './components.js';
 
 // Prompts
-export {
-  inputPrompt,
-  selectPrompt,
-  confirmPrompt,
-  pressEnterToContinue,
-} from './prompts.js';
+export { inputPrompt, selectPrompt, confirmPrompt, pressEnterToContinue } from './prompts.js';
 
 // Links
 export {

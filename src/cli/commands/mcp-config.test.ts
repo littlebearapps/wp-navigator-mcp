@@ -6,11 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  generateClaudeConfig,
-  generateCodexConfig,
-  generateGeminiConfig,
-} from './mcp-config.js';
+import { generateClaudeConfig, generateCodexConfig, generateGeminiConfig } from './mcp-config.js';
 
 describe('mcp-config', () => {
   const configPath = './wpnav.config.json';
@@ -52,7 +48,9 @@ describe('mcp-config', () => {
 
       expect(config).toContain('[mcp_servers.wpnav]');
       expect(config).toContain('command = "npx"');
-      expect(config).toContain('args = ["-y", "@littlebearapps/wp-navigator-mcp", "./wpnav.config.json"]');
+      expect(config).toContain(
+        'args = ["-y", "@littlebearapps/wp-navigator-mcp", "./wpnav.config.json"]'
+      );
     });
 
     it('uses provided config path', () => {

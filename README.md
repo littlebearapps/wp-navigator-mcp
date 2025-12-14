@@ -149,6 +149,7 @@ WP Navigator MCP also works as a standalone CLI for scripts and web-based AI age
 npx wpnav init                   # Interactive wizard (guided mode)
 npx wpnav init --mode scaffold   # Quick setup without prompts
 npx wpnav init --mode ai-handoff # Create AI-ready handoff document
+npx wpnav init --repair          # Fix broken configuration (v2.4.0+)
 ```
 
 Creates project structure with `wpnavigator.jsonc` manifest and `sample-prompts/` folder containing ready-to-use AI prompts (self-test, add-page, content-audit, etc.).
@@ -294,6 +295,60 @@ npx wpnav tools --category gutenberg
 
 ---
 
+## Local Development (v2.4.0+)
+
+WP Navigator supports local development environments like LocalWP, Docker, and MAMP.
+
+### Environment Variable Credentials
+
+Keep credentials out of config files using `$VAR` syntax:
+
+```json
+{
+  "WP_BASE_URL": "http://localhost:8080",
+  "WP_REST_API": "http://localhost:8080/wp-json",
+  "WPNAV_BASE": "http://localhost:8080/wp-json/wpnav/v1",
+  "WPNAV_INTROSPECT": "http://localhost:8080/wp-json/wpnav/v1/introspect",
+  "WP_APP_USER": "$WP_APP_USER",
+  "WP_APP_PASS": "$WP_APP_PASS"
+}
+```
+
+Then set environment variables:
+```bash
+export WP_APP_USER="admin"
+export WP_APP_PASS="xxxx xxxx xxxx xxxx"
+```
+
+### HTTP for Localhost
+
+For local development without HTTPS:
+
+```bash
+ALLOW_INSECURE_HTTP=1 npx wpnav status
+```
+
+Or in your MCP config:
+```json
+{
+  "env": {
+    "ALLOW_INSECURE_HTTP": "1"
+  }
+}
+```
+
+### Repair Mode
+
+Fix broken or outdated configuration:
+
+```bash
+npx wpnav init --repair
+```
+
+This validates existing files and regenerates any that are missing or invalid.
+
+---
+
 ## Environment Variables
 
 | Variable | Default | Description |
@@ -302,6 +357,8 @@ npx wpnav tools --category gutenberg
 | `ALLOW_INSECURE_HTTP` | `0` | Allow HTTP for localhost development |
 | `WPNAV_TOOL_TIMEOUT_MS` | `600000` | Per-tool timeout (10 minutes) |
 | `WPNAV_MAX_RESPONSE_KB` | `64` | Maximum response size before truncation |
+| `WP_APP_USER` | - | WordPress username (for env-based credentials) |
+| `WP_APP_PASS` | - | WordPress application password (for env-based credentials) |
 
 ---
 

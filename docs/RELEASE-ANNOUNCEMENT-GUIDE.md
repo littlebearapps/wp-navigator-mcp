@@ -38,7 +38,7 @@ Use these standard categories (from Keep a Changelog):
 Major releases deserve the most attention. They may require user action.
 
 ```markdown
-# :rocket: WP Navigator MCP v3.0.0
+# :rocket: WP Navigator MCP v2.7.0
 
 **This is a major release with breaking changes.** Please review the migration guide before upgrading.
 
@@ -92,7 +92,7 @@ npx wpnav migrate-config
   "mcpServers": {
     "wpnav": {
       "command": "npx",
-      "args": ["-y", "@littlebearapps/wp-navigator-mcp@3.0.0"]
+      "args": ["-y", "@littlebearapps/wp-navigator-mcp@2.7.0"]
     }
   }
 }
@@ -106,9 +106,9 @@ Thanks to our contributors for this release!
 
 ## :link: Links
 
-- [Full Changelog](https://github.com/littlebearapps/wp-navigator-mcp/releases/tag/v3.0.0)
+- [Full Changelog](https://github.com/littlebearapps/wp-navigator-mcp/releases/tag/v2.7.0)
 - [npm Package](https://www.npmjs.com/package/@littlebearapps/wp-navigator-mcp)
-- [Migration Guide](https://wpnav.ai/docs/migration/v3)
+- [Migration Guide](https://wpnav.ai/docs/migration/v2.7)
 - [Documentation](https://wpnav.ai/docs)
 
 ---

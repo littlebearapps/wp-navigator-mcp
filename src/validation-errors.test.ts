@@ -353,12 +353,7 @@ describe('createValidationError', () => {
   });
 
   it('should create error without fieldPath', () => {
-    const error = createValidationError(
-      'INVALID_JSON',
-      'Syntax error',
-      'broken.json',
-      '{invalid}'
-    );
+    const error = createValidationError('INVALID_JSON', 'Syntax error', 'broken.json', '{invalid}');
 
     expect(error.code).toBe('INVALID_JSON');
     expect(error.fieldPath).toBeUndefined();

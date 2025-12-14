@@ -16,13 +16,7 @@ import {
   getDefaultClaudeMdContext,
   type ClaudeMdContext,
 } from '../init/generators.js';
-import {
-  success,
-  error as errorMessage,
-  info,
-  newline,
-  colorize,
-} from '../tui/components.js';
+import { success, error as errorMessage, info, newline, colorize } from '../tui/components.js';
 
 // =============================================================================
 // Types
@@ -252,7 +246,10 @@ export async function handleClaudeSetup(options: ClaudeSetupOptions = {}): Promi
         },
       });
     } else {
-      errorMessage('No wpnav.config.json found.', 'Run "wpnav init" first to initialize your project.');
+      errorMessage(
+        'No wpnav.config.json found.',
+        'Run "wpnav init" first to initialize your project.'
+      );
     }
     return 1;
   }

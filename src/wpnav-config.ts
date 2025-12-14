@@ -333,11 +333,7 @@ function validateConfigFile(config: unknown, filePath: string): WPNavConfigFile 
 /**
  * Validate a single environment configuration
  */
-function validateEnvironmentConfig(
-  config: unknown,
-  filePath: string,
-  envName: string
-): void {
+function validateEnvironmentConfig(config: unknown, filePath: string, envName: string): void {
   if (!config || typeof config !== 'object') {
     throw new ConfigValidationError(
       `Environment '${envName}' must be an object`,
@@ -436,10 +432,7 @@ const DEFAULT_FEATURES: Required<FeaturesConfig> = {
 /**
  * Merge safety configs with defaults
  */
-function mergeSafety(
-  global?: SafetyConfig,
-  env?: SafetyConfig
-): Required<SafetyConfig> {
+function mergeSafety(global?: SafetyConfig, env?: SafetyConfig): Required<SafetyConfig> {
   return {
     ...DEFAULT_SAFETY,
     ...global,
@@ -450,10 +443,7 @@ function mergeSafety(
 /**
  * Merge feature configs with defaults
  */
-function mergeFeatures(
-  global?: FeaturesConfig,
-  env?: FeaturesConfig
-): Required<FeaturesConfig> {
+function mergeFeatures(global?: FeaturesConfig, env?: FeaturesConfig): Required<FeaturesConfig> {
   return {
     ...DEFAULT_FEATURES,
     ...global,
@@ -590,31 +580,34 @@ export interface LoadConfigResult {
 
 /**
  * Load config from environment variables (fallback mode)
+ *
+ * v2.4.0: Supports new env var names (WPNAV_SITE_URL, WPNAV_USERNAME, WPNAV_APP_PASSWORD)
+ * with fallback to legacy names (WP_BASE_URL, WP_APP_USER, WP_APP_PASS).
+ * New names take precedence over legacy names.
  */
 function loadFromEnvVars(): ResolvedConfig | null {
-  const required = [
-    'WP_BASE_URL',
-    'WP_REST_API',
-    'WPNAV_BASE',
-    'WPNAV_INTROSPECT',
-    'WP_APP_USER',
-    'WP_APP_PASS',
-  ];
+  // Get values with new names taking precedence over legacy
+  const siteUrl = process.env.WPNAV_SITE_URL || process.env.WP_BASE_URL;
+  const restApi = process.env.WP_REST_API;
+  const wpnavBase = process.env.WPNAV_BASE;
+  const wpnavIntrospect = process.env.WPNAV_INTROSPECT;
+  const username = process.env.WPNAV_USERNAME || process.env.WP_APP_USER;
+  const password = process.env.WPNAV_APP_PASSWORD || process.env.WP_APP_PASS;
 
-  const missing = required.filter((k) => !process.env[k]);
-  if (missing.length > 0) {
+  // Check if we have all required values
+  if (!siteUrl || !restApi || !wpnavBase || !wpnavIntrospect || !username || !password) {
     return null;
   }
 
   return {
     environment: process.env.WPNAV_ENVIRONMENT ?? 'default',
     config_path: '[environment variables]',
-    site: process.env.WP_BASE_URL!,
-    rest_api: process.env.WP_REST_API!,
-    wpnav_base: process.env.WPNAV_BASE!,
-    wpnav_introspect: process.env.WPNAV_INTROSPECT!,
-    user: process.env.WP_APP_USER!,
-    password: process.env.WP_APP_PASS!,
+    site: siteUrl,
+    rest_api: restApi,
+    wpnav_base: wpnavBase,
+    wpnav_introspect: wpnavIntrospect,
+    user: username,
+    password: password,
     safety: {
       enable_writes: readBool(process.env.WPNAV_ENABLE_WRITES, true),
       allow_insecure_http: readBool(process.env.ALLOW_INSECURE_HTTP, false),

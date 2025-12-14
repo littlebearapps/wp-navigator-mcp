@@ -292,11 +292,13 @@ export function computeDiff(
           name: wpPlugin.name,
           change: 'modify',
           severity: 'info',
-          fields: [{
-            field: 'enabled',
-            expected: config.enabled,
-            actual: wpPlugin.active,
-          }],
+          fields: [
+            {
+              field: 'enabled',
+              expected: config.enabled,
+              actual: wpPlugin.active,
+            },
+          ],
           inManifest: true,
           isActive: wpPlugin.active,
           expectedEnabled: config.enabled,
@@ -315,7 +317,11 @@ export function computeDiff(
     }
   }
 
-  const hasDifferences = additions > 0 || removals > 0 || modifications > 0 || pluginDiffs.some(p => p.change !== 'match');
+  const hasDifferences =
+    additions > 0 ||
+    removals > 0 ||
+    modifications > 0 ||
+    pluginDiffs.some((p) => p.change !== 'match');
 
   return {
     timestamp: new Date().toISOString(),
@@ -485,9 +491,12 @@ export function formatDiffText(diff: DiffResult): string {
     for (const plugin of diff.plugins) {
       if (plugin.change === 'match') continue;
       const symbol = getChangeSymbol(plugin.change);
-      const state = plugin.change === 'modify'
-        ? `${plugin.isActive ? 'active' : 'inactive'} → ${plugin.expectedEnabled ? 'active' : 'inactive'}`
-        : plugin.change === 'add' ? 'not installed' : '';
+      const state =
+        plugin.change === 'modify'
+          ? `${plugin.isActive ? 'active' : 'inactive'} → ${plugin.expectedEnabled ? 'active' : 'inactive'}`
+          : plugin.change === 'add'
+            ? 'not installed'
+            : '';
       lines.push(`  ${symbol} ${plugin.slug} (${state})`);
     }
     lines.push('');

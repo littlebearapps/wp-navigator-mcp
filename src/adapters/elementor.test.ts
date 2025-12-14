@@ -131,7 +131,9 @@ describe('ElementorAdapter', () => {
 
   describe('extractLayoutFromContent', () => {
     it('should return not supported result', () => {
-      const result = elementorAdapter.extractLayoutFromContent('<div class="elementor">content</div>');
+      const result = elementorAdapter.extractLayoutFromContent(
+        '<div class="elementor">content</div>'
+      );
 
       expect(result.success).toBe(false);
       expect(result.warnings[0].code).toBe('BUILDER_NOT_SUPPORTED');

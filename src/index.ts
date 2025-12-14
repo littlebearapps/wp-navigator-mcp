@@ -12,10 +12,7 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { tools } from './tools.js';
 import { loadEnvFromArgOrDotEnv, getConfigOrExit } from './config.js';
 import { makeWpRequest } from './http.js';
@@ -41,9 +38,18 @@ registerAllTools();
 toolRegistry.setFeatureFlag('WORKFLOWS_ENABLED', config.featureFlags.workflowsEnabled);
 toolRegistry.setFeatureFlag('WP_BULK_VALIDATOR_ENABLED', config.featureFlags.bulkValidatorEnabled);
 toolRegistry.setFeatureFlag('WP_SEO_AUDIT_ENABLED', config.featureFlags.seoAuditEnabled);
-toolRegistry.setFeatureFlag('WP_CONTENT_REVIEWER_ENABLED', config.featureFlags.contentReviewerEnabled);
-toolRegistry.setFeatureFlag('WP_MIGRATION_PLANNER_ENABLED', config.featureFlags.migrationPlannerEnabled);
-toolRegistry.setFeatureFlag('WP_PERFORMANCE_ANALYZER_ENABLED', config.featureFlags.performanceAnalyzerEnabled);
+toolRegistry.setFeatureFlag(
+  'WP_CONTENT_REVIEWER_ENABLED',
+  config.featureFlags.contentReviewerEnabled
+);
+toolRegistry.setFeatureFlag(
+  'WP_MIGRATION_PLANNER_ENABLED',
+  config.featureFlags.migrationPlannerEnabled
+);
+toolRegistry.setFeatureFlag(
+  'WP_PERFORMANCE_ANALYZER_ENABLED',
+  config.featureFlags.performanceAnalyzerEnabled
+);
 
 // (wpRequest implementation moved to ./http.ts)
 
@@ -51,7 +57,7 @@ toolRegistry.setFeatureFlag('WP_PERFORMANCE_ANALYZER_ENABLED', config.featureFla
 const server = new Server(
   {
     name: 'wp-navigator',
-    version: '2.1.3',
+    version: '2.4.0',
   },
   {
     capabilities: {

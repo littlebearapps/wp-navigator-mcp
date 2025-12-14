@@ -202,7 +202,11 @@ function findNextKey(source: string, key: string, startOffset: number): KeyLocat
 /**
  * Find an array element by index
  */
-function findArrayIndex(source: string, index: number, startOffset: number): KeyLocation | undefined {
+function findArrayIndex(
+  source: string,
+  index: number,
+  startOffset: number
+): KeyLocation | undefined {
   // Find opening bracket
   let bracketIdx = source.indexOf('[', startOffset);
   if (bracketIdx === -1) return undefined;
@@ -339,8 +343,7 @@ export const ValidationErrorTemplates = {
   // Type errors
   INVALID_TYPE: {
     code: 'INVALID_TYPE',
-    getMessage: (field: string, expected: string, actual: string) =>
-      `Invalid type for ${field}`,
+    getMessage: (field: string, expected: string, actual: string) => `Invalid type for ${field}`,
     getSuggestion: (expected: string) => `Provide a value of type ${expected}`,
   },
 
@@ -361,8 +364,7 @@ export const ValidationErrorTemplates = {
   // Value errors
   INVALID_VALUE: {
     code: 'INVALID_VALUE',
-    getMessage: (field: string, allowed: string[]) =>
-      `Invalid value`,
+    getMessage: (field: string, allowed: string[]) => `Invalid value`,
     getSuggestion: (allowed: string[]) => `Use one of: ${allowed.join(', ')}`,
   },
 
@@ -392,7 +394,8 @@ export const ValidationErrorTemplates = {
   UNRESOLVED_ENV_VAR: {
     code: 'UNRESOLVED_ENV_VAR',
     getMessage: (varName: string) => `Environment variable ${varName} is not set`,
-    getSuggestion: (varName: string) => `Set the ${varName} environment variable or update your config`,
+    getSuggestion: (varName: string) =>
+      `Set the ${varName} environment variable or update your config`,
   },
 
   // Color format errors

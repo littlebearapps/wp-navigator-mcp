@@ -62,7 +62,9 @@ description: Core WordPress block editor guidance.
 
       expect(result.success).toBe(true);
       expect(result.cookbook!.frontmatter.name).toBe('gutenberg-cookbook');
-      expect(result.cookbook!.frontmatter.description).toBe('Core WordPress block editor guidance.');
+      expect(result.cookbook!.frontmatter.description).toBe(
+        'Core WordPress block editor guidance.'
+      );
       expect(result.cookbook!.frontmatter.version).toBeUndefined();
       expect(result.cookbook!.body).toContain('# Gutenberg Cookbook');
     });

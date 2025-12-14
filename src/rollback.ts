@@ -185,7 +185,7 @@ export function createPreSyncSnapshot(
     } else if (pageDiff.change === 'modify' && pageDiff.wpId) {
       // Existing page will be updated - capture current state
       pageUpdates++;
-      const currentPage = wpPages.find(p => p.id === pageDiff.wpId);
+      const currentPage = wpPages.find((p) => p.id === pageDiff.wpId);
       if (currentPage) {
         pages.push({
           wpId: currentPage.id,
@@ -201,7 +201,7 @@ export function createPreSyncSnapshot(
     } else if (pageDiff.change === 'remove' && pageDiff.wpId) {
       // Page will be deleted - capture current state
       pageDeletes++;
-      const currentPage = wpPages.find(p => p.id === pageDiff.wpId);
+      const currentPage = wpPages.find((p) => p.id === pageDiff.wpId);
       if (currentPage) {
         pages.push({
           wpId: currentPage.id,
@@ -222,7 +222,7 @@ export function createPreSyncSnapshot(
     if (pluginDiff.change === 'match') continue;
 
     if (pluginDiff.change === 'modify') {
-      const currentPlugin = wpPlugins.find(p => p.slug === pluginDiff.slug);
+      const currentPlugin = wpPlugins.find((p) => p.slug === pluginDiff.slug);
       if (currentPlugin) {
         const operation = pluginDiff.expectedEnabled ? 'activate' : 'deactivate';
         if (operation === 'activate') pluginActivations++;
@@ -257,10 +257,7 @@ export function createPreSyncSnapshot(
 /**
  * Save pre-sync snapshot to file
  */
-export function savePreSyncSnapshot(
-  projectDir: string,
-  snapshot: PreSyncSnapshot
-): string {
+export function savePreSyncSnapshot(projectDir: string, snapshot: PreSyncSnapshot): string {
   const snapshotDir = getPreSyncDir(projectDir);
   const snapshotPath = getPreSyncSnapshotPath(projectDir, snapshot.sync_id);
 
@@ -327,10 +324,7 @@ export function listPreSyncSnapshots(projectDir: string): SnapshotFileInfo[] {
 /**
  * Load a pre-sync snapshot by sync ID
  */
-export function loadPreSyncSnapshot(
-  projectDir: string,
-  syncId: string
-): PreSyncSnapshot | null {
+export function loadPreSyncSnapshot(projectDir: string, syncId: string): PreSyncSnapshot | null {
   const snapshotPath = getPreSyncSnapshotPath(projectDir, syncId);
 
   if (!fs.existsSync(snapshotPath)) {
@@ -348,10 +342,7 @@ export function loadPreSyncSnapshot(
 /**
  * WordPress API request function signature
  */
-export type WpRequestFn = (
-  endpoint: string,
-  options?: RequestInit
-) => Promise<unknown>;
+export type WpRequestFn = (endpoint: string, options?: RequestInit) => Promise<unknown>;
 
 /**
  * Execute rollback from a pre-sync snapshot
@@ -373,7 +364,9 @@ export async function executeRollback(
         // Page was created - need to delete it to rollback
         // We need to find the page by slug first
         if (!dryRun) {
-          const pagesResponse = await wpRequest(`/wp/v2/pages?slug=${encodeURIComponent(page.slug)}&status=any`) as Array<{ id: number }>;
+          const pagesResponse = (await wpRequest(
+            `/wp/v2/pages?slug=${encodeURIComponent(page.slug)}&status=any`
+          )) as Array<{ id: number }>;
           if (pagesResponse.length > 0) {
             await wpRequest(`/wp/v2/pages/${pagesResponse[0].id}?force=true`, { method: 'DELETE' });
             pagesRestored++;
@@ -416,7 +409,9 @@ export async function executeRollback(
         pagesRestored++;
       }
     } catch (err) {
-      errors.push(`Failed to restore page '${page.slug}': ${err instanceof Error ? err.message : String(err)}`);
+      errors.push(
+        `Failed to restore page '${page.slug}': ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 
@@ -434,7 +429,9 @@ export async function executeRollback(
       }
       pluginsRestored++;
     } catch (err) {
-      errors.push(`Failed to restore plugin '${plugin.slug}': ${err instanceof Error ? err.message : String(err)}`);
+      errors.push(
+        `Failed to restore plugin '${plugin.slug}': ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 

@@ -428,8 +428,7 @@ describe('flag parsing', () => {
   it('should correctly identify manifest-only mode', () => {
     const options: Record<string, string> = { 'manifest-only': 'true' };
 
-    const validateManifestFlag =
-      options.manifest === 'true' || options['manifest-only'] === 'true';
+    const validateManifestFlag = options.manifest === 'true' || options['manifest-only'] === 'true';
     const manifestOnly = options['manifest-only'] === 'true';
 
     expect(validateManifestFlag).toBe(true);

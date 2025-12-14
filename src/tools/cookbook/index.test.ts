@@ -211,7 +211,12 @@ describe('wpnav_match_cookbooks', () => {
 
   it('should fetch plugins from WordPress when not provided', async () => {
     const mockWpRequest = vi.fn().mockResolvedValue([
-      { plugin: 'gutenberg/gutenberg.php', version: '17.0.0', status: 'active', name: 'Gutenberg' },
+      {
+        plugin: 'gutenberg/gutenberg.php',
+        version: '17.0.0',
+        status: 'active',
+        name: 'Gutenberg',
+      },
     ]);
 
     const tool = toolRegistry.getTool('wpnav_match_cookbooks');

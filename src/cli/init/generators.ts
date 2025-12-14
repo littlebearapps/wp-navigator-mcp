@@ -43,10 +43,7 @@ export interface McpJsonOptions {
  * @param context - Object with values to substitute
  * @returns Rendered template string
  */
-export function renderTemplate(
-  template: string,
-  context: Record<string, unknown>
-): string {
+export function renderTemplate(template: string, context: Record<string, unknown>): string {
   let result = template;
 
   // Handle {{#if var}}...{{/if}} blocks
@@ -82,9 +79,7 @@ export function loadTemplate(templateName: string): string {
   try {
     return fs.readFileSync(templatePath, 'utf8');
   } catch (err) {
-    throw new Error(
-      `Template not found: ${templateName} (looked in ${templatePath})`
-    );
+    throw new Error(`Template not found: ${templateName} (looked in ${templatePath})`);
   }
 }
 
@@ -127,9 +122,7 @@ export function generateGeminiMd(context: ClaudeMdContext): string {
  * @param overrides - Optional context values to override defaults
  * @returns Complete context for CLAUDE.md generation
  */
-export function getDefaultClaudeMdContext(
-  overrides?: Partial<ClaudeMdContext>
-): ClaudeMdContext {
+export function getDefaultClaudeMdContext(overrides?: Partial<ClaudeMdContext>): ClaudeMdContext {
   return {
     environment: 'local',
     generated_date: new Date().toISOString().split('T')[0],

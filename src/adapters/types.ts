@@ -229,7 +229,10 @@ export interface BuilderAdapter {
    * @param options - Conversion options
    * @returns Neutral layout with conversion metadata
    */
-  extractLayoutFromContent(content: string, options?: ConversionOptions): ConversionResult<NeutralLayout>;
+  extractLayoutFromContent(
+    content: string,
+    options?: ConversionOptions
+  ): ConversionResult<NeutralLayout>;
 
   // -------------------------------------------------------------------------
   // Application (Neutral Layout → Builder Format)

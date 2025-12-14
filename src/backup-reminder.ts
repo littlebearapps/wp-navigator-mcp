@@ -18,14 +18,7 @@ import {
 } from './manifest.js';
 import type { SiteIndexSnapshot } from './snapshots/types.js';
 import { confirmPrompt } from './cli/tui/prompts.js';
-import {
-  warning,
-  info,
-  newline,
-  list,
-  colorize,
-  box,
-} from './cli/tui/components.js';
+import { warning, info, newline, list, colorize, box } from './cli/tui/components.js';
 
 // =============================================================================
 // Types
@@ -63,15 +56,15 @@ export interface BackupReminderResult {
  * Known backup plugin slugs and their display names
  */
 const BACKUP_PLUGINS: Record<string, string> = {
-  'updraftplus': 'UpdraftPlus',
+  updraftplus: 'UpdraftPlus',
   'updraftplus-premium': 'UpdraftPlus Premium',
   'all-in-one-wp-migration': 'All-in-One WP Migration',
-  'backupbuddy': 'BackupBuddy',
-  'backwpup': 'BackWPup',
-  'duplicator': 'Duplicator',
+  backupbuddy: 'BackupBuddy',
+  backwpup: 'BackWPup',
+  duplicator: 'Duplicator',
   'duplicator-pro': 'Duplicator Pro',
-  'jetpack': 'Jetpack Backup',
-  'vaultpress': 'VaultPress',
+  jetpack: 'Jetpack Backup',
+  vaultpress: 'VaultPress',
   'wp-time-capsule': 'WP Time Capsule',
   'blogvault-real-time-backup': 'BlogVault',
   'backup-backup': 'Backup Migration',

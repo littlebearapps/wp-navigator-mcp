@@ -44,11 +44,13 @@ jobs:
       - name: Write scan summary
         if: always()
         run: |
-          echo "## Socket Security Scan" >> "$GITHUB_STEP_SUMMARY"
-          echo "Supply chain security scan completed." >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Socket.dev detects:" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Malicious packages" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Typosquatting attacks" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Install script risks" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Protestware and sabotage" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## Socket Security Scan"
+            echo "Supply chain security scan completed."
+            echo ""
+            echo "Socket.dev detects:"
+            echo "- Malicious packages"
+            echo "- Typosquatting attacks"
+            echo "- Install script risks"
+            echo "- Protestware and sabotage"
+          } >> "$GITHUB_STEP_SUMMARY"

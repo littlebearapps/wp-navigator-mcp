@@ -9,11 +9,7 @@
  */
 
 import * as readline from 'readline';
-import type {
-  InputPromptOptions,
-  SelectPromptOptions,
-  ConfirmPromptOptions,
-} from './types.js';
+import type { InputPromptOptions, SelectPromptOptions, ConfirmPromptOptions } from './types.js';
 import { colorize, colors, symbols, supportsColor } from './components.js';
 
 /**
@@ -159,7 +155,9 @@ export async function selectPrompt(options: SelectPromptOptions): Promise<string
 
         // Try as value match
         const matchedChoice = choices.find(
-          (c) => c.value.toLowerCase() === answer.toLowerCase() || c.label.toLowerCase() === answer.toLowerCase()
+          (c) =>
+            c.value.toLowerCase() === answer.toLowerCase() ||
+            c.label.toLowerCase() === answer.toLowerCase()
         );
         if (matchedChoice) {
           rl.close();
@@ -168,7 +166,9 @@ export async function selectPrompt(options: SelectPromptOptions): Promise<string
         }
 
         // Invalid - re-prompt
-        console.error(`  ${colorize(symbols.error, 'red')} ${colorize('Invalid choice. Enter a number or value.', 'red')}`);
+        console.error(
+          `  ${colorize(symbols.error, 'red')} ${colorize('Invalid choice. Enter a number or value.', 'red')}`
+        );
         ask();
       });
     };

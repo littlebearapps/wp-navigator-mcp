@@ -122,11 +122,7 @@ export class ToolRegistry implements IToolRegistry {
   /**
    * Execute a tool by name
    */
-  async execute(
-    name: string,
-    args: any,
-    context: ToolExecutionContext
-  ): Promise<ToolResult> {
+  async execute(name: string, args: any, context: ToolExecutionContext): Promise<ToolResult> {
     const tool = this.getTool(name);
     if (!tool) {
       throw new Error(`Tool not found: ${name}`);

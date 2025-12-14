@@ -10,10 +10,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import {
-  loadWpnavConfig,
-  type ResolvedConfig,
-} from '../../wpnav-config.js';
+import { loadWpnavConfig, type ResolvedConfig } from '../../wpnav-config.js';
 import {
   success,
   error as errorMessage,
@@ -124,9 +121,10 @@ export function formatAsShell(vars: Record<string, string>, configPath?: string)
 
   for (const [key, value] of Object.entries(vars)) {
     // Quote values that contain spaces or special characters
-    const quotedValue = value.includes(' ') || value.includes('$') || value.includes('!')
-      ? `"${value.replace(/"/g, '\\"')}"`
-      : `"${value}"`;
+    const quotedValue =
+      value.includes(' ') || value.includes('$') || value.includes('!')
+        ? `"${value.replace(/"/g, '\\"')}"`
+        : `"${value}"`;
     lines.push(`export ${key}=${quotedValue}`);
   }
 
@@ -228,7 +226,10 @@ export async function handleExportEnv(options: ExportEnvOptions = {}): Promise<n
         },
       });
     } else {
-      errorMessage('Configuration not found', result.error || 'Run "wpnav init" first to initialize your project.');
+      errorMessage(
+        'Configuration not found',
+        result.error || 'Run "wpnav init" first to initialize your project.'
+      );
     }
     return 1;
   }

@@ -79,7 +79,9 @@ function isValidVersion(version: string): boolean {
 /**
  * Validate HTTP methods array
  */
-function isValidHttpMethods(methods: unknown): methods is Array<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'> {
+function isValidHttpMethods(
+  methods: unknown
+): methods is Array<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'> {
   if (!Array.isArray(methods)) return false;
   const validMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
   return methods.every((m) => validMethods.includes(m));
@@ -100,14 +102,31 @@ function validateSettingsField(field: unknown, filePath: string, prefix: string)
   const f = field as Record<string, unknown>;
 
   if (!f.id || typeof f.id !== 'string') {
-    throw new CookbookValidationError(`${prefix}.id is required (string)`, filePath, `${prefix}.id`);
+    throw new CookbookValidationError(
+      `${prefix}.id is required (string)`,
+      filePath,
+      `${prefix}.id`
+    );
   }
 
   if (!f.label || typeof f.label !== 'string') {
-    throw new CookbookValidationError(`${prefix}.label is required (string)`, filePath, `${prefix}.label`);
+    throw new CookbookValidationError(
+      `${prefix}.label is required (string)`,
+      filePath,
+      `${prefix}.label`
+    );
   }
 
-  const validTypes = ['text', 'select', 'checkbox', 'textarea', 'number', 'color', 'radio', 'other'];
+  const validTypes = [
+    'text',
+    'select',
+    'checkbox',
+    'textarea',
+    'number',
+    'color',
+    'radio',
+    'other',
+  ];
   if (!f.type || typeof f.type !== 'string' || !validTypes.includes(f.type)) {
     throw new CookbookValidationError(
       `${prefix}.type must be one of: ${validTypes.join(', ')}`,
@@ -117,11 +136,19 @@ function validateSettingsField(field: unknown, filePath: string, prefix: string)
   }
 
   if (f.description !== undefined && typeof f.description !== 'string') {
-    throw new CookbookValidationError(`${prefix}.description must be a string`, filePath, `${prefix}.description`);
+    throw new CookbookValidationError(
+      `${prefix}.description must be a string`,
+      filePath,
+      `${prefix}.description`
+    );
   }
 
   if (f.default !== undefined && typeof f.default !== 'string') {
-    throw new CookbookValidationError(`${prefix}.default must be a string`, filePath, `${prefix}.default`);
+    throw new CookbookValidationError(
+      `${prefix}.default must be a string`,
+      filePath,
+      `${prefix}.default`
+    );
   }
 
   return f as unknown as SettingsField;
@@ -130,7 +157,11 @@ function validateSettingsField(field: unknown, filePath: string, prefix: string)
 /**
  * Validate a settings section
  */
-function validateSettingsSection(section: unknown, filePath: string, prefix: string): SettingsSection {
+function validateSettingsSection(
+  section: unknown,
+  filePath: string,
+  prefix: string
+): SettingsSection {
   if (!section || typeof section !== 'object') {
     throw new CookbookValidationError(`${prefix} must be an object`, filePath, prefix);
   }
@@ -138,20 +169,36 @@ function validateSettingsSection(section: unknown, filePath: string, prefix: str
   const s = section as Record<string, unknown>;
 
   if (!s.id || typeof s.id !== 'string') {
-    throw new CookbookValidationError(`${prefix}.id is required (string)`, filePath, `${prefix}.id`);
+    throw new CookbookValidationError(
+      `${prefix}.id is required (string)`,
+      filePath,
+      `${prefix}.id`
+    );
   }
 
   if (!s.title || typeof s.title !== 'string') {
-    throw new CookbookValidationError(`${prefix}.title is required (string)`, filePath, `${prefix}.title`);
+    throw new CookbookValidationError(
+      `${prefix}.title is required (string)`,
+      filePath,
+      `${prefix}.title`
+    );
   }
 
   if (s.description !== undefined && typeof s.description !== 'string') {
-    throw new CookbookValidationError(`${prefix}.description must be a string`, filePath, `${prefix}.description`);
+    throw new CookbookValidationError(
+      `${prefix}.description must be a string`,
+      filePath,
+      `${prefix}.description`
+    );
   }
 
   if (s.fields !== undefined) {
     if (!Array.isArray(s.fields)) {
-      throw new CookbookValidationError(`${prefix}.fields must be an array`, filePath, `${prefix}.fields`);
+      throw new CookbookValidationError(
+        `${prefix}.fields must be an array`,
+        filePath,
+        `${prefix}.fields`
+      );
     }
     for (let i = 0; i < s.fields.length; i++) {
       validateSettingsField(s.fields[i], filePath, `${prefix}.fields[${i}]`);
@@ -172,20 +219,36 @@ function validateSettingsPage(page: unknown, filePath: string, prefix: string): 
   const p = page as Record<string, unknown>;
 
   if (!p.path || typeof p.path !== 'string') {
-    throw new CookbookValidationError(`${prefix}.path is required (string)`, filePath, `${prefix}.path`);
+    throw new CookbookValidationError(
+      `${prefix}.path is required (string)`,
+      filePath,
+      `${prefix}.path`
+    );
   }
 
   if (!p.title || typeof p.title !== 'string') {
-    throw new CookbookValidationError(`${prefix}.title is required (string)`, filePath, `${prefix}.title`);
+    throw new CookbookValidationError(
+      `${prefix}.title is required (string)`,
+      filePath,
+      `${prefix}.title`
+    );
   }
 
   if (p.description !== undefined && typeof p.description !== 'string') {
-    throw new CookbookValidationError(`${prefix}.description must be a string`, filePath, `${prefix}.description`);
+    throw new CookbookValidationError(
+      `${prefix}.description must be a string`,
+      filePath,
+      `${prefix}.description`
+    );
   }
 
   if (p.sections !== undefined) {
     if (!Array.isArray(p.sections)) {
-      throw new CookbookValidationError(`${prefix}.sections must be an array`, filePath, `${prefix}.sections`);
+      throw new CookbookValidationError(
+        `${prefix}.sections must be an array`,
+        filePath,
+        `${prefix}.sections`
+      );
     }
     for (let i = 0; i < p.sections.length; i++) {
       validateSettingsSection(p.sections[i], filePath, `${prefix}.sections[${i}]`);
@@ -206,7 +269,11 @@ function validateShortcodeParam(param: unknown, filePath: string, prefix: string
   const p = param as Record<string, unknown>;
 
   if (!p.name || typeof p.name !== 'string') {
-    throw new CookbookValidationError(`${prefix}.name is required (string)`, filePath, `${prefix}.name`);
+    throw new CookbookValidationError(
+      `${prefix}.name is required (string)`,
+      filePath,
+      `${prefix}.name`
+    );
   }
 
   const validTypes = ['string', 'number', 'boolean', 'array'];
@@ -219,15 +286,27 @@ function validateShortcodeParam(param: unknown, filePath: string, prefix: string
   }
 
   if (p.required !== undefined && typeof p.required !== 'boolean') {
-    throw new CookbookValidationError(`${prefix}.required must be a boolean`, filePath, `${prefix}.required`);
+    throw new CookbookValidationError(
+      `${prefix}.required must be a boolean`,
+      filePath,
+      `${prefix}.required`
+    );
   }
 
   if (p.default !== undefined && typeof p.default !== 'string') {
-    throw new CookbookValidationError(`${prefix}.default must be a string`, filePath, `${prefix}.default`);
+    throw new CookbookValidationError(
+      `${prefix}.default must be a string`,
+      filePath,
+      `${prefix}.default`
+    );
   }
 
   if (p.description !== undefined && typeof p.description !== 'string') {
-    throw new CookbookValidationError(`${prefix}.description must be a string`, filePath, `${prefix}.description`);
+    throw new CookbookValidationError(
+      `${prefix}.description must be a string`,
+      filePath,
+      `${prefix}.description`
+    );
   }
 
   return p as unknown as ShortcodeParam;
@@ -244,16 +323,28 @@ function validateShortcode(shortcode: unknown, filePath: string, prefix: string)
   const s = shortcode as Record<string, unknown>;
 
   if (!s.tag || typeof s.tag !== 'string') {
-    throw new CookbookValidationError(`${prefix}.tag is required (string)`, filePath, `${prefix}.tag`);
+    throw new CookbookValidationError(
+      `${prefix}.tag is required (string)`,
+      filePath,
+      `${prefix}.tag`
+    );
   }
 
   if (!s.description || typeof s.description !== 'string') {
-    throw new CookbookValidationError(`${prefix}.description is required (string)`, filePath, `${prefix}.description`);
+    throw new CookbookValidationError(
+      `${prefix}.description is required (string)`,
+      filePath,
+      `${prefix}.description`
+    );
   }
 
   if (s.params !== undefined) {
     if (!Array.isArray(s.params)) {
-      throw new CookbookValidationError(`${prefix}.params must be an array`, filePath, `${prefix}.params`);
+      throw new CookbookValidationError(
+        `${prefix}.params must be an array`,
+        filePath,
+        `${prefix}.params`
+      );
     }
     for (let i = 0; i < s.params.length; i++) {
       validateShortcodeParam(s.params[i], filePath, `${prefix}.params[${i}]`);
@@ -261,7 +352,11 @@ function validateShortcode(shortcode: unknown, filePath: string, prefix: string)
   }
 
   if (s.example !== undefined && typeof s.example !== 'string') {
-    throw new CookbookValidationError(`${prefix}.example must be a string`, filePath, `${prefix}.example`);
+    throw new CookbookValidationError(
+      `${prefix}.example must be a string`,
+      filePath,
+      `${prefix}.example`
+    );
   }
 
   return s as unknown as Shortcode;
@@ -278,30 +373,54 @@ function validateBlock(block: unknown, filePath: string, prefix: string): Block 
   const b = block as Record<string, unknown>;
 
   if (!b.name || typeof b.name !== 'string') {
-    throw new CookbookValidationError(`${prefix}.name is required (string)`, filePath, `${prefix}.name`);
+    throw new CookbookValidationError(
+      `${prefix}.name is required (string)`,
+      filePath,
+      `${prefix}.name`
+    );
   }
 
   if (!b.title || typeof b.title !== 'string') {
-    throw new CookbookValidationError(`${prefix}.title is required (string)`, filePath, `${prefix}.title`);
+    throw new CookbookValidationError(
+      `${prefix}.title is required (string)`,
+      filePath,
+      `${prefix}.title`
+    );
   }
 
   if (b.description !== undefined && typeof b.description !== 'string') {
-    throw new CookbookValidationError(`${prefix}.description must be a string`, filePath, `${prefix}.description`);
+    throw new CookbookValidationError(
+      `${prefix}.description must be a string`,
+      filePath,
+      `${prefix}.description`
+    );
   }
 
   if (b.category !== undefined && typeof b.category !== 'string') {
-    throw new CookbookValidationError(`${prefix}.category must be a string`, filePath, `${prefix}.category`);
+    throw new CookbookValidationError(
+      `${prefix}.category must be a string`,
+      filePath,
+      `${prefix}.category`
+    );
   }
 
   if (b.supports !== undefined) {
     if (!Array.isArray(b.supports) || !b.supports.every((s) => typeof s === 'string')) {
-      throw new CookbookValidationError(`${prefix}.supports must be an array of strings`, filePath, `${prefix}.supports`);
+      throw new CookbookValidationError(
+        `${prefix}.supports must be an array of strings`,
+        filePath,
+        `${prefix}.supports`
+      );
     }
   }
 
   if (b.keywords !== undefined) {
     if (!Array.isArray(b.keywords) || !b.keywords.every((k) => typeof k === 'string')) {
-      throw new CookbookValidationError(`${prefix}.keywords must be an array of strings`, filePath, `${prefix}.keywords`);
+      throw new CookbookValidationError(
+        `${prefix}.keywords must be an array of strings`,
+        filePath,
+        `${prefix}.keywords`
+      );
     }
   }
 
@@ -319,11 +438,19 @@ function validateRestEndpoint(endpoint: unknown, filePath: string, prefix: strin
   const e = endpoint as Record<string, unknown>;
 
   if (!e.route || typeof e.route !== 'string') {
-    throw new CookbookValidationError(`${prefix}.route is required (string)`, filePath, `${prefix}.route`);
+    throw new CookbookValidationError(
+      `${prefix}.route is required (string)`,
+      filePath,
+      `${prefix}.route`
+    );
   }
 
   if (!e.description || typeof e.description !== 'string') {
-    throw new CookbookValidationError(`${prefix}.description is required (string)`, filePath, `${prefix}.description`);
+    throw new CookbookValidationError(
+      `${prefix}.description is required (string)`,
+      filePath,
+      `${prefix}.description`
+    );
   }
 
   if (!e.methods || !isValidHttpMethods(e.methods)) {
@@ -335,7 +462,11 @@ function validateRestEndpoint(endpoint: unknown, filePath: string, prefix: strin
   }
 
   if (e.permission !== undefined && typeof e.permission !== 'string') {
-    throw new CookbookValidationError(`${prefix}.permission must be a string`, filePath, `${prefix}.permission`);
+    throw new CookbookValidationError(
+      `${prefix}.permission must be a string`,
+      filePath,
+      `${prefix}.permission`
+    );
   }
 
   return e as unknown as RestEndpoint;
@@ -352,23 +483,43 @@ function validateCommonTask(task: unknown, filePath: string, prefix: string): Co
   const t = task as Record<string, unknown>;
 
   if (!t.id || typeof t.id !== 'string') {
-    throw new CookbookValidationError(`${prefix}.id is required (string)`, filePath, `${prefix}.id`);
+    throw new CookbookValidationError(
+      `${prefix}.id is required (string)`,
+      filePath,
+      `${prefix}.id`
+    );
   }
 
   if (!t.title || typeof t.title !== 'string') {
-    throw new CookbookValidationError(`${prefix}.title is required (string)`, filePath, `${prefix}.title`);
+    throw new CookbookValidationError(
+      `${prefix}.title is required (string)`,
+      filePath,
+      `${prefix}.title`
+    );
   }
 
   if (t.description !== undefined && typeof t.description !== 'string') {
-    throw new CookbookValidationError(`${prefix}.description must be a string`, filePath, `${prefix}.description`);
+    throw new CookbookValidationError(
+      `${prefix}.description must be a string`,
+      filePath,
+      `${prefix}.description`
+    );
   }
 
   if (!t.steps || !Array.isArray(t.steps)) {
-    throw new CookbookValidationError(`${prefix}.steps is required (array of strings)`, filePath, `${prefix}.steps`);
+    throw new CookbookValidationError(
+      `${prefix}.steps is required (array of strings)`,
+      filePath,
+      `${prefix}.steps`
+    );
   }
   for (let i = 0; i < t.steps.length; i++) {
     if (typeof t.steps[i] !== 'string') {
-      throw new CookbookValidationError(`${prefix}.steps[${i}] must be a string`, filePath, `${prefix}.steps[${i}]`);
+      throw new CookbookValidationError(
+        `${prefix}.steps[${i}] must be a string`,
+        filePath,
+        `${prefix}.steps[${i}]`
+      );
     }
   }
 
@@ -383,7 +534,10 @@ function validateCommonTask(task: unknown, filePath: string, prefix: string): Co
   }
 
   const validDifficulties = ['beginner', 'intermediate', 'advanced'];
-  if (t.difficulty !== undefined && (typeof t.difficulty !== 'string' || !validDifficulties.includes(t.difficulty))) {
+  if (
+    t.difficulty !== undefined &&
+    (typeof t.difficulty !== 'string' || !validDifficulties.includes(t.difficulty))
+  ) {
     throw new CookbookValidationError(
       `${prefix}.difficulty must be one of: ${validDifficulties.join(', ')}`,
       filePath,
@@ -421,7 +575,11 @@ function validateCapabilities(caps: unknown, filePath: string): CookbookCapabili
   // Validate shortcodes
   if (c.shortcodes !== undefined) {
     if (!Array.isArray(c.shortcodes)) {
-      throw new CookbookValidationError('capabilities.shortcodes must be an array', filePath, 'capabilities.shortcodes');
+      throw new CookbookValidationError(
+        'capabilities.shortcodes must be an array',
+        filePath,
+        'capabilities.shortcodes'
+      );
     }
     for (let i = 0; i < c.shortcodes.length; i++) {
       validateShortcode(c.shortcodes[i], filePath, `capabilities.shortcodes[${i}]`);
@@ -431,7 +589,11 @@ function validateCapabilities(caps: unknown, filePath: string): CookbookCapabili
   // Validate blocks
   if (c.blocks !== undefined) {
     if (!Array.isArray(c.blocks)) {
-      throw new CookbookValidationError('capabilities.blocks must be an array', filePath, 'capabilities.blocks');
+      throw new CookbookValidationError(
+        'capabilities.blocks must be an array',
+        filePath,
+        'capabilities.blocks'
+      );
     }
     for (let i = 0; i < c.blocks.length; i++) {
       validateBlock(c.blocks[i], filePath, `capabilities.blocks[${i}]`);
@@ -455,7 +617,11 @@ function validateCapabilities(caps: unknown, filePath: string): CookbookCapabili
   // Validate post_types
   if (c.post_types !== undefined) {
     if (!Array.isArray(c.post_types)) {
-      throw new CookbookValidationError('capabilities.post_types must be an array', filePath, 'capabilities.post_types');
+      throw new CookbookValidationError(
+        'capabilities.post_types must be an array',
+        filePath,
+        'capabilities.post_types'
+      );
     }
     for (let i = 0; i < c.post_types.length; i++) {
       const pt = c.post_types[i] as Record<string, unknown>;
@@ -479,7 +645,11 @@ function validateCapabilities(caps: unknown, filePath: string): CookbookCapabili
   // Validate taxonomies
   if (c.taxonomies !== undefined) {
     if (!Array.isArray(c.taxonomies)) {
-      throw new CookbookValidationError('capabilities.taxonomies must be an array', filePath, 'capabilities.taxonomies');
+      throw new CookbookValidationError(
+        'capabilities.taxonomies must be an array',
+        filePath,
+        'capabilities.taxonomies'
+      );
     }
     for (let i = 0; i < c.taxonomies.length; i++) {
       const tax = c.taxonomies[i] as Record<string, unknown>;
@@ -574,11 +744,7 @@ export function validateCookbook(data: unknown, filePath: string): Cookbook {
 
   // Validate schema_version (required)
   if (obj.schema_version === undefined) {
-    throw new CookbookValidationError(
-      'Missing schema_version field',
-      filePath,
-      'schema_version'
-    );
+    throw new CookbookValidationError('Missing schema_version field', filePath, 'schema_version');
   }
 
   if (typeof obj.schema_version !== 'number' || !Number.isInteger(obj.schema_version)) {
@@ -619,7 +785,11 @@ export function validateCookbook(data: unknown, filePath: string): Cookbook {
 
   // Validate capabilities (required)
   if (obj.capabilities === undefined) {
-    throw new CookbookValidationError('Missing capabilities field (required object)', filePath, 'capabilities');
+    throw new CookbookValidationError(
+      'Missing capabilities field (required object)',
+      filePath,
+      'capabilities'
+    );
   }
   const capabilities = validateCapabilities(obj.capabilities, filePath);
 
@@ -635,11 +805,19 @@ export function validateCookbook(data: unknown, filePath: string): Cookbook {
 
   // Validate optional string fields
   if (obj.documentation_url !== undefined && typeof obj.documentation_url !== 'string') {
-    throw new CookbookValidationError('documentation_url must be a string', filePath, 'documentation_url');
+    throw new CookbookValidationError(
+      'documentation_url must be a string',
+      filePath,
+      'documentation_url'
+    );
   }
 
   if (obj.last_updated !== undefined && typeof obj.last_updated !== 'string') {
-    throw new CookbookValidationError('last_updated must be a string (ISO 8601 date)', filePath, 'last_updated');
+    throw new CookbookValidationError(
+      'last_updated must be a string (ISO 8601 date)',
+      filePath,
+      'last_updated'
+    );
   }
 
   if (obj.author !== undefined && typeof obj.author !== 'string') {

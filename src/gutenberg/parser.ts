@@ -37,7 +37,10 @@ interface BlockParseResult {
  * Check if position is at a block start marker
  */
 function isBlockStart(state: ParseState): boolean {
-  return state.content.substring(state.position, state.position + BLOCK_COMMENT_START.length) === BLOCK_COMMENT_START;
+  return (
+    state.content.substring(state.position, state.position + BLOCK_COMMENT_START.length) ===
+    BLOCK_COMMENT_START
+  );
 }
 
 /**
@@ -45,7 +48,9 @@ function isBlockStart(state: ParseState): boolean {
  */
 function isBlockClose(state: ParseState, blockName: string): boolean {
   const closeMarker = `${BLOCK_COMMENT_CLOSE}${blockName}`;
-  return state.content.substring(state.position, state.position + closeMarker.length) === closeMarker;
+  return (
+    state.content.substring(state.position, state.position + closeMarker.length) === closeMarker
+  );
 }
 
 /**
@@ -73,10 +78,9 @@ function parseBlockOpening(state: ParseState): {
     return null;
   }
 
-  const commentContent = state.content.substring(
-    state.position + BLOCK_COMMENT_START.length,
-    commentEnd
-  ).trim();
+  const commentContent = state.content
+    .substring(state.position + BLOCK_COMMENT_START.length, commentEnd)
+    .trim();
 
   // Check for self-closing marker (ends with /)
   const isSelfClosing = commentContent.endsWith('/');

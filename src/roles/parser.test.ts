@@ -9,7 +9,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { parseYaml, validateRole, loadRoleFile } from './parser.js';
-import { RoleSource, RoleValidationError, RoleSchemaVersionError, ROLE_SCHEMA_VERSION } from './types.js';
+import {
+  RoleSource,
+  RoleValidationError,
+  RoleSchemaVersionError,
+  ROLE_SCHEMA_VERSION,
+} from './types.js';
 
 // =============================================================================
 // YAML Parser Tests

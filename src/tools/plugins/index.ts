@@ -30,7 +30,10 @@ function normalizePluginPath(plugin: string): string {
   // First decode any URL-encoded characters (handles pre-encoded input from Claude Code)
   const decoded = decodeURIComponent(plugin);
   // Then encode individual parts but preserve the slash for /wp-json/ path format
-  const result = decoded.split('/').map(part => encodeURIComponent(part)).join('/');
+  const result = decoded
+    .split('/')
+    .map((part) => encodeURIComponent(part))
+    .join('/');
   return result;
 }
 
@@ -44,11 +47,16 @@ export function registerPluginTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_list_plugins',
-      description: 'List all installed WordPress plugins. Returns plugin identifier in "plugin" field (use this exact value for activate/deactivate/delete operations), name, version, and status (active/inactive). Format varies: single-file plugins use just the name (e.g., "hello"), directory plugins use "directory/file" without .php extension (e.g., "wordfence/wordfence", "wp-navigator-pro/wp-navigator-pro").',
+      description:
+        'List all installed WordPress plugins. Returns plugin identifier in "plugin" field (use this exact value for activate/deactivate/delete operations), name, version, and status (active/inactive). Format varies: single-file plugins use just the name (e.g., "hello"), directory plugins use "directory/file" without .php extension (e.g., "wordfence/wordfence", "wp-navigator-pro/wp-navigator-pro").',
       inputSchema: {
         type: 'object',
         properties: {
-          status: { type: 'string', description: 'Optional filter by status (e.g., "active" or "inactive"). If omitted or set to "all", returns all plugins.' },
+          status: {
+            type: 'string',
+            description:
+              'Optional filter by status (e.g., "active" or "inactive"). If omitted or set to "all", returns all plugins.',
+          },
         },
         required: [],
       },
@@ -76,11 +84,16 @@ export function registerPluginTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_get_plugin',
-      description: 'Get details about a specific plugin by slug. Returns full metadata including description, author, and version.',
+      description:
+        'Get details about a specific plugin by slug. Returns full metadata including description, author, and version.',
       inputSchema: {
         type: 'object',
         properties: {
-          plugin: { type: 'string', description: 'Plugin identifier from wpnav_list_plugins "plugin" field (e.g., "wordfence/wordfence", "hello"). Do NOT include .php extension.' },
+          plugin: {
+            type: 'string',
+            description:
+              'Plugin identifier from wpnav_list_plugins "plugin" field (e.g., "wordfence/wordfence", "hello"). Do NOT include .php extension.',
+          },
         },
         required: ['plugin'],
       },
@@ -103,12 +116,17 @@ export function registerPluginTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_install_plugin',
-      description: 'Install a WordPress plugin from WordPress.org by slug. Changes are logged in audit trail.',
+      description:
+        'Install a WordPress plugin from WordPress.org by slug. Changes are logged in audit trail.',
       inputSchema: {
         type: 'object',
         properties: {
           slug: { type: 'string', description: 'Plugin slug from WordPress.org (e.g., "akismet")' },
-          activate: { type: 'boolean', description: 'Activate plugin after installation (default: false)', default: false },
+          activate: {
+            type: 'boolean',
+            description: 'Activate plugin after installation (default: false)',
+            default: false,
+          },
         },
         required: ['slug'],
       },
@@ -128,34 +146,50 @@ export function registerPluginTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              plugin: result.plugin,
-              name: result.name,
-              version: result.version,
-              status: result.status,
-              message: 'Plugin installed successfully',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    plugin: result.plugin,
+                    name: result.name,
+                    version: result.version,
+                    status: result.status,
+                    message: 'Plugin installed successfully',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'INSTALL_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'plugin',
-                slug: args.slug,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check plugin slug exists on WordPress.org',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'INSTALL_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'plugin',
+                    slug: args.slug,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check plugin slug exists on WordPress.org',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -173,7 +207,11 @@ export function registerPluginTools() {
       inputSchema: {
         type: 'object',
         properties: {
-          plugin: { type: 'string', description: 'Plugin identifier from wpnav_list_plugins "plugin" field (e.g., "wordfence/wordfence", "hello"). Do NOT include .php extension.' },
+          plugin: {
+            type: 'string',
+            description:
+              'Plugin identifier from wpnav_list_plugins "plugin" field (e.g., "wordfence/wordfence", "hello"). Do NOT include .php extension.',
+          },
         },
         required: ['plugin'],
       },
@@ -182,39 +220,58 @@ export function registerPluginTools() {
       try {
         validateRequired(args, ['plugin']);
 
-        const result = await context.wpRequest(`/wp/v2/plugins/${normalizePluginPath(args.plugin)}`, {
-          method: 'POST',
-          body: JSON.stringify({ status: 'active' }),
-        });
+        const result = await context.wpRequest(
+          `/wp/v2/plugins/${normalizePluginPath(args.plugin)}`,
+          {
+            method: 'POST',
+            body: JSON.stringify({ status: 'active' }),
+          }
+        );
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              plugin: result.plugin,
-              name: result.name,
-              status: result.status,
-              message: 'Plugin activated successfully',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    plugin: result.plugin,
+                    name: result.name,
+                    status: result.status,
+                    message: 'Plugin activated successfully',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'ACTIVATE_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'plugin',
-                plugin: args.plugin,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check plugin is installed with wpnav_list_plugins',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'ACTIVATE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'plugin',
+                    plugin: args.plugin,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check plugin is installed with wpnav_list_plugins',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -232,7 +289,11 @@ export function registerPluginTools() {
       inputSchema: {
         type: 'object',
         properties: {
-          plugin: { type: 'string', description: 'Plugin identifier from wpnav_list_plugins "plugin" field (e.g., "wordfence/wordfence", "hello"). Do NOT include .php extension.' },
+          plugin: {
+            type: 'string',
+            description:
+              'Plugin identifier from wpnav_list_plugins "plugin" field (e.g., "wordfence/wordfence", "hello"). Do NOT include .php extension.',
+          },
         },
         required: ['plugin'],
       },
@@ -241,39 +302,58 @@ export function registerPluginTools() {
       try {
         validateRequired(args, ['plugin']);
 
-        const result = await context.wpRequest(`/wp/v2/plugins/${normalizePluginPath(args.plugin)}`, {
-          method: 'POST',
-          body: JSON.stringify({ status: 'inactive' }),
-        });
+        const result = await context.wpRequest(
+          `/wp/v2/plugins/${normalizePluginPath(args.plugin)}`,
+          {
+            method: 'POST',
+            body: JSON.stringify({ status: 'inactive' }),
+          }
+        );
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              plugin: result.plugin,
-              name: result.name,
-              status: result.status,
-              message: 'Plugin deactivated successfully',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    plugin: result.plugin,
+                    name: result.name,
+                    status: result.status,
+                    message: 'Plugin deactivated successfully',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'DEACTIVATE_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'plugin',
-                plugin: args.plugin,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check plugin exists with wpnav_list_plugins',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'DEACTIVATE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'plugin',
+                    plugin: args.plugin,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check plugin exists with wpnav_list_plugins',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -287,11 +367,16 @@ export function registerPluginTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_update_plugin',
-      description: 'Update a WordPress plugin to the latest version. Changes are logged in audit trail.',
+      description:
+        'Update a WordPress plugin to the latest version. Changes are logged in audit trail.',
       inputSchema: {
         type: 'object',
         properties: {
-          plugin: { type: 'string', description: 'Plugin identifier from wpnav_list_plugins "plugin" field (e.g., "wordfence/wordfence", "hello"). Do NOT include .php extension.' },
+          plugin: {
+            type: 'string',
+            description:
+              'Plugin identifier from wpnav_list_plugins "plugin" field (e.g., "wordfence/wordfence", "hello"). Do NOT include .php extension.',
+          },
         },
         required: ['plugin'],
       },
@@ -300,39 +385,58 @@ export function registerPluginTools() {
       try {
         validateRequired(args, ['plugin']);
 
-        const result = await context.wpRequest(`/wp/v2/plugins/${normalizePluginPath(args.plugin)}`, {
-          method: 'POST',
-          body: JSON.stringify({ status: 'active' }), // Update endpoint uses POST with current status
-        });
+        const result = await context.wpRequest(
+          `/wp/v2/plugins/${normalizePluginPath(args.plugin)}`,
+          {
+            method: 'POST',
+            body: JSON.stringify({ status: 'active' }), // Update endpoint uses POST with current status
+          }
+        );
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              plugin: result.plugin,
-              name: result.name,
-              version: result.version,
-              message: 'Plugin updated successfully',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    plugin: result.plugin,
+                    name: result.name,
+                    version: result.version,
+                    message: 'Plugin updated successfully',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'UPDATE_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'plugin',
-                plugin: args.plugin,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check plugin is installed with wpnav_list_plugins',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'UPDATE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'plugin',
+                    plugin: args.plugin,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check plugin is installed with wpnav_list_plugins',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -346,11 +450,16 @@ export function registerPluginTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_delete_plugin',
-      description: 'Delete a WordPress plugin by slug. Plugin must be deactivated first. WARNING: This permanently deletes the plugin files.',
+      description:
+        'Delete a WordPress plugin by slug. Plugin must be deactivated first. WARNING: This permanently deletes the plugin files.',
       inputSchema: {
         type: 'object',
         properties: {
-          plugin: { type: 'string', description: 'Plugin identifier from wpnav_list_plugins "plugin" field (e.g., "wordfence/wordfence", "hello"). Do NOT include .php extension.' },
+          plugin: {
+            type: 'string',
+            description:
+              'Plugin identifier from wpnav_list_plugins "plugin" field (e.g., "wordfence/wordfence", "hello"). Do NOT include .php extension.',
+          },
         },
         required: ['plugin'],
       },
@@ -359,36 +468,55 @@ export function registerPluginTools() {
       try {
         validateRequired(args, ['plugin']);
 
-        const result = await context.wpRequest(`/wp/v2/plugins/${normalizePluginPath(args.plugin)}`, {
-          method: 'DELETE',
-        });
+        const result = await context.wpRequest(
+          `/wp/v2/plugins/${normalizePluginPath(args.plugin)}`,
+          {
+            method: 'DELETE',
+          }
+        );
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              plugin: result.plugin,
-              message: 'Plugin deleted successfully',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    plugin: result.plugin,
+                    message: 'Plugin deleted successfully',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'DELETE_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'plugin',
-                plugin: args.plugin,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check plugin is deactivated first with wpnav_deactivate_plugin',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'DELETE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'plugin',
+                    plugin: args.plugin,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check plugin is deactivated first with wpnav_deactivate_plugin',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }

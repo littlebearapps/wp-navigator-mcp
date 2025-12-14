@@ -60,7 +60,10 @@ function createMockAdapter(
         warnings: [],
       };
     },
-    extractLayoutFromContent(_content: string, _options?: ConversionOptions): ConversionResult<NeutralLayout> {
+    extractLayoutFromContent(
+      _content: string,
+      _options?: ConversionOptions
+    ): ConversionResult<NeutralLayout> {
       return {
         data: {
           layout_version: '1.0',
@@ -240,7 +243,9 @@ describe('AdapterRegistry', () => {
     });
 
     it('should skip unsupported adapters', () => {
-      registry.register(createMockAdapter('unsupported', { supported: false, detectConfidence: 1.0 }));
+      registry.register(
+        createMockAdapter('unsupported', { supported: false, detectConfidence: 1.0 })
+      );
       registry.register(createMockAdapter('supported', { supported: true, detectConfidence: 0.6 }));
 
       const result = registry.detectBuilder(createMockPageData());

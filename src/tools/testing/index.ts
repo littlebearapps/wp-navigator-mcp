@@ -35,20 +35,31 @@ export function registerTestingTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_test_metrics',
-      description: 'Track test execution metrics and generate reports. Use this to monitor test progress, measure automation success rate, and capture detailed execution statistics.',
+      description:
+        'Track test execution metrics and generate reports. Use this to monitor test progress, measure automation success rate, and capture detailed execution statistics.',
       inputSchema: {
         type: 'object',
         properties: {
           action: {
             type: 'string',
             enum: ['start', 'phase_complete', 'tool_result', 'finish', 'report', 'reset'],
-            description: 'Action to perform: start (begin test), phase_complete (mark phase done), tool_result (record tool call), finish (end test), report (get metrics), reset (clear metrics)',
+            description:
+              'Action to perform: start (begin test), phase_complete (mark phase done), tool_result (record tool call), finish (end test), report (get metrics), reset (clear metrics)',
           },
           phase: { type: 'string', description: 'Phase name (required for phase_complete)' },
           tool: { type: 'string', description: 'Tool name (required for tool_result)' },
-          success: { type: 'boolean', description: 'Whether tool call succeeded (required for tool_result)' },
-          duration_ms: { type: 'integer', description: 'Tool execution duration in milliseconds (optional for tool_result)' },
-          error: { type: 'string', description: 'Error message if tool call failed (optional for tool_result)' },
+          success: {
+            type: 'boolean',
+            description: 'Whether tool call succeeded (required for tool_result)',
+          },
+          duration_ms: {
+            type: 'integer',
+            description: 'Tool execution duration in milliseconds (optional for tool_result)',
+          },
+          error: {
+            type: 'string',
+            description: 'Error message if tool call failed (optional for tool_result)',
+          },
         },
         required: ['action'],
       },
@@ -66,14 +77,22 @@ export function registerTestingTools() {
             testMetrics.tools = {};
 
             return {
-              content: [{
-                type: 'text',
-                text: context.clampText(JSON.stringify({
-                  action: 'start',
-                  timestamp: testMetrics.startTime,
-                  message: 'Test metrics tracking started',
-                }, null, 2)),
-              }],
+              content: [
+                {
+                  type: 'text',
+                  text: context.clampText(
+                    JSON.stringify(
+                      {
+                        action: 'start',
+                        timestamp: testMetrics.startTime,
+                        message: 'Test metrics tracking started',
+                      },
+                      null,
+                      2
+                    )
+                  ),
+                },
+              ],
             };
 
           case 'phase_complete':
@@ -89,16 +108,24 @@ export function registerTestingTools() {
             const phasesCompleted = Object.keys(testMetrics.phases).length;
 
             return {
-              content: [{
-                type: 'text',
-                text: context.clampText(JSON.stringify({
-                  action: 'phase_complete',
-                  phase: args.phase,
-                  timestamp: Date.now(),
-                  phases_completed: phasesCompleted,
-                  message: `Phase "${args.phase}" marked as complete`,
-                }, null, 2)),
-              }],
+              content: [
+                {
+                  type: 'text',
+                  text: context.clampText(
+                    JSON.stringify(
+                      {
+                        action: 'phase_complete',
+                        phase: args.phase,
+                        timestamp: Date.now(),
+                        phases_completed: phasesCompleted,
+                        message: `Phase "${args.phase}" marked as complete`,
+                      },
+                      null,
+                      2
+                    )
+                  ),
+                },
+              ],
             };
 
           case 'tool_result':
@@ -129,30 +156,46 @@ export function registerTestingTools() {
             }
 
             return {
-              content: [{
-                type: 'text',
-                text: context.clampText(JSON.stringify({
-                  action: 'tool_result',
-                  tool: args.tool,
-                  success: args.success,
-                  duration_ms: args.duration_ms,
-                  message: `Tool "${args.tool}" result recorded`,
-                }, null, 2)),
-              }],
+              content: [
+                {
+                  type: 'text',
+                  text: context.clampText(
+                    JSON.stringify(
+                      {
+                        action: 'tool_result',
+                        tool: args.tool,
+                        success: args.success,
+                        duration_ms: args.duration_ms,
+                        message: `Tool "${args.tool}" result recorded`,
+                      },
+                      null,
+                      2
+                    )
+                  ),
+                },
+              ],
             };
 
           case 'finish':
             testMetrics.endTime = Date.now();
 
             return {
-              content: [{
-                type: 'text',
-                text: context.clampText(JSON.stringify({
-                  action: 'finish',
-                  timestamp: testMetrics.endTime,
-                  message: 'Test metrics tracking finished',
-                }, null, 2)),
-              }],
+              content: [
+                {
+                  type: 'text',
+                  text: context.clampText(
+                    JSON.stringify(
+                      {
+                        action: 'finish',
+                        timestamp: testMetrics.endTime,
+                        message: 'Test metrics tracking finished',
+                      },
+                      null,
+                      2
+                    )
+                  ),
+                },
+              ],
             };
 
           case 'report':
@@ -171,22 +214,28 @@ export function registerTestingTools() {
               totalToolCalls += metrics.success + metrics.failure;
               successfulToolCalls += metrics.success;
 
-              metrics.errors.forEach(error => {
+              metrics.errors.forEach((error) => {
                 toolErrors.push({ tool, error });
               });
             });
 
-            const successRate = totalToolCalls > 0
-              ? ((successfulToolCalls / totalToolCalls) * 100).toFixed(2)
-              : '0.00';
+            const successRate =
+              totalToolCalls > 0
+                ? ((successfulToolCalls / totalToolCalls) * 100).toFixed(2)
+                : '0.00';
 
-            const automationPercentage = totalToolCalls > 0
-              ? ((successfulToolCalls / totalToolCalls) * 100).toFixed(1)
-              : '0.0';
+            const automationPercentage =
+              totalToolCalls > 0
+                ? ((successfulToolCalls / totalToolCalls) * 100).toFixed(1)
+                : '0.0';
 
             const report = {
-              test_started: testMetrics.startTime ? new Date(testMetrics.startTime).toISOString() : null,
-              test_ended: testMetrics.endTime ? new Date(testMetrics.endTime).toISOString() : 'In progress',
+              test_started: testMetrics.startTime
+                ? new Date(testMetrics.startTime).toISOString()
+                : null,
+              test_ended: testMetrics.endTime
+                ? new Date(testMetrics.endTime).toISOString()
+                : 'In progress',
               test_duration_ms: duration,
               test_duration_minutes: parseFloat(durationMinutes),
               phases_completed: Object.keys(testMetrics.phases).length,
@@ -202,10 +251,12 @@ export function registerTestingTools() {
             };
 
             return {
-              content: [{
-                type: 'text',
-                text: context.clampText(JSON.stringify(report, null, 2)),
-              }],
+              content: [
+                {
+                  type: 'text',
+                  text: context.clampText(JSON.stringify(report, null, 2)),
+                },
+              ],
             };
 
           case 'reset':
@@ -216,13 +267,21 @@ export function registerTestingTools() {
             testMetrics.tools = {};
 
             return {
-              content: [{
-                type: 'text',
-                text: context.clampText(JSON.stringify({
-                  action: 'reset',
-                  message: 'Test metrics cleared',
-                }, null, 2)),
-              }],
+              content: [
+                {
+                  type: 'text',
+                  text: context.clampText(
+                    JSON.stringify(
+                      {
+                        action: 'reset',
+                        message: 'Test metrics cleared',
+                      },
+                      null,
+                      2
+                    )
+                  ),
+                },
+              ],
             };
 
           default:
@@ -230,14 +289,22 @@ export function registerTestingTools() {
         }
       } catch (error: any) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              error: 'Test metrics operation failed',
-              message: error.message || 'Unknown error',
-              action: args.action,
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    error: 'Test metrics operation failed',
+                    message: error.message || 'Unknown error',
+                    action: args.action,
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -251,14 +318,16 @@ export function registerTestingTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_seed_test_data',
-      description: 'Generate bulk test data (comments, posts, users) via REST API. Works with any WordPress instance (local, Hetzner, production).',
+      description:
+        'Generate bulk test data (comments, posts, users) via REST API. Works with any WordPress instance (local, Hetzner, production).',
       inputSchema: {
         type: 'object',
         properties: {
           data_type: {
             type: 'string',
             enum: ['comments', 'posts', 'users', 'all'],
-            description: 'Type of data to generate: comments (bulk comments on posts), posts (draft posts), users (subscriber accounts), all (mixed content)',
+            description:
+              'Type of data to generate: comments (bulk comments on posts), posts (draft posts), users (subscriber accounts), all (mixed content)',
           },
           amount: {
             type: 'integer',
@@ -419,13 +488,21 @@ export function registerTestingTools() {
               });
             } catch (error: any) {
               return {
-                content: [{
-                  type: 'text',
-                  text: context.clampText(JSON.stringify({
-                    error: 'Failed to create initial post for mixed data',
-                    message: error.message,
-                  }, null, 2)),
-                }],
+                content: [
+                  {
+                    type: 'text',
+                    text: context.clampText(
+                      JSON.stringify(
+                        {
+                          error: 'Failed to create initial post for mixed data',
+                          message: error.message,
+                        },
+                        null,
+                        2
+                      )
+                    ),
+                  },
+                ],
                 isError: true,
               };
             }
@@ -486,32 +563,48 @@ export function registerTestingTools() {
             throw new Error(`Unknown data_type: ${args.data_type}`);
         }
 
-        const successCount = results.filter(r => !r.error).length;
-        const failureCount = results.filter(r => r.error).length;
+        const successCount = results.filter((r) => !r.error).length;
+        const failureCount = results.filter((r) => r.error).length;
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              data_type: args.data_type,
-              amount_requested: amount,
-              items_created: successCount,
-              failures: failureCount,
-              results,
-              message: `Seed data generation complete: ${successCount} items created, ${failureCount} failures`,
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    data_type: args.data_type,
+                    amount_requested: amount,
+                    items_created: successCount,
+                    failures: failureCount,
+                    results,
+                    message: `Seed data generation complete: ${successCount} items created, ${failureCount} failures`,
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              error: 'Seed data generation failed',
-              message: error.message || 'Unknown error',
-              data_type: args.data_type,
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    error: 'Seed data generation failed',
+                    message: error.message || 'Unknown error',
+                    data_type: args.data_type,
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
           isError: true,
         };
       }

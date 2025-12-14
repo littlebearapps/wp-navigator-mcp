@@ -137,11 +137,19 @@ function main() {
   console.log('WP Navigator MCP — Setup Wizard (STDIO)');
   console.log(`Client: ${client}`);
   console.log(`Mode: ${dryRun ? 'DRY-RUN' : 'WRITE'}`);
-  console.log(`Env: WP_BASE_URL=${E.WP_BASE_URL || ''}, WP_APP_USER=${E.WP_APP_USER || ''}, WP_APP_PASS=${redact(E.WP_APP_PASS)}`);
+  console.log(
+    `Env: WP_BASE_URL=${E.WP_BASE_URL || ''}, WP_APP_USER=${E.WP_APP_USER || ''}, WP_APP_PASS=${redact(E.WP_APP_PASS)}`
+  );
   console.log('');
 
   const home = os.homedir();
-  const claudePath = path.join(home, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
+  const claudePath = path.join(
+    home,
+    'Library',
+    'Application Support',
+    'Claude',
+    'claude_desktop_config.json'
+  );
   const codexPath = path.join(home, '.codex', 'config.toml');
   const geminiPath = path.join(home, '.gemini', 'mcp.json'); // placeholder; may vary by build
 
@@ -227,4 +235,3 @@ function main() {
 }
 
 main();
-

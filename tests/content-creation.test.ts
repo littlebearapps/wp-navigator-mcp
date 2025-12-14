@@ -182,15 +182,9 @@ describe('Content Creation - applyContentCreation()', () => {
         ],
       });
 
-      expect(result.plan.operations).toContainEqual(
-        expect.objectContaining({ path: '/blocks/0' })
-      );
-      expect(result.plan.operations).toContainEqual(
-        expect.objectContaining({ path: '/blocks/1' })
-      );
-      expect(result.plan.operations).toContainEqual(
-        expect.objectContaining({ path: '/blocks/2' })
-      );
+      expect(result.plan.operations).toContainEqual(expect.objectContaining({ path: '/blocks/0' }));
+      expect(result.plan.operations).toContainEqual(expect.objectContaining({ path: '/blocks/1' }));
+      expect(result.plan.operations).toContainEqual(expect.objectContaining({ path: '/blocks/2' }));
       expect(result.apply.applied).toBe(true);
     });
 
@@ -216,9 +210,7 @@ describe('Content Creation - applyContentCreation()', () => {
         ],
       });
 
-      const groupBlock = result.plan.operations.find(
-        (op: any) => op.path === '/blocks/0'
-      );
+      const groupBlock = result.plan.operations.find((op: any) => op.path === '/blocks/0');
 
       expect(groupBlock?.value.blockName).toBe('core/group');
       expect(groupBlock?.value.innerBlocks).toHaveLength(2);
@@ -246,7 +238,9 @@ describe('Content Creation - applyContentCreation()', () => {
     it('should handle missing plan_id in response', async () => {
       const badWpRequest = async (endpoint: string) => {
         if (endpoint.includes('/content/plan')) {
-          return { /* no plan_id */ };
+          return {
+            /* no plan_id */
+          };
         }
         return {};
       };
@@ -328,9 +322,7 @@ describe('Content Creation - applyContentCreation()', () => {
       expect(requestBodies).toHaveLength(2);
       expect(requestBodies[0].idempotency_key).toBeDefined();
       expect(requestBodies[1].idempotency_key).toBeDefined();
-      expect(requestBodies[0].idempotency_key).not.toBe(
-        requestBodies[1].idempotency_key
-      );
+      expect(requestBodies[0].idempotency_key).not.toBe(requestBodies[1].idempotency_key);
     });
   });
 
@@ -356,9 +348,7 @@ describe('Content Creation - applyContentCreation()', () => {
         content: 'Legacy content',
         excerpt: 'Excerpt',
         status: 'draft',
-        blocks: [
-          { blockName: 'core/paragraph', attrs: { content: 'Block content' } },
-        ],
+        blocks: [{ blockName: 'core/paragraph', attrs: { content: 'Block content' } }],
       });
 
       // Should have: title + content + excerpt + status + 1 block = 5 operations

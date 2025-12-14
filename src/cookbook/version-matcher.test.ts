@@ -137,9 +137,7 @@ describe('matchCookbooksToPlugins', () => {
   });
 
   it('should skip plugins without cookbooks', () => {
-    const cookbooks = new Map<string, LoadedCookbook>([
-      ['gutenberg', createCookbook('gutenberg')],
-    ]);
+    const cookbooks = new Map<string, LoadedCookbook>([['gutenberg', createCookbook('gutenberg')]]);
 
     const plugins: PluginInfo[] = [
       { slug: 'gutenberg', version: '17.0.0' },
@@ -183,11 +181,6 @@ describe('matchCookbooksToPlugins', () => {
 
   it('should handle empty inputs', () => {
     expect(matchCookbooksToPlugins(new Map(), [])).toEqual([]);
-    expect(
-      matchCookbooksToPlugins(
-        new Map([['test', createCookbook('test')]]),
-        []
-      )
-    ).toEqual([]);
+    expect(matchCookbooksToPlugins(new Map([['test', createCookbook('test')]]), [])).toEqual([]);
   });
 });

@@ -12,7 +12,13 @@
 
 import { toolRegistry, ToolCategory } from '../../tool-registry/index.js';
 import { validateRequired, validateId, extractSummary } from '../../tool-registry/utils.js';
-import { buildIRNode, validatePath, parseIRDocument, formatIRSummary, validateBlockAttributes } from './helpers.js';
+import {
+  buildIRNode,
+  validatePath,
+  parseIRDocument,
+  formatIRSummary,
+  validateBlockAttributes,
+} from './helpers.js';
 
 /**
  * Register all Gutenberg tools
@@ -26,7 +32,8 @@ export function registerGutenbergTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_gutenberg_introspect',
-      description: 'Introspect Gutenberg capabilities: available blocks, patterns, and attributes. Use this to discover what blocks you can create.',
+      description:
+        'Introspect Gutenberg capabilities: available blocks, patterns, and attributes. Use this to discover what blocks you can create.',
       inputSchema: {
         type: 'object',
         properties: {},
@@ -49,7 +56,8 @@ export function registerGutenbergTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_gutenberg_list_blocks',
-      description: 'Get all blocks in a post as Intermediate Representation (IR). Returns block structure with types, attributes, and paths.',
+      description:
+        'Get all blocks in a post as Intermediate Representation (IR). Returns block structure with types, attributes, and paths.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -69,10 +77,12 @@ export function registerGutenbergTools() {
 
       if (!result.success) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({ error: result.error }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(JSON.stringify({ error: result.error }, null, 2)),
+            },
+          ],
           isError: true,
         };
       }
@@ -81,12 +91,14 @@ export function registerGutenbergTools() {
       const summary = formatIRSummary(result.ir_document);
 
       return {
-        content: [{
-          type: 'text',
-          text: context.clampText(
-            `${summary}\n\nFull IR Document:\n${JSON.stringify(result.ir_document, null, 2)}`
-          ),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: context.clampText(
+              `${summary}\n\nFull IR Document:\n${JSON.stringify(result.ir_document, null, 2)}`
+            ),
+          },
+        ],
       };
     },
     category: ToolCategory.CONTENT,
@@ -98,7 +110,8 @@ export function registerGutenbergTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_gutenberg_insert_block',
-      description: 'Insert a new Gutenberg block at specified path. Path is array of indices (e.g., [0] for first position, [1,0] for first child of second block).',
+      description:
+        'Insert a new Gutenberg block at specified path. Path is array of indices (e.g., [0] for first position, [1,0] for first child of second block).',
       inputSchema: {
         type: 'object',
         properties: {
@@ -109,7 +122,8 @@ export function registerGutenbergTools() {
           path: {
             type: 'array',
             items: { type: 'number' },
-            description: 'Path array (e.g., [0] = first block, [1, 0] = first child of second block)',
+            description:
+              'Path array (e.g., [0] = first block, [1, 0] = first child of second block)',
           },
           block_type: {
             type: 'string',
@@ -129,7 +143,8 @@ export function registerGutenbergTools() {
           },
           attrs: {
             type: 'object',
-            description: 'Block attributes (e.g., {level: 2, content: "Hello"} for heading, {content: "Text"} for paragraph)',
+            description:
+              'Block attributes (e.g., {level: 2, content: "Hello"} for heading, {content: "Text"} for paragraph)',
             additionalProperties: true,
           },
         },
@@ -142,13 +157,21 @@ export function registerGutenbergTools() {
 
       if (!validatePath(args.path)) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              error: 'invalid_path',
-              message: 'Path must be non-empty array of non-negative integers',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    error: 'invalid_path',
+                    message: 'Path must be non-empty array of non-negative integers',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -158,13 +181,21 @@ export function registerGutenbergTools() {
         validateBlockAttributes(args.block_type, args.attrs);
       } catch (error: any) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              error: 'invalid_attributes',
-              message: error.message,
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    error: 'invalid_attributes',
+                    message: error.message,
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -184,25 +215,35 @@ export function registerGutenbergTools() {
 
       if (!result.success) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({ error: result.error }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(JSON.stringify({ error: result.error }, null, 2)),
+            },
+          ],
           isError: true,
         };
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: context.clampText(JSON.stringify({
-            success: true,
-            post_id: id,
-            path: args.path,
-            block_type: args.block_type,
-            message: 'Block inserted successfully',
-          }, null, 2)),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: context.clampText(
+              JSON.stringify(
+                {
+                  success: true,
+                  post_id: id,
+                  path: args.path,
+                  block_type: args.block_type,
+                  message: 'Block inserted successfully',
+                },
+                null,
+                2
+              )
+            ),
+          },
+        ],
       };
     },
     category: ToolCategory.CONTENT,
@@ -225,7 +266,8 @@ export function registerGutenbergTools() {
           path: {
             type: 'array',
             items: { type: 'number' },
-            description: 'Path to block to replace (e.g., [0] = first block, [1, 0] = first child of second block)',
+            description:
+              'Path to block to replace (e.g., [0] = first block, [1, 0] = first child of second block)',
           },
           block_type: {
             type: 'string',
@@ -258,13 +300,21 @@ export function registerGutenbergTools() {
 
       if (!validatePath(args.path)) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              error: 'invalid_path',
-              message: 'Path must be non-empty array of non-negative integers',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    error: 'invalid_path',
+                    message: 'Path must be non-empty array of non-negative integers',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -274,13 +324,21 @@ export function registerGutenbergTools() {
         validateBlockAttributes(args.block_type, args.attrs);
       } catch (error: any) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              error: 'invalid_attributes',
-              message: error.message,
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    error: 'invalid_attributes',
+                    message: error.message,
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -300,25 +358,35 @@ export function registerGutenbergTools() {
 
       if (!result.success) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({ error: result.error }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(JSON.stringify({ error: result.error }, null, 2)),
+            },
+          ],
           isError: true,
         };
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: context.clampText(JSON.stringify({
-            success: true,
-            post_id: id,
-            path: args.path,
-            block_type: args.block_type,
-            message: 'Block replaced successfully',
-          }, null, 2)),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: context.clampText(
+              JSON.stringify(
+                {
+                  success: true,
+                  post_id: id,
+                  path: args.path,
+                  block_type: args.block_type,
+                  message: 'Block replaced successfully',
+                },
+                null,
+                2
+              )
+            ),
+          },
+        ],
       };
     },
     category: ToolCategory.CONTENT,
@@ -330,7 +398,8 @@ export function registerGutenbergTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_gutenberg_move_block',
-      description: 'Move a Gutenberg block from one path to another. Useful for reordering blocks or moving nested blocks.',
+      description:
+        'Move a Gutenberg block from one path to another. Useful for reordering blocks or moving nested blocks.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -358,26 +427,42 @@ export function registerGutenbergTools() {
 
       if (!validatePath(args.from_path)) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              error: 'invalid_from_path',
-              message: 'from_path must be non-empty array of non-negative integers',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    error: 'invalid_from_path',
+                    message: 'from_path must be non-empty array of non-negative integers',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
           isError: true,
         };
       }
 
       if (!validatePath(args.to_path)) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              error: 'invalid_to_path',
-              message: 'to_path must be non-empty array of non-negative integers',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    error: 'invalid_to_path',
+                    message: 'to_path must be non-empty array of non-negative integers',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -394,25 +479,35 @@ export function registerGutenbergTools() {
 
       if (!result.success) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({ error: result.error }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(JSON.stringify({ error: result.error }, null, 2)),
+            },
+          ],
           isError: true,
         };
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: context.clampText(JSON.stringify({
-            success: true,
-            post_id: id,
-            from_path: args.from_path,
-            to_path: args.to_path,
-            message: 'Block moved successfully',
-          }, null, 2)),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: context.clampText(
+              JSON.stringify(
+                {
+                  success: true,
+                  post_id: id,
+                  from_path: args.from_path,
+                  to_path: args.to_path,
+                  message: 'Block moved successfully',
+                },
+                null,
+                2
+              )
+            ),
+          },
+        ],
       };
     },
     category: ToolCategory.CONTENT,
@@ -424,7 +519,8 @@ export function registerGutenbergTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_gutenberg_delete_block',
-      description: 'Delete a Gutenberg block at specified path. WARNING: This action modifies post content immediately.',
+      description:
+        'Delete a Gutenberg block at specified path. WARNING: This action modifies post content immediately.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -435,7 +531,8 @@ export function registerGutenbergTools() {
           path: {
             type: 'array',
             items: { type: 'number' },
-            description: 'Path to block to delete (e.g., [0] = first block, [1, 0] = first child of second block)',
+            description:
+              'Path to block to delete (e.g., [0] = first block, [1, 0] = first child of second block)',
           },
         },
         required: ['post_id', 'path'],
@@ -447,13 +544,21 @@ export function registerGutenbergTools() {
 
       if (!validatePath(args.path)) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              error: 'invalid_path',
-              message: 'Path must be non-empty array of non-negative integers',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    error: 'invalid_path',
+                    message: 'Path must be non-empty array of non-negative integers',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -469,24 +574,34 @@ export function registerGutenbergTools() {
 
       if (!result.success) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({ error: result.error }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(JSON.stringify({ error: result.error }, null, 2)),
+            },
+          ],
           isError: true,
         };
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: context.clampText(JSON.stringify({
-            success: true,
-            post_id: id,
-            path: args.path,
-            message: 'Block deleted successfully',
-          }, null, 2)),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: context.clampText(
+              JSON.stringify(
+                {
+                  success: true,
+                  post_id: id,
+                  path: args.path,
+                  message: 'Block deleted successfully',
+                },
+                null,
+                2
+              )
+            ),
+          },
+        ],
       };
     },
     category: ToolCategory.CONTENT,
@@ -498,7 +613,8 @@ export function registerGutenbergTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_gutenberg_list_patterns',
-      description: 'List all available Gutenberg block patterns and reusable blocks. Patterns are pre-designed block combinations.',
+      description:
+        'List all available Gutenberg block patterns and reusable blocks. Patterns are pre-designed block combinations.',
       inputSchema: {
         type: 'object',
         properties: {},
@@ -510,10 +626,12 @@ export function registerGutenbergTools() {
 
       if (!result.success) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({ error: result.error }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(JSON.stringify({ error: result.error }, null, 2)),
+            },
+          ],
           isError: true,
         };
       }
@@ -527,14 +645,22 @@ export function registerGutenbergTools() {
       }));
 
       return {
-        content: [{
-          type: 'text',
-          text: context.clampText(JSON.stringify({
-            success: true,
-            count: result.patterns.length,
-            patterns: summary,
-          }, null, 2)),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: context.clampText(
+              JSON.stringify(
+                {
+                  success: true,
+                  count: result.patterns.length,
+                  patterns: summary,
+                },
+                null,
+                2
+              )
+            ),
+          },
+        ],
       };
     },
     category: ToolCategory.CONTENT,
@@ -546,7 +672,8 @@ export function registerGutenbergTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_gutenberg_insert_pattern',
-      description: 'Insert a Gutenberg block pattern at specified path. Use wpnav_gutenberg_list_patterns to discover available patterns first.',
+      description:
+        'Insert a Gutenberg block pattern at specified path. Use wpnav_gutenberg_list_patterns to discover available patterns first.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -573,13 +700,21 @@ export function registerGutenbergTools() {
 
       if (!validatePath(args.path)) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              error: 'invalid_path',
-              message: 'Path must be non-empty array of non-negative integers',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    error: 'invalid_path',
+                    message: 'Path must be non-empty array of non-negative integers',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -596,25 +731,35 @@ export function registerGutenbergTools() {
 
       if (!result.success) {
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({ error: result.error }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(JSON.stringify({ error: result.error }, null, 2)),
+            },
+          ],
           isError: true,
         };
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: context.clampText(JSON.stringify({
-            success: true,
-            post_id: id,
-            path: args.path,
-            pattern_slug: args.pattern_slug,
-            message: 'Pattern inserted successfully',
-          }, null, 2)),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: context.clampText(
+              JSON.stringify(
+                {
+                  success: true,
+                  post_id: id,
+                  path: args.path,
+                  pattern_slug: args.pattern_slug,
+                  message: 'Pattern inserted successfully',
+                },
+                null,
+                2
+              )
+            ),
+          },
+        ],
       };
     },
     category: ToolCategory.CONTENT,

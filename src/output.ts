@@ -38,4 +38,3 @@ function safeSliceByBytes(s: string, maxBytes: number): string {
   }
   return s.slice(0, i);
 }
-

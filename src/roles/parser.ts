@@ -76,7 +76,11 @@ export function validateRole(data: unknown, filePath: string): Role {
 
   // Validate name (required)
   if (!obj.name || typeof obj.name !== 'string') {
-    throw new RoleValidationError('Missing or invalid "name" field (required string)', filePath, 'name');
+    throw new RoleValidationError(
+      'Missing or invalid "name" field (required string)',
+      filePath,
+      'name'
+    );
   }
 
   if (!isValidRoleName(obj.name)) {
@@ -89,12 +93,20 @@ export function validateRole(data: unknown, filePath: string): Role {
 
   // Validate description (required)
   if (!obj.description || typeof obj.description !== 'string') {
-    throw new RoleValidationError('Missing or invalid "description" field (required string)', filePath, 'description');
+    throw new RoleValidationError(
+      'Missing or invalid "description" field (required string)',
+      filePath,
+      'description'
+    );
   }
 
   // Validate context (required)
   if (!obj.context || typeof obj.context !== 'string') {
-    throw new RoleValidationError('Missing or invalid "context" field (required string)', filePath, 'context');
+    throw new RoleValidationError(
+      'Missing or invalid "context" field (required string)',
+      filePath,
+      'context'
+    );
   }
 
   // Validate focus_areas (optional, array of strings)
@@ -104,7 +116,11 @@ export function validateRole(data: unknown, filePath: string): Role {
     }
     for (let i = 0; i < obj.focus_areas.length; i++) {
       if (typeof obj.focus_areas[i] !== 'string') {
-        throw new RoleValidationError(`focus_areas[${i}] must be a string`, filePath, `focus_areas[${i}]`);
+        throw new RoleValidationError(
+          `focus_areas[${i}] must be a string`,
+          filePath,
+          `focus_areas[${i}]`
+        );
       }
     }
   }
@@ -135,7 +151,11 @@ export function validateRole(data: unknown, filePath: string): Role {
       }
       for (let i = 0; i < tools.allowed.length; i++) {
         if (typeof tools.allowed[i] !== 'string') {
-          throw new RoleValidationError(`tools.allowed[${i}] must be a string`, filePath, `tools.allowed[${i}]`);
+          throw new RoleValidationError(
+            `tools.allowed[${i}] must be a string`,
+            filePath,
+            `tools.allowed[${i}]`
+          );
         }
       }
     }
@@ -146,7 +166,11 @@ export function validateRole(data: unknown, filePath: string): Role {
       }
       for (let i = 0; i < tools.denied.length; i++) {
         if (typeof tools.denied[i] !== 'string') {
-          throw new RoleValidationError(`tools.denied[${i}] must be a string`, filePath, `tools.denied[${i}]`);
+          throw new RoleValidationError(
+            `tools.denied[${i}] must be a string`,
+            filePath,
+            `tools.denied[${i}]`
+          );
         }
       }
     }

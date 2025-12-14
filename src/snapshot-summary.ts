@@ -45,12 +45,15 @@ export interface PageContentSummary {
 /**
  * Block patterns that suggest section types
  */
-const SECTION_PATTERNS: Record<string, {
-  requiredBlocks: string[];
-  optionalBlocks?: string[];
-  minBlocks?: number;
-  description: string;
-}> = {
+const SECTION_PATTERNS: Record<
+  string,
+  {
+    requiredBlocks: string[];
+    optionalBlocks?: string[];
+    minBlocks?: number;
+    description: string;
+  }
+> = {
   hero: {
     requiredBlocks: ['core/heading', 'core/paragraph'],
     optionalBlocks: ['core/buttons', 'core/image', 'core/cover'],

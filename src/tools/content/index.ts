@@ -8,7 +8,13 @@
  */
 
 import { toolRegistry, ToolCategory } from '../../tool-registry/index.js';
-import { validateRequired, validatePagination, validateId, buildQueryString, extractSummary } from '../../tool-registry/utils.js';
+import {
+  validateRequired,
+  validatePagination,
+  validateId,
+  buildQueryString,
+  extractSummary,
+} from '../../tool-registry/utils.js';
 import { applyContentChanges, applyContentCreation } from '../../safety.js';
 import fetch from 'cross-fetch';
 import FormData from 'form-data';
@@ -23,14 +29,25 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_list_pages',
-      description: 'List WordPress pages with optional filtering. Returns page ID, title, status, and last modified date.',
+      description:
+        'List WordPress pages with optional filtering. Returns page ID, title, status, and last modified date.',
       inputSchema: {
         type: 'object',
         properties: {
           page: { type: 'number', description: 'Page number for pagination (default: 1)' },
-          per_page: { type: 'number', description: 'Number of pages to return (default: 10, max: 100)' },
-          status: { type: 'string', enum: ['publish', 'draft', 'private', 'any'], description: 'Filter by status (default: publish)' },
-          search: { type: 'string', description: 'Search term to filter pages by title or content' },
+          per_page: {
+            type: 'number',
+            description: 'Number of pages to return (default: 10, max: 100)',
+          },
+          status: {
+            type: 'string',
+            enum: ['publish', 'draft', 'private', 'any'],
+            description: 'Filter by status (default: publish)',
+          },
+          search: {
+            type: 'string',
+            description: 'Search term to filter pages by title or content',
+          },
         },
         required: [],
       },
@@ -42,7 +59,9 @@ export function registerContentTools() {
       const qs = buildQueryString({ page, per_page, status, search: args.search });
       const pages = await context.wpRequest(`/wp/v2/pages?${qs}`);
 
-      const summary = pages.map((p: any) => extractSummary(p, ['id', 'title.rendered', 'status', 'modified', 'link']));
+      const summary = pages.map((p: any) =>
+        extractSummary(p, ['id', 'title.rendered', 'status', 'modified', 'link'])
+      );
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(summary, null, 2)) }],
@@ -54,7 +73,8 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_get_page',
-      description: 'Get a single WordPress page by ID. Returns full page content, metadata, and edit history.',
+      description:
+        'Get a single WordPress page by ID. Returns full page content, metadata, and edit history.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -70,8 +90,16 @@ export function registerContentTools() {
       const page = await context.wpRequest(`/wp/v2/pages/${id}`);
 
       const summary = extractSummary(page, [
-        'id', 'title.rendered', 'content.rendered', 'status', 'author',
-        'modified', 'link', 'template', 'parent', 'menu_order',
+        'id',
+        'title.rendered',
+        'content.rendered',
+        'status',
+        'author',
+        'modified',
+        'link',
+        'template',
+        'parent',
+        'menu_order',
       ]);
 
       return {
@@ -84,14 +112,22 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_update_page',
-      description: 'Update a WordPress page. Requires page ID and at least one field to update (title, content, or status). Changes are logged in audit trail.',
+      description:
+        'Update a WordPress page. Requires page ID and at least one field to update (title, content, or status). Changes are logged in audit trail.',
       inputSchema: {
         type: 'object',
         properties: {
           id: { type: 'number', description: 'WordPress page ID' },
           title: { type: 'string', description: 'New page title' },
-          content: { type: 'string', description: 'New page content (HTML). WordPress will auto-save revisions.' },
-          status: { type: 'string', enum: ['publish', 'draft', 'private'], description: 'Page status: publish, draft, private' },
+          content: {
+            type: 'string',
+            description: 'New page content (HTML). WordPress will auto-save revisions.',
+          },
+          status: {
+            type: 'string',
+            enum: ['publish', 'draft', 'private'],
+            description: 'Page status: publish, draft, private',
+          },
           force: { type: 'boolean', description: 'Skip safety validation', default: false },
         },
         required: ['id'],
@@ -103,21 +139,30 @@ export function registerContentTools() {
         const id = validateId(args.id, 'Page');
 
         const ops: any[] = [];
-        if (args.title != null) ops.push({ op: 'replace', path: '/title', value: String(args.title) });
-        if (args.content != null) ops.push({ op: 'replace', path: '/content', value: String(args.content) });
-        if (args.status != null) ops.push({ op: 'replace', path: '/status', value: String(args.status) });
+        if (args.title != null)
+          ops.push({ op: 'replace', path: '/title', value: String(args.title) });
+        if (args.content != null)
+          ops.push({ op: 'replace', path: '/content', value: String(args.content) });
+        if (args.status != null)
+          ops.push({ op: 'replace', path: '/status', value: String(args.status) });
 
         if (!ops.length) {
           return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify({
-                error: 'validation_failed',
-                code: 'VALIDATION_FAILED',
-                message: 'At least one of title, content, or status must be provided',
-                context: { resource_type: 'page', resource_id: id },
-              }, null, 2),
-            }],
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    error: 'validation_failed',
+                    code: 'VALIDATION_FAILED',
+                    message: 'At least one of title, content, or status must be provided',
+                    context: { resource_type: 'page', resource_id: id },
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
             isError: true,
           };
         }
@@ -135,15 +180,25 @@ export function registerContentTools() {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'UPDATE_FAILED',
-              message: errorMessage,
-              context: { resource_type: 'page', resource_id: args.id, suggestion: 'Use wpnav_get_page to verify page exists' },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'UPDATE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'page',
+                    resource_id: args.id,
+                    suggestion: 'Use wpnav_get_page to verify page exists',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -154,13 +209,19 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_create_page',
-      description: 'Create a new WordPress page. Requires title and optional content. Changes are logged in audit trail.',
+      description:
+        'Create a new WordPress page. Requires title and optional content. Changes are logged in audit trail.',
       inputSchema: {
         type: 'object',
         properties: {
           title: { type: 'string', description: 'Page title' },
           content: { type: 'string', description: 'Page content (HTML). Optional.' },
-          status: { type: 'string', enum: ['publish', 'draft', 'private'], description: 'Page status: publish, draft, private (default: draft)', default: 'draft' },
+          status: {
+            type: 'string',
+            enum: ['publish', 'draft', 'private'],
+            description: 'Page status: publish, draft, private (default: draft)',
+            default: 'draft',
+          },
         },
         required: ['title'],
       },
@@ -177,31 +238,45 @@ export function registerContentTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              success: true,
-              post_id: result.apply.post_id,
-              title: args.title,
-              status: args.status || 'draft',
-              plan_id: result.plan.plan_id,
-              message: 'Page created successfully',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    success: true,
+                    post_id: result.apply.post_id,
+                    title: args.title,
+                    status: args.status || 'draft',
+                    plan_id: result.plan.plan_id,
+                    message: 'Page created successfully',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'CREATE_FAILED',
-              message: errorMessage,
-              context: { resource_type: 'page', title: args.title },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'CREATE_FAILED',
+                  message: errorMessage,
+                  context: { resource_type: 'page', title: args.title },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -212,12 +287,17 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_delete_page',
-      description: 'Delete a WordPress page by ID. Changes are logged in audit trail. WARNING: This action cannot be undone (page moves to trash by default).',
+      description:
+        'Delete a WordPress page by ID. Changes are logged in audit trail. WARNING: This action cannot be undone (page moves to trash by default).',
       inputSchema: {
         type: 'object',
         properties: {
           id: { type: 'number', description: 'WordPress page ID' },
-          force: { type: 'boolean', description: 'Force permanent deletion (skip trash). Default: false', default: false },
+          force: {
+            type: 'boolean',
+            description: 'Force permanent deletion (skip trash). Default: false',
+            default: false,
+          },
         },
         required: ['id'],
       },
@@ -236,34 +316,50 @@ export function registerContentTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              success: true,
-              id: result.id,
-              title: result.title?.rendered || result.title?.raw || 'Unknown',
-              status: result.status,
-              message: args.force ? 'Page permanently deleted' : 'Page moved to trash',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    success: true,
+                    id: result.id,
+                    title: result.title?.rendered || result.title?.raw || 'Unknown',
+                    status: result.status,
+                    message: args.force ? 'Page permanently deleted' : 'Page moved to trash',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'DELETE_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'page',
-                resource_id: args.id,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check page ID exists with wpnav_get_page',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'DELETE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'page',
+                    resource_id: args.id,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check page ID exists with wpnav_get_page',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -283,7 +379,10 @@ export function registerContentTools() {
         type: 'object',
         properties: {
           id: { type: 'number', description: 'WordPress page ID' },
-          include_raw_content: { type: 'boolean', description: 'Include raw HTML content (default: false)' },
+          include_raw_content: {
+            type: 'boolean',
+            description: 'Include raw HTML content (default: false)',
+          },
         },
         required: ['id'],
       },
@@ -318,7 +417,9 @@ export function registerContentTools() {
       let author = null;
       if (page.author) {
         try {
-          const authorData = await context.wpRequest(`/wp/v2/users/${page.author}?_fields=id,name,slug`);
+          const authorData = await context.wpRequest(
+            `/wp/v2/users/${page.author}?_fields=id,name,slug`
+          );
           author = {
             id: authorData.id,
             name: authorData.name,
@@ -415,14 +516,25 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_list_posts',
-      description: 'List WordPress blog posts with optional filtering. Returns post ID, title, status, and last modified date.',
+      description:
+        'List WordPress blog posts with optional filtering. Returns post ID, title, status, and last modified date.',
       inputSchema: {
         type: 'object',
         properties: {
           page: { type: 'number', description: 'Page number for pagination (default: 1)' },
-          per_page: { type: 'number', description: 'Number of posts to return (default: 10, max: 100)' },
-          status: { type: 'string', enum: ['publish', 'draft', 'private', 'any'], description: 'Filter by status (default: publish)' },
-          search: { type: 'string', description: 'Search term to filter posts by title or content' },
+          per_page: {
+            type: 'number',
+            description: 'Number of posts to return (default: 10, max: 100)',
+          },
+          status: {
+            type: 'string',
+            enum: ['publish', 'draft', 'private', 'any'],
+            description: 'Filter by status (default: publish)',
+          },
+          search: {
+            type: 'string',
+            description: 'Search term to filter posts by title or content',
+          },
         },
         required: [],
       },
@@ -434,7 +546,9 @@ export function registerContentTools() {
       const qs = buildQueryString({ page, per_page, status, search: args.search });
       const posts = await context.wpRequest(`/wp/v2/posts?${qs}`);
 
-      const summary = posts.map((p: any) => extractSummary(p, ['id', 'title.rendered', 'status', 'modified', 'link']));
+      const summary = posts.map((p: any) =>
+        extractSummary(p, ['id', 'title.rendered', 'status', 'modified', 'link'])
+      );
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(summary, null, 2)) }],
@@ -446,7 +560,8 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_get_post',
-      description: 'Get a single WordPress post by ID. Returns full post content, metadata, categories, and tags.',
+      description:
+        'Get a single WordPress post by ID. Returns full post content, metadata, categories, and tags.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -462,8 +577,16 @@ export function registerContentTools() {
       const post = await context.wpRequest(`/wp/v2/posts/${id}`);
 
       const summary = extractSummary(post, [
-        'id', 'title.rendered', 'content.rendered', 'excerpt.rendered',
-        'status', 'author', 'modified', 'link', 'categories', 'tags',
+        'id',
+        'title.rendered',
+        'content.rendered',
+        'excerpt.rendered',
+        'status',
+        'author',
+        'modified',
+        'link',
+        'categories',
+        'tags',
       ]);
 
       return {
@@ -476,7 +599,8 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_update_post',
-      description: 'Update a WordPress post. Requires post ID and at least one field to update. Changes are logged in audit trail.',
+      description:
+        'Update a WordPress post. Requires post ID and at least one field to update. Changes are logged in audit trail.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -484,7 +608,11 @@ export function registerContentTools() {
           title: { type: 'string', description: 'New post title' },
           content: { type: 'string', description: 'New post content (HTML).' },
           excerpt: { type: 'string', description: 'Post excerpt' },
-          status: { type: 'string', enum: ['publish', 'draft', 'private'], description: 'Post status: publish, draft, private' },
+          status: {
+            type: 'string',
+            enum: ['publish', 'draft', 'private'],
+            description: 'Post status: publish, draft, private',
+          },
           force: { type: 'boolean', description: 'Skip safety validation', default: false },
         },
         required: ['id'],
@@ -496,22 +624,32 @@ export function registerContentTools() {
         const id = validateId(args.id, 'Post');
 
         const ops: any[] = [];
-        if (args.title != null) ops.push({ op: 'replace', path: '/title', value: String(args.title) });
-        if (args.content != null) ops.push({ op: 'replace', path: '/content', value: String(args.content) });
-        if (args.excerpt != null) ops.push({ op: 'replace', path: '/excerpt', value: String(args.excerpt) });
-        if (args.status != null) ops.push({ op: 'replace', path: '/status', value: String(args.status) });
+        if (args.title != null)
+          ops.push({ op: 'replace', path: '/title', value: String(args.title) });
+        if (args.content != null)
+          ops.push({ op: 'replace', path: '/content', value: String(args.content) });
+        if (args.excerpt != null)
+          ops.push({ op: 'replace', path: '/excerpt', value: String(args.excerpt) });
+        if (args.status != null)
+          ops.push({ op: 'replace', path: '/status', value: String(args.status) });
 
         if (!ops.length) {
           return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify({
-                error: 'validation_failed',
-                code: 'VALIDATION_FAILED',
-                message: 'At least one of title, content, excerpt, or status must be provided',
-                context: { resource_type: 'post', resource_id: id },
-              }, null, 2),
-            }],
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    error: 'validation_failed',
+                    code: 'VALIDATION_FAILED',
+                    message: 'At least one of title, content, excerpt, or status must be provided',
+                    context: { resource_type: 'post', resource_id: id },
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
             isError: true,
           };
         }
@@ -529,15 +667,25 @@ export function registerContentTools() {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'UPDATE_FAILED',
-              message: errorMessage,
-              context: { resource_type: 'post', resource_id: args.id, suggestion: 'Use wpnav_get_post to verify post exists' },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'UPDATE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'post',
+                    resource_id: args.id,
+                    suggestion: 'Use wpnav_get_post to verify post exists',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -548,14 +696,20 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_create_post',
-      description: 'Create a new WordPress blog post. Requires title and optional content. Changes are logged in audit trail.',
+      description:
+        'Create a new WordPress blog post. Requires title and optional content. Changes are logged in audit trail.',
       inputSchema: {
         type: 'object',
         properties: {
           title: { type: 'string', description: 'Post title' },
           content: { type: 'string', description: 'Post content (HTML). Optional.' },
           excerpt: { type: 'string', description: 'Post excerpt. Optional.' },
-          status: { type: 'string', enum: ['publish', 'draft', 'private'], description: 'Post status: publish, draft, private (default: draft)', default: 'draft' },
+          status: {
+            type: 'string',
+            enum: ['publish', 'draft', 'private'],
+            description: 'Post status: publish, draft, private (default: draft)',
+            default: 'draft',
+          },
         },
         required: ['title'],
       },
@@ -573,31 +727,45 @@ export function registerContentTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              success: true,
-              post_id: result.apply.post_id,
-              title: args.title,
-              status: args.status || 'draft',
-              plan_id: result.plan.plan_id,
-              message: 'Post created successfully',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    success: true,
+                    post_id: result.apply.post_id,
+                    title: args.title,
+                    status: args.status || 'draft',
+                    plan_id: result.plan.plan_id,
+                    message: 'Post created successfully',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'CREATE_FAILED',
-              message: errorMessage,
-              context: { resource_type: 'post', title: args.title },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'CREATE_FAILED',
+                  message: errorMessage,
+                  context: { resource_type: 'post', title: args.title },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -608,7 +776,8 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_create_post_with_blocks',
-      description: 'Create a new post with Gutenberg blocks in a single atomic operation. Safer than creating empty post then adding blocks.',
+      description:
+        'Create a new post with Gutenberg blocks in a single atomic operation. Safer than creating empty post then adding blocks.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -625,8 +794,15 @@ export function registerContentTools() {
             items: {
               type: 'object',
               properties: {
-                block_type: { type: 'string', description: 'Gutenberg block type (e.g., "core/paragraph", "core/heading")' },
-                attrs: { type: 'object', additionalProperties: true, description: 'Block attributes (e.g., {level: 2, content: "Hello"})' },
+                block_type: {
+                  type: 'string',
+                  description: 'Gutenberg block type (e.g., "core/paragraph", "core/heading")',
+                },
+                attrs: {
+                  type: 'object',
+                  additionalProperties: true,
+                  description: 'Block attributes (e.g., {level: 2, content: "Hello"})',
+                },
               },
               required: ['block_type', 'attrs'],
             },
@@ -654,31 +830,49 @@ export function registerContentTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              success: true,
-              post_id: result.apply.post_id,
-              title: args.title,
-              block_count: args.blocks.length,
-              plan_id: result.plan.plan_id,
-              message: `Post created with ${args.blocks.length} Gutenberg blocks`,
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    success: true,
+                    post_id: result.apply.post_id,
+                    title: args.title,
+                    block_count: args.blocks.length,
+                    plan_id: result.plan.plan_id,
+                    message: `Post created with ${args.blocks.length} Gutenberg blocks`,
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'CREATE_FAILED',
-              message: errorMessage,
-              context: { resource_type: 'post', title: args.title, block_count: args.blocks?.length },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'CREATE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'post',
+                    title: args.title,
+                    block_count: args.blocks?.length,
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -689,12 +883,17 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_delete_post',
-      description: 'Delete a WordPress post by ID. Changes are logged in audit trail. WARNING: This action cannot be undone (post moves to trash by default).',
+      description:
+        'Delete a WordPress post by ID. Changes are logged in audit trail. WARNING: This action cannot be undone (post moves to trash by default).',
       inputSchema: {
         type: 'object',
         properties: {
           id: { type: 'number', description: 'WordPress post ID' },
-          force: { type: 'boolean', description: 'Force permanent deletion (skip trash). Default: false', default: false },
+          force: {
+            type: 'boolean',
+            description: 'Force permanent deletion (skip trash). Default: false',
+            default: false,
+          },
         },
         required: ['id'],
       },
@@ -713,34 +912,50 @@ export function registerContentTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              success: true,
-              id: result.id,
-              title: result.title?.rendered || result.title?.raw || 'Unknown',
-              status: result.status,
-              message: args.force ? 'Post permanently deleted' : 'Post moved to trash',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    success: true,
+                    id: result.id,
+                    title: result.title?.rendered || result.title?.raw || 'Unknown',
+                    status: result.status,
+                    message: args.force ? 'Post permanently deleted' : 'Post moved to trash',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'DELETE_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'post',
-                resource_id: args.id,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check post ID exists with wpnav_get_post',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'DELETE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'post',
+                    resource_id: args.id,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check post ID exists with wpnav_get_post',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -754,25 +969,42 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_list_media',
-      description: 'List WordPress media library items. Returns media ID, title, URL, and mime type.',
+      description:
+        'List WordPress media library items. Returns media ID, title, URL, and mime type.',
       inputSchema: {
         type: 'object',
         properties: {
           page: { type: 'number', description: 'Page number for pagination (default: 1)' },
-          per_page: { type: 'number', description: 'Number of media items to return (default: 10, max: 100)' },
-          media_type: { type: 'string', description: 'Filter by media type: image, video, application, etc.' },
-          search: { type: 'string', description: 'Search term to filter media by title or filename' },
+          per_page: {
+            type: 'number',
+            description: 'Number of media items to return (default: 10, max: 100)',
+          },
+          media_type: {
+            type: 'string',
+            description: 'Filter by media type: image, video, application, etc.',
+          },
+          search: {
+            type: 'string',
+            description: 'Search term to filter media by title or filename',
+          },
         },
         required: [],
       },
     },
     handler: async (args, context) => {
       const { page, per_page } = validatePagination(args);
-      const qs = buildQueryString({ page, per_page, media_type: args.media_type, search: args.search });
+      const qs = buildQueryString({
+        page,
+        per_page,
+        media_type: args.media_type,
+        search: args.search,
+      });
 
       const media = await context.wpRequest(`/wp/v2/media?${qs}`);
 
-      const summary = media.map((item: any) => extractSummary(item, ['id', 'title.rendered', 'source_url', 'mime_type', 'modified']));
+      const summary = media.map((item: any) =>
+        extractSummary(item, ['id', 'title.rendered', 'source_url', 'mime_type', 'modified'])
+      );
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(summary, null, 2)) }],
@@ -784,7 +1016,8 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_get_media',
-      description: 'Get a single media item by ID. Returns full metadata including URL, dimensions, and file info.',
+      description:
+        'Get a single media item by ID. Returns full metadata including URL, dimensions, and file info.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -800,8 +1033,14 @@ export function registerContentTools() {
       const media = await context.wpRequest(`/wp/v2/media/${id}`);
 
       const summary = extractSummary(media, [
-        'id', 'title.rendered', 'source_url', 'mime_type', 'alt_text',
-        'caption.rendered', 'description.rendered', 'media_details',
+        'id',
+        'title.rendered',
+        'source_url',
+        'mime_type',
+        'alt_text',
+        'caption.rendered',
+        'description.rendered',
+        'media_details',
       ]);
 
       return {
@@ -814,12 +1053,17 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_delete_media',
-      description: 'Delete a media item by ID. WARNING: This permanently deletes the file from the server.',
+      description:
+        'Delete a media item by ID. WARNING: This permanently deletes the file from the server.',
       inputSchema: {
         type: 'object',
         properties: {
           id: { type: 'number', description: 'WordPress media ID' },
-          force: { type: 'boolean', description: 'Force permanent deletion. Default: true for media', default: true },
+          force: {
+            type: 'boolean',
+            description: 'Force permanent deletion. Default: true for media',
+            default: true,
+          },
         },
         required: ['id'],
       },
@@ -839,23 +1083,41 @@ export function registerContentTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({ id: result.id, message: 'Media item permanently deleted' }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  { id: result.id, message: 'Media item permanently deleted' },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: 'operation_failed',
-              code: 'DELETE_FAILED',
-              message: errorMessage,
-              context: { resource_type: 'media', resource_id: args.id, suggestion: 'Use wpnav_get_media to verify media exists' },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: 'operation_failed',
+                  code: 'DELETE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'media',
+                    resource_id: args.id,
+                    suggestion: 'Use wpnav_get_media to verify media exists',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -872,7 +1134,8 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_upload_media_from_url',
-      description: 'Upload media from URL (server-side download). Downloads an image from a URL and uploads it to WordPress media library without sending binary data over MCP.',
+      description:
+        'Upload media from URL (server-side download). Downloads an image from a URL and uploads it to WordPress media library without sending binary data over MCP.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -904,23 +1167,36 @@ export function registerContentTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify(result, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(JSON.stringify(result, null, 2)),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: 'operation_failed',
-              code: 'UPLOAD_FAILED',
-              message: errorMessage,
-              context: { resource_type: 'media', url: args.url, title: args.title, suggestion: 'Check URL is accessible and returns valid image' },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: 'operation_failed',
+                  code: 'UPLOAD_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'media',
+                    url: args.url,
+                    title: args.title,
+                    suggestion: 'Check URL is accessible and returns valid image',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -934,13 +1210,21 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_list_comments',
-      description: 'List WordPress comments with optional filtering. Returns comment ID, author, content, and status.',
+      description:
+        'List WordPress comments with optional filtering. Returns comment ID, author, content, and status.',
       inputSchema: {
         type: 'object',
         properties: {
           page: { type: 'number', description: 'Page number for pagination (default: 1)' },
-          per_page: { type: 'number', description: 'Number of comments to return (default: 10, max: 100)' },
-          status: { type: 'string', enum: ['approve', 'hold', 'spam', 'trash', 'any'], description: 'Filter by status: approve, hold, spam, trash, any' },
+          per_page: {
+            type: 'number',
+            description: 'Number of comments to return (default: 10, max: 100)',
+          },
+          status: {
+            type: 'string',
+            enum: ['approve', 'hold', 'spam', 'trash', 'any'],
+            description: 'Filter by status: approve, hold, spam, trash, any',
+          },
           post: { type: 'number', description: 'Filter by post ID' },
         },
         required: [],
@@ -952,7 +1236,9 @@ export function registerContentTools() {
 
       const comments = await context.wpRequest(`/wp/v2/comments?${qs}`);
 
-      const summary = comments.map((c: any) => extractSummary(c, ['id', 'author_name', 'content.rendered', 'status', 'post', 'date']));
+      const summary = comments.map((c: any) =>
+        extractSummary(c, ['id', 'author_name', 'content.rendered', 'status', 'post', 'date'])
+      );
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(summary, null, 2)) }],
@@ -964,7 +1250,8 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_get_comment',
-      description: 'Get a single comment by ID. Returns full comment details including author info and content.',
+      description:
+        'Get a single comment by ID. Returns full comment details including author info and content.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -980,8 +1267,15 @@ export function registerContentTools() {
       const comment = await context.wpRequest(`/wp/v2/comments/${id}`);
 
       const summary = extractSummary(comment, [
-        'id', 'author_name', 'author_email', 'author_url',
-        'content.rendered', 'status', 'post', 'parent', 'date',
+        'id',
+        'author_name',
+        'author_email',
+        'author_url',
+        'content.rendered',
+        'status',
+        'post',
+        'parent',
+        'date',
       ]);
 
       return {
@@ -994,12 +1288,17 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_update_comment',
-      description: 'Update a comment. Can change status (approve/hold/spam) or content. Changes are logged in audit trail.',
+      description:
+        'Update a comment. Can change status (approve/hold/spam) or content. Changes are logged in audit trail.',
       inputSchema: {
         type: 'object',
         properties: {
           id: { type: 'number', description: 'WordPress comment ID' },
-          status: { type: 'string', enum: ['approve', 'hold', 'spam', 'trash'], description: 'Comment status: approve, hold, spam, trash' },
+          status: {
+            type: 'string',
+            enum: ['approve', 'hold', 'spam', 'trash'],
+            description: 'Comment status: approve, hold, spam, trash',
+          },
           content: { type: 'string', description: 'Comment content' },
         },
         required: ['id'],
@@ -1016,15 +1315,21 @@ export function registerContentTools() {
 
         if (Object.keys(updateData).length === 0) {
           return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify({
-                error: 'validation_failed',
-                code: 'VALIDATION_FAILED',
-                message: 'At least one field (status or content) must be provided',
-                context: { resource_type: 'comment', resource_id: id },
-              }, null, 2),
-            }],
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    error: 'validation_failed',
+                    code: 'VALIDATION_FAILED',
+                    message: 'At least one field (status or content) must be provided',
+                    context: { resource_type: 'comment', resource_id: id },
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
             isError: true,
           };
         }
@@ -1035,23 +1340,41 @@ export function registerContentTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({ id: result.id, status: result.status, message: 'Comment updated successfully' }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  { id: result.id, status: result.status, message: 'Comment updated successfully' },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: 'operation_failed',
-              code: 'UPDATE_FAILED',
-              message: errorMessage,
-              context: { resource_type: 'comment', resource_id: args.id, suggestion: 'Use wpnav_get_comment to verify comment exists' },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: 'operation_failed',
+                  code: 'UPDATE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'comment',
+                    resource_id: args.id,
+                    suggestion: 'Use wpnav_get_comment to verify comment exists',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -1067,7 +1390,11 @@ export function registerContentTools() {
         type: 'object',
         properties: {
           id: { type: 'number', description: 'WordPress comment ID' },
-          force: { type: 'boolean', description: 'Force permanent deletion (skip trash). Default: false', default: false },
+          force: {
+            type: 'boolean',
+            description: 'Force permanent deletion (skip trash). Default: false',
+            default: false,
+          },
         },
         required: ['id'],
       },
@@ -1087,31 +1414,47 @@ export function registerContentTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              id: result.id,
-              message: args.force ? 'Comment permanently deleted' : 'Comment moved to trash',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    id: result.id,
+                    message: args.force ? 'Comment permanently deleted' : 'Comment moved to trash',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
         const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
-              code: isWritesDisabled ? 'WRITES_DISABLED' : 'DELETE_FAILED',
-              message: errorMessage,
-              context: {
-                resource_type: 'comment',
-                resource_id: args.id,
-                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check comment ID exists with wpnav_get_comment',
-              },
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+                  code: isWritesDisabled ? 'WRITES_DISABLED' : 'DELETE_FAILED',
+                  message: errorMessage,
+                  context: {
+                    resource_type: 'comment',
+                    resource_id: args.id,
+                    suggestion: isWritesDisabled
+                      ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)'
+                      : 'Check comment ID exists with wpnav_get_comment',
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -1129,19 +1472,23 @@ export function registerContentTools() {
   toolRegistry.register({
     definition: {
       name: 'wpnav_create_comment',
-      description: 'Create a new comment on a post. Uses REST API - works with any WordPress instance.',
+      description:
+        'Create a new comment on a post. Uses REST API - works with any WordPress instance.',
       inputSchema: {
         type: 'object',
         properties: {
           post_id: { type: 'number', description: 'WordPress post ID to comment on' },
           content: { type: 'string', description: 'Comment content' },
           author_name: { type: 'string', description: 'Comment author name (default: Test User)' },
-          author_email: { type: 'string', description: 'Comment author email (default: test@example.com)' },
+          author_email: {
+            type: 'string',
+            description: 'Comment author email (default: test@example.com)',
+          },
           status: {
             type: 'string',
             enum: ['approved', 'hold', 'spam'],
             description: 'Comment status: approved (default), hold, or spam',
-            default: 'approved'
+            default: 'approved',
           },
         },
         required: ['post_id', 'content'],
@@ -1154,7 +1501,7 @@ export function registerContentTools() {
       const authorName = args.author_name || 'Test User';
       const authorEmail = args.author_email || 'test@example.com';
       // Map 'approved' to 'approve' for REST API compatibility
-      const status = args.status === 'approved' ? 'approve' : (args.status || 'approve');
+      const status = args.status === 'approved' ? 'approve' : args.status || 'approve';
 
       try {
         // Use REST API to create comment
@@ -1170,35 +1517,52 @@ export function registerContentTools() {
         });
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              id: result.id,
-              post_id: postId,
-              author_name: result.author_name,
-              author_email: authorEmail,
-              status: result.status,
-              message: 'Comment created successfully via REST API',
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    id: result.id,
+                    post_id: postId,
+                    author_name: result.author_name,
+                    author_email: authorEmail,
+                    status: result.status,
+                    message: 'Comment created successfully via REST API',
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
 
         return {
-          content: [{
-            type: 'text',
-            text: context.clampText(JSON.stringify({
-              error: 'create_failed',
-              code: 'CREATE_FAILED',
-              message: `Comment creation failed: ${errorMessage}`,
-              context: {
-                resource_type: 'comment',
-                post_id: postId,
-                suggestion: 'Verify the post exists and accepts comments using wpnav_get_post'
-              }
-            }, null, 2)),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(
+                JSON.stringify(
+                  {
+                    error: 'create_failed',
+                    code: 'CREATE_FAILED',
+                    message: `Comment creation failed: ${errorMessage}`,
+                    context: {
+                      resource_type: 'comment',
+                      post_id: postId,
+                      suggestion:
+                        'Verify the post exists and accepts comments using wpnav_get_post',
+                    },
+                  },
+                  null,
+                  2
+                )
+              ),
+            },
+          ],
           isError: true,
         };
       }

@@ -18,9 +18,7 @@ import type { WPNavManifest } from './manifest.js';
 /**
  * Create mock WordPress request function
  */
-function createMockWpRequest(
-  responses: Record<string, unknown> = {}
-): WpRequestFn {
+function createMockWpRequest(responses: Record<string, unknown> = {}): WpRequestFn {
   return vi.fn(async (endpoint: string, options?: RequestInit) => {
     // Return mock response based on endpoint
     if (endpoint.includes('/wp/v2/pages') && options?.method === 'POST') {
@@ -79,7 +77,14 @@ describe('executeSync', () => {
             inWordPress: false,
           },
         ],
-        summary: { additions: 1, removals: 0, modifications: 0, matches: 0, total: 1, hasDifferences: true },
+        summary: {
+          additions: 1,
+          removals: 0,
+          modifications: 0,
+          matches: 0,
+          total: 1,
+          hasDifferences: true,
+        },
       });
 
       const manifest = createManifest({
@@ -97,10 +102,13 @@ describe('executeSync', () => {
         slug: 'new-page',
         success: true,
       });
-      expect(wpRequest).toHaveBeenCalledWith('/wp/v2/pages', expect.objectContaining({
-        method: 'POST',
-        body: expect.stringContaining('"slug":"new-page"'),
-      }));
+      expect(wpRequest).toHaveBeenCalledWith(
+        '/wp/v2/pages',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('"slug":"new-page"'),
+        })
+      );
     });
 
     it('should handle page creation failure gracefully', async () => {
@@ -166,9 +174,12 @@ describe('executeSync', () => {
         slug: 'existing-page',
         wpId: 42,
       });
-      expect(wpRequest).toHaveBeenCalledWith('/wp/v2/pages/42', expect.objectContaining({
-        method: 'POST',
-      }));
+      expect(wpRequest).toHaveBeenCalledWith(
+        '/wp/v2/pages/42',
+        expect.objectContaining({
+          method: 'POST',
+        })
+      );
     });
   });
 
@@ -389,8 +400,22 @@ describe('executeSync', () => {
     it('should only process included slugs when includeOnly is set', async () => {
       const diff = createDiffResult({
         pages: [
-          { slug: 'page-a', title: 'A', change: 'add', severity: 'warning', inManifest: true, inWordPress: false },
-          { slug: 'page-b', title: 'B', change: 'add', severity: 'warning', inManifest: true, inWordPress: false },
+          {
+            slug: 'page-a',
+            title: 'A',
+            change: 'add',
+            severity: 'warning',
+            inManifest: true,
+            inWordPress: false,
+          },
+          {
+            slug: 'page-b',
+            title: 'B',
+            change: 'add',
+            severity: 'warning',
+            inManifest: true,
+            inWordPress: false,
+          },
         ],
       });
 
@@ -411,8 +436,22 @@ describe('executeSync', () => {
     it('should exclude specified slugs', async () => {
       const diff = createDiffResult({
         pages: [
-          { slug: 'page-a', title: 'A', change: 'add', severity: 'warning', inManifest: true, inWordPress: false },
-          { slug: 'page-b', title: 'B', change: 'add', severity: 'warning', inManifest: true, inWordPress: false },
+          {
+            slug: 'page-a',
+            title: 'A',
+            change: 'add',
+            severity: 'warning',
+            inManifest: true,
+            inWordPress: false,
+          },
+          {
+            slug: 'page-b',
+            title: 'B',
+            change: 'add',
+            severity: 'warning',
+            inManifest: true,
+            inWordPress: false,
+          },
         ],
       });
 
@@ -435,8 +474,23 @@ describe('executeSync', () => {
     it('should return accurate summary counts', async () => {
       const diff = createDiffResult({
         pages: [
-          { slug: 'create', title: 'Create', change: 'add', severity: 'warning', inManifest: true, inWordPress: false },
-          { slug: 'update', title: 'Update', change: 'modify', severity: 'info', inManifest: true, inWordPress: true, wpId: 1 },
+          {
+            slug: 'create',
+            title: 'Create',
+            change: 'add',
+            severity: 'warning',
+            inManifest: true,
+            inWordPress: false,
+          },
+          {
+            slug: 'update',
+            title: 'Update',
+            change: 'modify',
+            severity: 'info',
+            inManifest: true,
+            inWordPress: true,
+            wpId: 1,
+          },
         ],
       });
 
@@ -464,8 +518,20 @@ describe('formatSyncText', () => {
       success: true,
       summary: { total: 2, succeeded: 0, failed: 0, skipped: 2 },
       operations: [
-        { success: true, operation: 'create', resourceType: 'page', slug: 'new', message: 'Would create page' },
-        { success: true, operation: 'activate', resourceType: 'plugin', slug: 'akismet', message: 'Would activate plugin' },
+        {
+          success: true,
+          operation: 'create',
+          resourceType: 'page',
+          slug: 'new',
+          message: 'Would create page',
+        },
+        {
+          success: true,
+          operation: 'activate',
+          resourceType: 'plugin',
+          slug: 'akismet',
+          message: 'Would activate plugin',
+        },
       ],
       dryRun: true,
     };
@@ -483,8 +549,21 @@ describe('formatSyncText', () => {
       success: true,
       summary: { total: 2, succeeded: 2, failed: 0, skipped: 0 },
       operations: [
-        { success: true, operation: 'create', resourceType: 'page', slug: 'new', message: 'Created page', wpId: 123 },
-        { success: true, operation: 'activate', resourceType: 'plugin', slug: 'akismet', message: 'Activated plugin' },
+        {
+          success: true,
+          operation: 'create',
+          resourceType: 'page',
+          slug: 'new',
+          message: 'Created page',
+          wpId: 123,
+        },
+        {
+          success: true,
+          operation: 'activate',
+          resourceType: 'plugin',
+          slug: 'akismet',
+          message: 'Activated plugin',
+        },
       ],
       dryRun: false,
     };
@@ -502,8 +581,21 @@ describe('formatSyncText', () => {
       success: false,
       summary: { total: 2, succeeded: 1, failed: 1, skipped: 0 },
       operations: [
-        { success: true, operation: 'create', resourceType: 'page', slug: 'good', message: 'Created page' },
-        { success: false, operation: 'create', resourceType: 'page', slug: 'bad', message: 'Failed to create', error: 'Network error' },
+        {
+          success: true,
+          operation: 'create',
+          resourceType: 'page',
+          slug: 'good',
+          message: 'Created page',
+        },
+        {
+          success: false,
+          operation: 'create',
+          resourceType: 'page',
+          slug: 'bad',
+          message: 'Failed to create',
+          error: 'Network error',
+        },
       ],
       dryRun: false,
     };
@@ -525,7 +617,13 @@ describe('formatSyncJson', () => {
       success: true,
       summary: { total: 1, succeeded: 1, failed: 0, skipped: 0 },
       operations: [
-        { success: true, operation: 'create', resourceType: 'page', slug: 'test', message: 'Created' },
+        {
+          success: true,
+          operation: 'create',
+          resourceType: 'page',
+          slug: 'test',
+          message: 'Created',
+        },
       ],
       dryRun: false,
     };

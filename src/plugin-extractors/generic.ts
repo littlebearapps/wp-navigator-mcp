@@ -44,10 +44,10 @@ export function createGenericExtractor(
 
     shouldInclude(optionName: string): boolean {
       // Exclude sensitive options
-      if (GLOBAL_EXCLUDED_PATTERNS.some(pattern => pattern.test(optionName))) {
+      if (GLOBAL_EXCLUDED_PATTERNS.some((pattern) => pattern.test(optionName))) {
         return false;
       }
-      return optionPrefixes.some(prefix => optionName.startsWith(prefix));
+      return optionPrefixes.some((prefix) => optionName.startsWith(prefix));
     },
 
     extract(options: Record<string, unknown>): Record<string, unknown> {
@@ -55,12 +55,12 @@ export function createGenericExtractor(
 
       for (const [key, value] of Object.entries(options)) {
         // Skip sensitive options
-        if (GLOBAL_EXCLUDED_PATTERNS.some(pattern => pattern.test(key))) {
+        if (GLOBAL_EXCLUDED_PATTERNS.some((pattern) => pattern.test(key))) {
           continue;
         }
 
         // Include if matches any prefix
-        if (optionPrefixes.some(prefix => key.startsWith(prefix))) {
+        if (optionPrefixes.some((prefix) => key.startsWith(prefix))) {
           result[key] = value;
         }
       }

@@ -36,7 +36,7 @@ export const rankmathExtractor: PluginSettingsExtractor = {
 
   shouldInclude(optionName: string): boolean {
     if (CORE_OPTIONS.includes(optionName)) return true;
-    if (EXCLUDED_KEYS.some(ex => optionName.startsWith(ex))) return false;
+    if (EXCLUDED_KEYS.some((ex) => optionName.startsWith(ex))) return false;
     return optionName.startsWith('rank_math_') || optionName.startsWith('rank-math-');
   },
 
@@ -45,10 +45,14 @@ export const rankmathExtractor: PluginSettingsExtractor = {
 
     for (const [key, value] of Object.entries(options)) {
       // Skip excluded keys
-      if (EXCLUDED_KEYS.some(ex => key.startsWith(ex))) continue;
+      if (EXCLUDED_KEYS.some((ex) => key.startsWith(ex))) continue;
 
       // Include core options and relevant rank_math_ options
-      if (CORE_OPTIONS.includes(key) || key.startsWith('rank_math_') || key.startsWith('rank-math-')) {
+      if (
+        CORE_OPTIONS.includes(key) ||
+        key.startsWith('rank_math_') ||
+        key.startsWith('rank-math-')
+      ) {
         result[key] = value;
       }
     }

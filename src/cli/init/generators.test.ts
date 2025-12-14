@@ -433,9 +433,7 @@ Line 3{{/if}}`;
       expect(parsed.mcpServers.wpnav).toBeDefined();
       expect(parsed.mcpServers.wpnav.command).toBe('npx');
       expect(parsed.mcpServers.wpnav.args).toContain('-y');
-      expect(parsed.mcpServers.wpnav.args).toContain(
-        '@littlebearapps/wp-navigator-mcp'
-      );
+      expect(parsed.mcpServers.wpnav.args).toContain('@littlebearapps/wp-navigator-mcp');
       expect(parsed.mcpServers.wpnav.args).toContain('./wpnav.config.json');
     });
 

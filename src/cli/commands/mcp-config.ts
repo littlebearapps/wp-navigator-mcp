@@ -11,14 +11,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { selectPrompt } from '../tui/prompts.js';
-import {
-  success,
-  error as errorMessage,
-  info,
-  newline,
-  colorize,
-  box,
-} from '../tui/components.js';
+import { success, error as errorMessage, info, newline, colorize, box } from '../tui/components.js';
 
 // =============================================================================
 // Types
@@ -180,8 +173,9 @@ export async function handleMcpConfig(options: McpConfigOptions = {}): Promise<n
   const configPath = getConfigPath(cwd);
 
   // Check if any config file exists
-  const configExists = fs.existsSync(path.join(cwd, 'wpnav.config.json')) ||
-                       fs.existsSync(path.join(cwd, 'wp-config.json'));
+  const configExists =
+    fs.existsSync(path.join(cwd, 'wpnav.config.json')) ||
+    fs.existsSync(path.join(cwd, 'wp-config.json'));
 
   if (!configExists) {
     if (isJson) {

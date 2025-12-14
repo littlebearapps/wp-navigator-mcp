@@ -132,7 +132,10 @@ export class ElementorAdapter implements BuilderAdapter {
   /**
    * Extract layout from raw content (not supported)
    */
-  extractLayoutFromContent(_content: string, _options?: ConversionOptions): ConversionResult<NeutralLayout> {
+  extractLayoutFromContent(
+    _content: string,
+    _options?: ConversionOptions
+  ): ConversionResult<NeutralLayout> {
     return this.notSupportedResult();
   }
 
@@ -150,7 +153,8 @@ export class ElementorAdapter implements BuilderAdapter {
       warnings: [
         {
           code: 'BUILDER_NOT_SUPPORTED',
-          message: 'Elementor support is coming in WP Navigator v2.0. Currently, only Gutenberg blocks are supported.',
+          message:
+            'Elementor support is coming in WP Navigator v2.0. Currently, only Gutenberg blocks are supported.',
           severity: 'error',
         },
       ],
@@ -178,7 +182,8 @@ export class ElementorAdapter implements BuilderAdapter {
       warnings: [
         {
           code: 'BUILDER_NOT_SUPPORTED',
-          message: 'Elementor support is coming in WP Navigator v2.0. Currently, only Gutenberg blocks are supported.',
+          message:
+            'Elementor support is coming in WP Navigator v2.0. Currently, only Gutenberg blocks are supported.',
           severity: 'error',
         },
       ],

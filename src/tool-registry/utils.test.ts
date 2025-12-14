@@ -178,9 +178,7 @@ describe('utils', () => {
     });
 
     it('should throw for missing required value', () => {
-      expect(() => validateEnum(undefined, validValues, 'color')).toThrow(
-        'color is required'
-      );
+      expect(() => validateEnum(undefined, validValues, 'color')).toThrow('color is required');
     });
   });
 });

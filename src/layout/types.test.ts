@@ -121,10 +121,7 @@ describe('Factory Functions', () => {
 
   describe('createSection', () => {
     it('should create section with children', () => {
-      const children = [
-        createHeading(2, 'Section Title'),
-        createParagraph('Section content.'),
-      ];
+      const children = [createHeading(2, 'Section Title'), createParagraph('Section content.')];
       const section = createSection(children);
       expect(section.type).toBe('section');
       expect(section.children).toHaveLength(2);
@@ -249,21 +246,27 @@ describe('Complex Layout Structures', () => {
       layout_version: LAYOUT_VERSION,
       source: { builder: 'gutenberg' },
       elements: [
-        createSection([
-          createHeading(1, 'Welcome'),
-          createRow([
-            createColumn([
-              createParagraph('Left column content'),
-              createButton('Learn More', { url: '/about' }),
-            ], { width: '66.66%' }),
-            createColumn([
-              createImage('sidebar.jpg', { alt: 'Sidebar image' }),
-            ], { width: '33.33%' }),
-          ]),
-        ], {
-          fullWidth: true,
-          background: { color: '#ffffff' },
-        }),
+        createSection(
+          [
+            createHeading(1, 'Welcome'),
+            createRow([
+              createColumn(
+                [
+                  createParagraph('Left column content'),
+                  createButton('Learn More', { url: '/about' }),
+                ],
+                { width: '66.66%' }
+              ),
+              createColumn([createImage('sidebar.jpg', { alt: 'Sidebar image' })], {
+                width: '33.33%',
+              }),
+            ]),
+          ],
+          {
+            fullWidth: true,
+            background: { color: '#ffffff' },
+          }
+        ),
       ],
     };
 
@@ -284,9 +287,7 @@ describe('Complex Layout Structures', () => {
   });
 
   it('should support styling attributes', () => {
-    const section = createSection([
-      createHeading(2, 'Styled Section'),
-    ], {
+    const section = createSection([createHeading(2, 'Styled Section')], {
       padding: { top: '40px', bottom: '40px' },
       background: {
         color: '#f0f0f0',
@@ -401,7 +402,10 @@ describe('Element Types Coverage', () => {
       { type: 'separator', attrs: { style: 'wide' } },
       { type: 'spacer', attrs: { height: '50px' } },
       { type: 'html', attrs: { html: '<div>Custom</div>' } },
-      { type: 'shortcode', attrs: { shortcode: '[contact-form-7 id="123"]', tag: 'contact-form-7' } },
+      {
+        type: 'shortcode',
+        attrs: { shortcode: '[contact-form-7 id="123"]', tag: 'contact-form-7' },
+      },
       { type: 'unknown', attrs: {} },
     ];
 

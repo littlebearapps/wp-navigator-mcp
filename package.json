@@ -1,6 +1,6 @@
 {
   "name": "@littlebearapps/wp-navigator-mcp",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "MCP server for AI-assisted WordPress management via Claude Code and other MCP clients",
   "type": "module",
   "main": "dist/index.js",
@@ -19,7 +19,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "generate:authority": "node scripts/generate-authority.mjs"
+    "generate:authority": "node scripts/generate-authority.mjs",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "mcp",
@@ -58,11 +63,17 @@
     "yaml": "^2.8.2"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@eslint/js": "^9.17.0",
     "@types/form-data": "^2.2.1",
     "@types/node": "^20.10.0",
     "@types/node-fetch": "^2.6.13",
     "@vitest/coverage-v8": "^4.0.15",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
     "typescript": "^5.3.0",
+    "typescript-eslint": "^8.18.1",
     "vitest": "^4.0.15"
   }
 }

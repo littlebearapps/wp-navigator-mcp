@@ -115,36 +115,27 @@ export function registerCoreTools() {
       const { wpRequest, config } = context;
 
       // Fetch data from multiple endpoints in parallel
-      const [
-        siteSettings,
-        activeTheme,
-        plugins,
-        posts,
-        pages,
-        media,
-        users,
-        categories,
-        tags,
-      ] = await Promise.all([
-        // Site settings (name, description, URL)
-        wpRequest('/wp/v2/settings').catch(() => ({})),
-        // Active theme
-        wpRequest('/wp/v2/themes?status=active').catch(() => []),
-        // All plugins
-        wpRequest('/wp/v2/plugins').catch(() => []),
-        // Post count (just need total from headers, fetch 1)
-        wpRequest('/wp/v2/posts?per_page=1&_fields=id').catch(() => []),
-        // Page count
-        wpRequest('/wp/v2/pages?per_page=1&_fields=id').catch(() => []),
-        // Media count
-        wpRequest('/wp/v2/media?per_page=1&_fields=id').catch(() => []),
-        // Users (to count by role)
-        wpRequest('/wp/v2/users?per_page=100&_fields=id,roles').catch(() => []),
-        // Categories count
-        wpRequest('/wp/v2/categories?per_page=1&_fields=id').catch(() => []),
-        // Tags count
-        wpRequest('/wp/v2/tags?per_page=1&_fields=id').catch(() => []),
-      ]);
+      const [siteSettings, activeTheme, plugins, posts, pages, media, users, categories, tags] =
+        await Promise.all([
+          // Site settings (name, description, URL)
+          wpRequest('/wp/v2/settings').catch(() => ({})),
+          // Active theme
+          wpRequest('/wp/v2/themes?status=active').catch(() => []),
+          // All plugins
+          wpRequest('/wp/v2/plugins').catch(() => []),
+          // Post count (just need total from headers, fetch 1)
+          wpRequest('/wp/v2/posts?per_page=1&_fields=id').catch(() => []),
+          // Page count
+          wpRequest('/wp/v2/pages?per_page=1&_fields=id').catch(() => []),
+          // Media count
+          wpRequest('/wp/v2/media?per_page=1&_fields=id').catch(() => []),
+          // Users (to count by role)
+          wpRequest('/wp/v2/users?per_page=100&_fields=id,roles').catch(() => []),
+          // Categories count
+          wpRequest('/wp/v2/categories?per_page=1&_fields=id').catch(() => []),
+          // Tags count
+          wpRequest('/wp/v2/tags?per_page=1&_fields=id').catch(() => []),
+        ]);
 
       // Process theme info
       const theme = Array.isArray(activeTheme) && activeTheme.length > 0 ? activeTheme[0] : null;

@@ -191,7 +191,9 @@ describe('manifest', () => {
     it('should throw SchemaVersionError for unsupported schema_version', () => {
       const manifest = { schema_version: 99, manifest_version: '1.0', meta: { name: 'Test' } };
       expect(() => validateManifest(manifest, '/test')).toThrow(SchemaVersionError);
-      expect(() => validateManifest(manifest, '/test')).toThrow(/Unsupported manifest schema_version: 99/);
+      expect(() => validateManifest(manifest, '/test')).toThrow(
+        /Unsupported manifest schema_version: 99/
+      );
     });
 
     it('should include upgrade instructions in SchemaVersionError', () => {
@@ -297,7 +299,9 @@ describe('manifest', () => {
 
     it('should throw for plugin enabled not being boolean', () => {
       const manifest = { ...validManifest, plugins: { woo: { enabled: 'yes' } } };
-      expect(() => validateManifest(manifest, '/test')).toThrow(/plugins\.woo\.enabled must be a boolean/);
+      expect(() => validateManifest(manifest, '/test')).toThrow(
+        /plugins\.woo\.enabled must be a boolean/
+      );
     });
 
     it('should validate full manifest with all sections', () => {
@@ -316,9 +320,7 @@ describe('manifest', () => {
           layout: { spacing: 'compact' },
           voice: { tone: 'friendly' },
         },
-        pages: [
-          { slug: 'home', title: 'Home', status: 'publish' },
-        ],
+        pages: [{ slug: 'home', title: 'Home', status: 'publish' }],
         plugins: {
           woocommerce: { enabled: true },
         },
@@ -388,7 +390,9 @@ describe('manifest', () => {
 
     it('should return error for validation failures (missing schema_version)', () => {
       mockFs.existsSync.mockReturnValue(true);
-      mockFs.readFileSync.mockReturnValue(JSON.stringify({ manifest_version: '1.0', meta: { name: 'Test' } }));
+      mockFs.readFileSync.mockReturnValue(
+        JSON.stringify({ manifest_version: '1.0', meta: { name: 'Test' } })
+      );
 
       const result = loadManifest('/test/project');
 

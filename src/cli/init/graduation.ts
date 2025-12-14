@@ -9,14 +9,7 @@
  */
 
 import { spawn } from 'child_process';
-import {
-  box,
-  success,
-  info,
-  newline,
-  colorize,
-  symbols,
-} from '../tui/components.js';
+import { box, success, info, newline, colorize, symbols } from '../tui/components.js';
 
 // =============================================================================
 // Types
@@ -236,7 +229,9 @@ export async function displayGraduationPrompt(
 
   // Display interactive options
   if (clipboardAvailable && process.stdin.isTTY) {
-    console.error(`  Press ${colorize('[c]', 'cyan')} to copy  ${colorize(symbols.bullet, 'dim')}  Press ${colorize('[Enter]', 'cyan')} to continue`);
+    console.error(
+      `  Press ${colorize('[c]', 'cyan')} to copy  ${colorize(symbols.bullet, 'dim')}  Press ${colorize('[Enter]', 'cyan')} to continue`
+    );
     newline();
 
     // Wait for keypress

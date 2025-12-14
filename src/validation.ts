@@ -20,7 +20,7 @@ export function validateArgsForTool(toolName: string, args: any): any {
   const schema = schemaByTool[toolName];
   if (!schema || schema.type !== 'object' || !schema.properties) return args ?? {};
 
-  const input = (args && typeof args === 'object') ? { ...args } : {};
+  const input = args && typeof args === 'object' ? { ...args } : {};
   const out: Record<string, any> = {};
   const props: Record<string, any> = schema.properties || {};
 
@@ -68,4 +68,3 @@ function basicTypeCheck(type: string | undefined, val: any, enumVals?: any[]): b
       return true; // if unspecified, accept
   }
 }
-

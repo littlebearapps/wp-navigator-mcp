@@ -28,7 +28,10 @@ export type CreateContentOptions = {
   blocks?: GutenbergBlock[]; // For creating posts with blocks
 };
 
-export type WpRequest = (endpoint: string, options?: RequestInit & { timeoutMs?: number }) => Promise<any>;
+export type WpRequest = (
+  endpoint: string,
+  options?: RequestInit & { timeoutMs?: number }
+) => Promise<any>;
 
 export async function applyContentChanges(
   wpRequest: WpRequest,
@@ -83,9 +86,7 @@ export async function applyContentCreation(
   const idempotencyKey = makeIdempotencyKey();
 
   // Build operations from create options
-  const operations: JsonPatchOp[] = [
-    { op: 'replace', path: '/title', value: opts.title },
-  ];
+  const operations: JsonPatchOp[] = [{ op: 'replace', path: '/title', value: opts.title }];
 
   if (opts.content) {
     operations.push({ op: 'replace', path: '/content', value: opts.content });
@@ -149,7 +150,7 @@ export async function applyContentCreation(
     body: JSON.stringify({
       plan_id: planId,
       idempotency_key: idempotencyKey,
-      force: true,  // Required for critical-risk operations like creates
+      force: true, // Required for critical-risk operations like creates
     }),
   });
 
@@ -164,4 +165,3 @@ export function makeIdempotencyKey(): string {
     return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   }
 }
-

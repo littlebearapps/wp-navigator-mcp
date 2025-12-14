@@ -14,12 +14,7 @@ import {
   type PluginDetectionResult,
 } from '../../plugin-detection.js';
 import { toolRegistry } from '../../tool-registry/index.js';
-import {
-  success,
-  error as errorMessage,
-  info,
-  keyValue,
-} from '../tui/components.js';
+import { success, error as errorMessage, info, keyValue } from '../tui/components.js';
 
 // =============================================================================
 // Types
@@ -93,8 +88,7 @@ export async function runSmokeTest(
     const toolCount = toolRegistry.getAllDefinitions().length;
 
     // Extract WordPress version from full response
-    const wpVersion =
-      result.fullResponse?.site?.version || 'Unknown';
+    const wpVersion = result.fullResponse?.site?.version || 'Unknown';
 
     return {
       success: true,
@@ -198,9 +192,7 @@ function mapDetectionError(result: PluginDetectionResult): SmokeTestError {
         code: 'UNKNOWN',
         message,
         remediation:
-          'An unexpected error occurred.\n' +
-          '\n' +
-          'Run `wpnav doctor` for detailed diagnostics.',
+          'An unexpected error occurred.\n' + '\n' + 'Run `wpnav doctor` for detailed diagnostics.',
       };
   }
 }
@@ -228,11 +220,7 @@ function parseError(err: unknown): SmokeTestError {
     });
   }
 
-  if (
-    message.includes('certificate') ||
-    message.includes('SSL') ||
-    message.includes('CERT')
-  ) {
+  if (message.includes('certificate') || message.includes('SSL') || message.includes('CERT')) {
     return {
       code: 'SSL_ERROR',
       message: 'SSL certificate error',

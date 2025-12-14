@@ -50,7 +50,7 @@ export function validatePath(path: number[]): boolean {
     return false;
   }
 
-  return path.every(n => Number.isInteger(n) && n >= 0);
+  return path.every((n) => Number.isInteger(n) && n >= 0);
 }
 
 /**

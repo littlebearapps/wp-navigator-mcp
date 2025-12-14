@@ -393,6 +393,78 @@ This checks Node.js, configuration, network, and authentication.
 
 ---
 
+## Local Development (v2.4.0+)
+
+### HTTP Connection Refused
+
+**Symptoms:**
+- Error: `Insecure HTTP connection rejected`
+- Works with HTTPS but not HTTP localhost
+
+**Solutions:**
+
+1. **Enable insecure HTTP for localhost:**
+   ```bash
+   ALLOW_INSECURE_HTTP=1 npx wpnav status
+   ```
+
+2. **In MCP config:**
+   ```json
+   {
+     "env": {
+       "ALLOW_INSECURE_HTTP": "1"
+     }
+   }
+   ```
+
+### Environment Variable Credentials Not Loading
+
+**Symptoms:**
+- Config uses `$WP_APP_USER` but still prompts for credentials
+- Error about missing credentials despite env vars set
+
+**Solutions:**
+
+1. **Check env vars are exported:**
+   ```bash
+   echo $WP_APP_USER $WP_APP_PASS
+   ```
+
+2. **Verify config syntax** (must use `$` prefix):
+   ```json
+   {
+     "WP_APP_USER": "$WP_APP_USER",
+     "WP_APP_PASS": "$WP_APP_PASS"
+   }
+   ```
+
+3. **Shell session must have vars exported:**
+   ```bash
+   export WP_APP_USER="admin"
+   export WP_APP_PASS="xxxx xxxx xxxx xxxx"
+   ```
+
+### Broken Configuration After Update
+
+**Symptoms:**
+- Config worked before, now fails validation
+- Missing or outdated files
+
+**Solutions:**
+
+1. **Run repair mode:**
+   ```bash
+   npx wpnav init --repair
+   ```
+
+2. **This will:**
+   - Detect existing configuration
+   - Validate each file
+   - Offer to regenerate broken files
+   - Preserve valid credentials
+
+---
+
 ## Getting Help
 
 If these solutions don't help:

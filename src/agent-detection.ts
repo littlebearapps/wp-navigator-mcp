@@ -55,7 +55,7 @@ export function getAgentName(): string {
 
   const names: Record<string, string> = {
     'claude-code': `Claude Code (${modelInfo})`,
-    'codex': `Codex (${modelInfo})`,
+    codex: `Codex (${modelInfo})`,
     'gemini-cli': `Gemini CLI (${modelInfo})`,
     'mcp-client': 'Generic MCP Client',
   };
@@ -147,7 +147,10 @@ export function generateHmacSignature(
   const urlPath = urlObj.pathname + urlObj.search;
 
   // Compute body hash
-  const bodyHash = crypto.createHash('sha256').update(body || '').digest('hex');
+  const bodyHash = crypto
+    .createHash('sha256')
+    .update(body || '')
+    .digest('hex');
 
   // Build canonical string
   const canonical = `${method}\n${urlPath}\n${timestamp}\n${bodyHash}`;

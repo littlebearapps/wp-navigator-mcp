@@ -196,7 +196,8 @@ export async function detectPlugin(
     if (!contentType?.includes('application/json')) {
       return {
         detected: false,
-        error: 'WordPress returned HTML instead of JSON. Check plugin is activated and REST API is accessible.',
+        error:
+          'WordPress returned HTML instead of JSON. Check plugin is activated and REST API is accessible.',
         errorCode: 'INVALID_RESPONSE',
       };
     }

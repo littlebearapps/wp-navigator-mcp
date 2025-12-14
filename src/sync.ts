@@ -9,13 +9,7 @@
  */
 
 import type { WPNavManifest, ManifestPage, ManifestPlugin } from './manifest.js';
-import type {
-  DiffResult,
-  PageDiff,
-  PluginDiff,
-  WordPressPage,
-  WordPressPlugin,
-} from './diff.js';
+import type { DiffResult, PageDiff, PluginDiff, WordPressPage, WordPressPlugin } from './diff.js';
 
 // =============================================================================
 // Sync Types
@@ -92,10 +86,7 @@ export interface SyncOptions {
  * WordPress API request function signature
  * Compatible with CLIContext.wpRequest
  */
-export type WpRequestFn = (
-  endpoint: string,
-  options?: RequestInit
-) => Promise<unknown>;
+export type WpRequestFn = (endpoint: string, options?: RequestInit) => Promise<unknown>;
 
 /**
  * Execute sync based on diff result

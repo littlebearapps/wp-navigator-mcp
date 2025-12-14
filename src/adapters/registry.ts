@@ -43,10 +43,7 @@ export class AdapterRegistry {
    * @param adapter - Adapter instance to register
    * @param options - Registration options
    */
-  register(
-    adapter: BuilderAdapter,
-    options: { priority?: number; enabled?: boolean } = {}
-  ): void {
+  register(adapter: BuilderAdapter, options: { priority?: number; enabled?: boolean } = {}): void {
     const { priority = 50, enabled = true } = options;
 
     if (this.adapters.has(adapter.name)) {

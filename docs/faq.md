@@ -246,6 +246,47 @@ Include:
 
 ---
 
+## Local Development (v2.4.0+)
+
+### Can I use WP Navigator with LocalWP, Docker, or MAMP?
+
+Yes! WP Navigator v2.4.0+ supports local development environments:
+
+1. **Enable HTTP for localhost:**
+   ```bash
+   ALLOW_INSECURE_HTTP=1 npx wpnav status
+   ```
+
+2. **Use environment variable credentials** to avoid storing passwords in config files:
+   ```json
+   {
+     "WP_APP_USER": "$WP_APP_USER",
+     "WP_APP_PASS": "$WP_APP_PASS"
+   }
+   ```
+
+### How do I fix broken configuration files?
+
+Run repair mode:
+
+```bash
+npx wpnav init --repair
+```
+
+This detects existing files, validates them, and offers to regenerate any that are missing or broken while preserving valid credentials.
+
+### Why can't I connect to my local WordPress site?
+
+Common issues:
+
+1. **HTTP blocked** - Set `ALLOW_INSECURE_HTTP=1`
+2. **Wrong port** - Check your local environment's port (e.g., `:8080`, `:10000`)
+3. **Plugin not active** - Ensure WP Navigator plugin is activated
+
+See [Troubleshooting](troubleshooting.md#local-development-v240) for more solutions.
+
+---
+
 ## Still Have Questions?
 
 - **Discussions**: [GitHub Discussions](https://github.com/littlebearapps/wp-navigator-mcp/discussions) - Ask the community

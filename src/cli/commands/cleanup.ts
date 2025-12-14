@@ -10,9 +10,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import {
-  confirmPrompt,
-} from '../tui/prompts.js';
+import { confirmPrompt } from '../tui/prompts.js';
 import {
   success,
   error as errorMessage,
@@ -164,7 +162,9 @@ function displayResults(result: CleanupResult): void {
 
   if (result.errors.length > 0) {
     newline();
-    errorMessage(`Failed to delete ${result.errors.length} file${result.errors.length > 1 ? 's' : ''}:`);
+    errorMessage(
+      `Failed to delete ${result.errors.length} file${result.errors.length > 1 ? 's' : ''}:`
+    );
     for (const { file, error } of result.errors) {
       console.error(`  ${colorize(symbols.error, 'red')} ${file}: ${error}`);
     }

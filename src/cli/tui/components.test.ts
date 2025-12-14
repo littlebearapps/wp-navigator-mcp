@@ -6,13 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  stepHeader,
-  progressBar,
-  symbols,
-  supportsColor,
-  colorize,
-} from './components.js';
+import { stepHeader, progressBar, symbols, supportsColor, colorize } from './components.js';
 
 describe('TUI Components', () => {
   // Mock environment for consistent testing

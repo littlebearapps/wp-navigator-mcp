@@ -231,7 +231,10 @@ export class GutenbergAdapter implements BuilderAdapter {
   /**
    * Extract neutral layout from raw content
    */
-  extractLayoutFromContent(content: string, options: ConversionOptions = {}): ConversionResult<NeutralLayout> {
+  extractLayoutFromContent(
+    content: string,
+    options: ConversionOptions = {}
+  ): ConversionResult<NeutralLayout> {
     const startTime = Date.now();
     const warnings: ConversionWarning[] = [];
     const unsupportedElements: string[] = [];
@@ -365,7 +368,9 @@ export class GutenbergAdapter implements BuilderAdapter {
           level: (block.attrs.level as 1 | 2 | 3 | 4 | 5 | 6) || 2,
         };
         if (block.attrs.textAlign) {
-          headingAttrs.typography = { textAlign: block.attrs.textAlign as 'left' | 'center' | 'right' };
+          headingAttrs.typography = {
+            textAlign: block.attrs.textAlign as 'left' | 'center' | 'right',
+          };
         }
         return {
           type: 'heading',

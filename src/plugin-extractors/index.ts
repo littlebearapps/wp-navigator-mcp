@@ -33,8 +33,8 @@ const extractorRegistry: Map<string, PluginSettingsExtractor> = new Map([
  */
 const slugAliases: Record<string, string> = {
   'yoast-seo': 'wordpress-seo',
-  'yoast': 'wordpress-seo',
-  'rankmath': 'seo-by-rank-math',
+  yoast: 'wordpress-seo',
+  rankmath: 'seo-by-rank-math',
   'rank-math': 'seo-by-rank-math',
 };
 

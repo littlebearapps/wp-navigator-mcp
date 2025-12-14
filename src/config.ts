@@ -31,6 +31,10 @@ export type WPConfig = {
   };
 };
 
+/**
+ * Legacy environment variable names (v1.x)
+ * New v2.4.0+ names: WPNAV_SITE_URL, WPNAV_USERNAME, WPNAV_APP_PASSWORD
+ */
 export const REQUIRED_ENV_VARS = [
   'WP_BASE_URL',
   'WP_REST_API',
@@ -39,6 +43,23 @@ export const REQUIRED_ENV_VARS = [
   'WP_APP_USER',
   'WP_APP_PASS',
 ] as const;
+
+/**
+ * New environment variable names (v2.4.0+)
+ * Maps new names to legacy names for compatibility
+ */
+export const NEW_ENV_VAR_MAPPING = {
+  WPNAV_SITE_URL: 'WP_BASE_URL',
+  WPNAV_USERNAME: 'WP_APP_USER',
+  WPNAV_APP_PASSWORD: 'WP_APP_PASS',
+} as const;
+
+/**
+ * Get env var value with new name taking precedence over legacy
+ */
+function getEnvWithFallback(newName: string, legacyName: string): string | undefined {
+  return process.env[newName] || process.env[legacyName];
+}
 
 /**
  * Load configuration from a JSON file (argv[2]) or from ../../.local-wp.env.
@@ -75,9 +96,28 @@ export function loadEnvFromArgOrDotEnv(argvPath?: string) {
 /**
  * Validate required env vars and produce a typed configuration object.
  * Exits the process with code 1 if required env vars are missing (matches prior behavior).
+ *
+ * v2.4.0: Supports new env var names (WPNAV_SITE_URL, WPNAV_USERNAME, WPNAV_APP_PASSWORD)
+ * with fallback to legacy names (WP_BASE_URL, WP_APP_USER, WP_APP_PASS).
  */
 export function getConfigOrExit(): WPConfig {
-  const missing = (REQUIRED_ENV_VARS as readonly string[]).filter((k) => !process.env[k] || process.env[k] === '');
+  // Get values with new names taking precedence over legacy
+  const baseUrl = getEnvWithFallback('WPNAV_SITE_URL', 'WP_BASE_URL');
+  const restApi = process.env.WP_REST_API;
+  const wpnavBase = process.env.WPNAV_BASE;
+  const wpnavIntrospect = process.env.WPNAV_INTROSPECT;
+  const username = getEnvWithFallback('WPNAV_USERNAME', 'WP_APP_USER');
+  const password = getEnvWithFallback('WPNAV_APP_PASSWORD', 'WP_APP_PASS');
+
+  // Check for missing required values
+  const missing: string[] = [];
+  if (!baseUrl) missing.push('WPNAV_SITE_URL (or WP_BASE_URL)');
+  if (!restApi) missing.push('WP_REST_API');
+  if (!wpnavBase) missing.push('WPNAV_BASE');
+  if (!wpnavIntrospect) missing.push('WPNAV_INTROSPECT');
+  if (!username) missing.push('WPNAV_USERNAME (or WP_APP_USER)');
+  if (!password) missing.push('WPNAV_APP_PASSWORD (or WP_APP_PASS)');
+
   if (missing.length > 0) {
     console.error(`❌ Missing required environment variables: ${missing.join(', ')}`);
     console.error('   Please check your configuration file or .local-wp.env');
@@ -95,13 +135,13 @@ export function getConfigOrExit(): WPConfig {
   }
 
   return {
-    baseUrl: process.env.WP_BASE_URL!,
-    restApi: process.env.WP_REST_API!,
-    wpnavBase: process.env.WPNAV_BASE!,
-    wpnavIntrospect: process.env.WPNAV_INTROSPECT!,
+    baseUrl: baseUrl!,
+    restApi: restApi!,
+    wpnavBase: wpnavBase!,
+    wpnavIntrospect: wpnavIntrospect!,
     auth: {
-      username: process.env.WP_APP_USER!,
-      password: process.env.WP_APP_PASS!,
+      username: username!,
+      password: password!,
       signHeaders,
       hmacSecret: signHeaders ? hmacSecret : undefined,
     },
@@ -118,7 +158,10 @@ export function getConfigOrExit(): WPConfig {
       seoAuditEnabled: readBool(process.env.WPNAV_FLAG_WP_SEO_AUDIT_ENABLED, false),
       contentReviewerEnabled: readBool(process.env.WPNAV_FLAG_WP_CONTENT_REVIEWER_ENABLED, false),
       migrationPlannerEnabled: readBool(process.env.WPNAV_FLAG_WP_MIGRATION_PLANNER_ENABLED, false),
-      performanceAnalyzerEnabled: readBool(process.env.WPNAV_FLAG_WP_PERFORMANCE_ANALYZER_ENABLED, false),
+      performanceAnalyzerEnabled: readBool(
+        process.env.WPNAV_FLAG_WP_PERFORMANCE_ANALYZER_ENABLED,
+        false
+      ),
     },
   } satisfies WPConfig;
 }

@@ -10,7 +10,12 @@
  */
 
 import { parse as yamlParse } from 'yaml';
-import type { SkillFrontmatter, SkillCookbook, SkillParseResult, SkillValidationOptions } from './skill-types.js';
+import type {
+  SkillFrontmatter,
+  SkillCookbook,
+  SkillParseResult,
+  SkillValidationOptions,
+} from './skill-types.js';
 
 // =============================================================================
 // Constants
@@ -55,7 +60,9 @@ export class SkillParseError extends Error {
  * @param content - Raw file content
  * @returns Object with rawFrontmatter and body, or error
  */
-function extractFrontmatter(content: string): { rawFrontmatter: string; body: string } | { error: string } {
+function extractFrontmatter(
+  content: string
+): { rawFrontmatter: string; body: string } | { error: string } {
   const trimmed = content.trim();
 
   // Must start with ---
@@ -123,7 +130,10 @@ function validateFrontmatter(
     throw new SkillParseError('description cannot be empty', 'description');
   }
   if (description.length > MAX_DESCRIPTION_LENGTH) {
-    throw new SkillParseError(`description exceeds ${MAX_DESCRIPTION_LENGTH} characters`, 'description');
+    throw new SkillParseError(
+      `description exceeds ${MAX_DESCRIPTION_LENGTH} characters`,
+      'description'
+    );
   }
 
   // Optional: allowed-tools
@@ -289,5 +299,8 @@ export function getAllowedTools(cookbook: SkillCookbook): string[] {
   if (!tools) {
     return [];
   }
-  return tools.split(',').map((t) => t.trim()).filter((t) => t.length > 0);
+  return tools
+    .split(',')
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
 }

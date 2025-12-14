@@ -12,7 +12,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { findDeletableFiles, performCleanup, handleCleanup, type CleanupResult } from './cleanup.js';
+import {
+  findDeletableFiles,
+  performCleanup,
+  handleCleanup,
+  type CleanupResult,
+} from './cleanup.js';
 
 describe('Cleanup Command', () => {
   let tempDir: string;

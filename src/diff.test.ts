@@ -37,7 +37,9 @@ function createManifest(pages: { slug: string; title: string; status?: string }[
 /**
  * Create WordPress page data for testing
  */
-function createWpPages(pages: { id: number; slug: string; title: string; status?: string }[]): WordPressPage[] {
+function createWpPages(
+  pages: { id: number; slug: string; title: string; status?: string }[]
+): WordPressPage[] {
   return pages.map((p) => ({
     id: p.id,
     slug: p.slug,
@@ -53,9 +55,7 @@ describe('computeDiff', () => {
         { slug: 'about', title: 'About Us' },
         { slug: 'contact', title: 'Contact' },
       ]);
-      const wpPages = createWpPages([
-        { id: 1, slug: 'about', title: 'About Us' },
-      ]);
+      const wpPages = createWpPages([{ id: 1, slug: 'about', title: 'About Us' }]);
 
       const diff = computeDiff(manifest, wpPages);
 
@@ -70,9 +70,7 @@ describe('computeDiff', () => {
 
   describe('page removals', () => {
     it('should detect pages in WordPress but not in manifest (strict mode)', () => {
-      const manifest = createManifest([
-        { slug: 'about', title: 'About Us' },
-      ]);
+      const manifest = createManifest([{ slug: 'about', title: 'About Us' }]);
       const wpPages = createWpPages([
         { id: 1, slug: 'about', title: 'About Us' },
         { id: 2, slug: 'old-page', title: 'Old Page' },
@@ -89,9 +87,7 @@ describe('computeDiff', () => {
     });
 
     it('should not flag removals in non-strict mode', () => {
-      const manifest = createManifest([
-        { slug: 'about', title: 'About Us' },
-      ]);
+      const manifest = createManifest([{ slug: 'about', title: 'About Us' }]);
       const wpPages = createWpPages([
         { id: 1, slug: 'about', title: 'About Us' },
         { id: 2, slug: 'old-page', title: 'Old Page' },
@@ -105,12 +101,8 @@ describe('computeDiff', () => {
 
   describe('page modifications', () => {
     it('should detect title changes', () => {
-      const manifest = createManifest([
-        { slug: 'about', title: 'About Us Updated' },
-      ]);
-      const wpPages = createWpPages([
-        { id: 1, slug: 'about', title: 'About Us' },
-      ]);
+      const manifest = createManifest([{ slug: 'about', title: 'About Us Updated' }]);
+      const wpPages = createWpPages([{ id: 1, slug: 'about', title: 'About Us' }]);
 
       const diff = computeDiff(manifest, wpPages);
 
@@ -125,9 +117,7 @@ describe('computeDiff', () => {
     });
 
     it('should detect status changes', () => {
-      const manifest = createManifest([
-        { slug: 'about', title: 'About Us', status: 'draft' },
-      ]);
+      const manifest = createManifest([{ slug: 'about', title: 'About Us', status: 'draft' }]);
       const wpPages = createWpPages([
         { id: 1, slug: 'about', title: 'About Us', status: 'publish' },
       ]);
@@ -162,12 +152,8 @@ describe('computeDiff', () => {
     });
 
     it('should include matches when option is set', () => {
-      const manifest = createManifest([
-        { slug: 'about', title: 'About Us' },
-      ]);
-      const wpPages = createWpPages([
-        { id: 1, slug: 'about', title: 'About Us' },
-      ]);
+      const manifest = createManifest([{ slug: 'about', title: 'About Us' }]);
+      const wpPages = createWpPages([{ id: 1, slug: 'about', title: 'About Us' }]);
 
       const diff = computeDiff(manifest, wpPages, [], { includeMatches: true });
 
@@ -176,12 +162,8 @@ describe('computeDiff', () => {
     });
 
     it('should exclude matches by default', () => {
-      const manifest = createManifest([
-        { slug: 'about', title: 'About Us' },
-      ]);
-      const wpPages = createWpPages([
-        { id: 1, slug: 'about', title: 'About Us' },
-      ]);
+      const manifest = createManifest([{ slug: 'about', title: 'About Us' }]);
+      const wpPages = createWpPages([{ id: 1, slug: 'about', title: 'About Us' }]);
 
       const diff = computeDiff(manifest, wpPages);
 
@@ -191,12 +173,8 @@ describe('computeDiff', () => {
 
   describe('ignoreFields option', () => {
     it('should ignore specified fields when comparing', () => {
-      const manifest = createManifest([
-        { slug: 'about', title: 'Different Title' },
-      ]);
-      const wpPages = createWpPages([
-        { id: 1, slug: 'about', title: 'About Us' },
-      ]);
+      const manifest = createManifest([{ slug: 'about', title: 'Different Title' }]);
+      const wpPages = createWpPages([{ id: 1, slug: 'about', title: 'About Us' }]);
 
       const diff = computeDiff(manifest, wpPages, [], { ignoreFields: ['title'] });
 
@@ -212,7 +190,7 @@ describe('computeDiff', () => {
         manifest_version: '1.0',
         meta: { name: 'Test Site' },
         plugins: {
-          'akismet': { enabled: true },
+          akismet: { enabled: true },
         },
       };
       const wpPlugins: WordPressPlugin[] = [
@@ -290,7 +268,14 @@ describe('snapshotToWordPressPages', () => {
       content: {
         pages: [
           { id: 1, slug: 'about', title: 'About Us', status: 'publish', modified: '' },
-          { id: 2, slug: 'contact', title: 'Contact', status: 'draft', template: 'template-contact.php', modified: '' },
+          {
+            id: 2,
+            slug: 'contact',
+            title: 'Contact',
+            status: 'draft',
+            template: 'template-contact.php',
+            modified: '',
+          },
         ],
         posts: [],
         media: { count: 0 },
@@ -328,12 +313,8 @@ describe('snapshotToWordPressPlugins', () => {
       },
       content: { pages: [], posts: [], media: { count: 0 } },
       plugins: {
-        active: [
-          { slug: 'akismet', name: 'Akismet', version: '5.0' },
-        ],
-        inactive: [
-          { slug: 'hello-dolly', name: 'Hello Dolly', version: '1.0' },
-        ],
+        active: [{ slug: 'akismet', name: 'Akismet', version: '5.0' }],
+        inactive: [{ slug: 'hello-dolly', name: 'Hello Dolly', version: '1.0' }],
       },
     };
 
@@ -384,8 +365,23 @@ describe('formatDiffText', () => {
         hasDifferences: true,
       },
       pages: [
-        { slug: 'new', title: 'New Page', change: 'add', severity: 'warning', inManifest: true, inWordPress: false },
-        { slug: 'old', title: 'Old Page', change: 'remove', severity: 'warning', inManifest: false, inWordPress: true, wpId: 1 },
+        {
+          slug: 'new',
+          title: 'New Page',
+          change: 'add',
+          severity: 'warning',
+          inManifest: true,
+          inWordPress: false,
+        },
+        {
+          slug: 'old',
+          title: 'Old Page',
+          change: 'remove',
+          severity: 'warning',
+          inManifest: false,
+          inWordPress: true,
+          wpId: 1,
+        },
         {
           slug: 'modified',
           title: 'Modified',

@@ -113,7 +113,10 @@ async function run() {
   console.log('tools/call(wpnav_help) → ok');
 
   // Call help and an update (writes disabled → should error before network)
-  const upd = await rpc('tools/call', { name: 'wpnav_update_page', arguments: { id: 123, title: 'Hello' } });
+  const upd = await rpc('tools/call', {
+    name: 'wpnav_update_page',
+    arguments: { id: 123, title: 'Hello' },
+  });
   const updIsError = !!upd.error || !!upd.result?.isError;
   const errText = upd.error?.message || upd.result?.content?.[0]?.text || '';
   if (!updIsError || !String(errText).includes('WRITES_DISABLED')) {
@@ -139,7 +142,8 @@ async function run() {
   }
 
   proc.kill();
-  if (cfgPath && fs.existsSync(cfgPath) && cfgPath.includes('wp-navigator-test-')) fs.unlinkSync(cfgPath);
+  if (cfgPath && fs.existsSync(cfgPath) && cfgPath.includes('wp-navigator-test-'))
+    fs.unlinkSync(cfgPath);
   console.log('Smoke tests passed.');
 }
 

@@ -330,13 +330,15 @@ describe('parseGutenbergBlocks', () => {
 
 describe('serializeBlocks', () => {
   it('should serialize a simple paragraph', () => {
-    const blocks = [{
-      blockName: 'core/paragraph',
-      attrs: {},
-      innerBlocks: [],
-      innerHTML: '<p>Hello World</p>',
-      innerContent: ['<p>Hello World</p>'],
-    }];
+    const blocks = [
+      {
+        blockName: 'core/paragraph',
+        attrs: {},
+        innerBlocks: [],
+        innerHTML: '<p>Hello World</p>',
+        innerContent: ['<p>Hello World</p>'],
+      },
+    ];
 
     const result = serializeBlocks(blocks);
 
@@ -346,13 +348,15 @@ describe('serializeBlocks', () => {
   });
 
   it('should serialize block with attributes', () => {
-    const blocks = [{
-      blockName: 'core/heading',
-      attrs: { level: 2 },
-      innerBlocks: [],
-      innerHTML: '<h2>Title</h2>',
-      innerContent: ['<h2>Title</h2>'],
-    }];
+    const blocks = [
+      {
+        blockName: 'core/heading',
+        attrs: { level: 2 },
+        innerBlocks: [],
+        innerHTML: '<h2>Title</h2>',
+        innerContent: ['<h2>Title</h2>'],
+      },
+    ];
 
     const result = serializeBlocks(blocks);
 
@@ -360,13 +364,15 @@ describe('serializeBlocks', () => {
   });
 
   it('should serialize self-closing block', () => {
-    const blocks = [{
-      blockName: 'core/separator',
-      attrs: { className: 'is-style-wide' },
-      innerBlocks: [],
-      innerHTML: '',
-      innerContent: [],
-    }];
+    const blocks = [
+      {
+        blockName: 'core/separator',
+        attrs: { className: 'is-style-wide' },
+        innerBlocks: [],
+        innerHTML: '',
+        innerContent: [],
+      },
+    ];
 
     const result = serializeBlocks(blocks);
 
@@ -377,19 +383,23 @@ describe('serializeBlocks', () => {
 describe('utility functions', () => {
   describe('flattenBlocks', () => {
     it('should flatten nested blocks', () => {
-      const blocks = [{
-        blockName: 'core/group',
-        attrs: {},
-        innerBlocks: [{
-          blockName: 'core/paragraph',
+      const blocks = [
+        {
+          blockName: 'core/group',
           attrs: {},
-          innerBlocks: [],
-          innerHTML: '<p>Test</p>',
-          innerContent: ['<p>Test</p>'],
-        }],
-        innerHTML: '',
-        innerContent: [],
-      }];
+          innerBlocks: [
+            {
+              blockName: 'core/paragraph',
+              attrs: {},
+              innerBlocks: [],
+              innerHTML: '<p>Test</p>',
+              innerContent: ['<p>Test</p>'],
+            },
+          ],
+          innerHTML: '',
+          innerContent: [],
+        },
+      ];
 
       const flat = flattenBlocks(blocks);
 
@@ -401,40 +411,46 @@ describe('utility functions', () => {
 
   describe('countBlocks', () => {
     it('should count all blocks including nested', () => {
-      const blocks = [{
-        blockName: 'core/columns',
-        attrs: {},
-        innerBlocks: [
-          {
-            blockName: 'core/column',
-            attrs: {},
-            innerBlocks: [{
-              blockName: 'core/paragraph',
+      const blocks = [
+        {
+          blockName: 'core/columns',
+          attrs: {},
+          innerBlocks: [
+            {
+              blockName: 'core/column',
               attrs: {},
-              innerBlocks: [],
+              innerBlocks: [
+                {
+                  blockName: 'core/paragraph',
+                  attrs: {},
+                  innerBlocks: [],
+                  innerHTML: '',
+                  innerContent: [],
+                },
+              ],
               innerHTML: '',
               innerContent: [],
-            }],
-            innerHTML: '',
-            innerContent: [],
-          },
-          {
-            blockName: 'core/column',
-            attrs: {},
-            innerBlocks: [{
-              blockName: 'core/paragraph',
+            },
+            {
+              blockName: 'core/column',
               attrs: {},
-              innerBlocks: [],
+              innerBlocks: [
+                {
+                  blockName: 'core/paragraph',
+                  attrs: {},
+                  innerBlocks: [],
+                  innerHTML: '',
+                  innerContent: [],
+                },
+              ],
               innerHTML: '',
               innerContent: [],
-            }],
-            innerHTML: '',
-            innerContent: [],
-          },
-        ],
-        innerHTML: '',
-        innerContent: [],
-      }];
+            },
+          ],
+          innerHTML: '',
+          innerContent: [],
+        },
+      ];
 
       expect(countBlocks(blocks)).toBe(5); // columns + 2 columns + 2 paragraphs
     });
@@ -443,9 +459,21 @@ describe('utility functions', () => {
   describe('getBlockTypes', () => {
     it('should return unique block types', () => {
       const blocks = [
-        { blockName: 'core/paragraph', attrs: {}, innerBlocks: [], innerHTML: '', innerContent: [] },
+        {
+          blockName: 'core/paragraph',
+          attrs: {},
+          innerBlocks: [],
+          innerHTML: '',
+          innerContent: [],
+        },
         { blockName: 'core/heading', attrs: {}, innerBlocks: [], innerHTML: '', innerContent: [] },
-        { blockName: 'core/paragraph', attrs: {}, innerBlocks: [], innerHTML: '', innerContent: [] },
+        {
+          blockName: 'core/paragraph',
+          attrs: {},
+          innerBlocks: [],
+          innerHTML: '',
+          innerContent: [],
+        },
         { blockName: 'core/image', attrs: {}, innerBlocks: [], innerHTML: '', innerContent: [] },
       ];
 
