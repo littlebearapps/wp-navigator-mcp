@@ -14,7 +14,7 @@ export type WPConfig = {
     hmacSecret?: string; // WPNAV_HMAC_SECRET (optional) - v1.2.0 actor attribution
   };
   toggles: {
-    enableWrites: boolean; // WPNAV_ENABLE_WRITES (default false)
+    enableWrites: boolean; // WPNAV_ENABLE_WRITES (default true - plugin guardrails handle safety)
     allowInsecureHttp: boolean; // ALLOW_INSECURE_HTTP (default false)
     toolTimeoutMs: number; // WPNAV_TOOL_TIMEOUT_MS (default 600000)
     maxResponseKb: number; // WPNAV_MAX_RESPONSE_KB (default 64)
@@ -106,7 +106,7 @@ export function getConfigOrExit(): WPConfig {
       hmacSecret: signHeaders ? hmacSecret : undefined,
     },
     toggles: {
-      enableWrites: readBool(process.env.WPNAV_ENABLE_WRITES, false),
+      enableWrites: readBool(process.env.WPNAV_ENABLE_WRITES, true),
       allowInsecureHttp: readBool(process.env.ALLOW_INSECURE_HTTP, false),
       toolTimeoutMs: readInt(process.env.WPNAV_TOOL_TIMEOUT_MS, 600000),
       maxResponseKb: readInt(process.env.WPNAV_MAX_RESPONSE_KB, 64),

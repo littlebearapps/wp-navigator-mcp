@@ -37,7 +37,9 @@ import {
   keyValue,
   createSpinner,
   colorize,
+  colors,
   list,
+  modeIndicator,
 } from './cli/tui/components.js';
 import {
   WPNAV_URLS,
@@ -65,7 +67,18 @@ import {
   type PageSummary,
   type PostSummary,
   type PluginInfo,
+  type ThemeCustomizerSnapshot,
+  type SidebarWidgets,
+  type WidgetInstance,
+  type SiteIdentitySnapshot,
+  type PluginSettingsSnapshot,
+  type PluginSettingsExtractionResult,
 } from './snapshots/index.js';
+import {
+  getExtractor,
+  getSupportedPlugins,
+  hasSpecificExtractor,
+} from './plugin-extractors/index.js';
 import { parseGutenbergBlocks } from './gutenberg/index.js';
 import { loadManifest, type WPNavManifest } from './manifest.js';
 import {
@@ -114,9 +127,19 @@ import {
 } from './rollback.js';
 import { handleInit } from './cli/commands/init.js';
 import { handleCleanup } from './cli/commands/cleanup.js';
+import {
+  resolveRole,
+  formatRoleInfo,
+  discoverRoles,
+  listAvailableRoles,
+  getRole,
+  RoleNotFoundError,
+  type LoadedRole,
+  type ResolvedRole,
+} from './roles/index.js';
 
 // CLI version (matches package.json)
-const CLI_VERSION = '1.0.1';
+const CLI_VERSION = '2.1.3';
 
 // Dry-run request collector
 interface DryRunRequest {
@@ -168,6 +191,10 @@ function createDryRunRequest(realWpRequest: (endpoint: string, options?: Request
 interface CLIContext {
   config: WPConfig;
   wpRequest: (endpoint: string, options?: RequestInit) => Promise<any>;
+  /** Resolved role (if any) */
+  role?: LoadedRole;
+  /** Source of the resolved role */
+  roleSource?: 'cli' | 'env' | 'config' | 'none';
 }
 
 /**
@@ -249,6 +276,7 @@ Commands:
   init                          Set up a new WP Navigator project (wizard)
   call <tool> [--param value]   Invoke a WordPress tool directly
   tools [--category <cat>]      List available tools
+  roles [<name>]                List roles or show role details
   status                        Check WordPress connection status
   snapshot <subcommand>         Capture WordPress state to local files
   diff                          Compare manifest with WordPress state
@@ -262,6 +290,7 @@ Commands:
 Global Options:
   --config <path>               Path to wpnav.config.json (or legacy wp-config.json)
   --env <name>                  Environment to use (local, staging, production)
+  --role <name>                 AI role to use (e.g., content-editor, developer)
   --help                        Show this help message
   --version                     Show version number
 
@@ -308,6 +337,7 @@ Doctor Options:
 Init Options:
   --mode <mode>                 Skip entry screen: guided, scaffold, ai-handoff
   --skip-confirm                Skip confirmation for existing projects
+  --skip-smoke-test             Skip connection verification after config saved
 
 Cleanup Options:
   --yes                         Skip confirmation prompt
@@ -317,7 +347,11 @@ Examples:
   npx wpnav init --mode scaffold
   npx wpnav call wpnav_list_posts --limit 5
   npx wpnav call wpnav_get_post --id 123 --env production
+  npx wpnav call wpnav_create_post --role content-editor --title "New Post"
   npx wpnav tools --category content
+  npx wpnav roles
+  npx wpnav roles content-editor
+  npx wpnav roles --json
   npx wpnav status --env staging
   npx wpnav snapshot site
   npx wpnav snapshot page about
@@ -350,13 +384,18 @@ Configuration:
   }
 
   Or set environment variables:
-    WP_BASE_URL, WP_REST_API, WP_APP_USER, WP_APP_PASS
+    WP_BASE_URL, WP_REST_API, WP_APP_USER, WP_APP_PASS, WPNAV_ROLE
 
   Environment selection (in order of precedence):
     1. --env flag
     2. WPNAV_ENVIRONMENT env var
     3. default_environment in config
     4. "default" if exists, else first environment
+
+  Role selection (in order of precedence):
+    1. --role flag
+    2. WPNAV_ROLE env var
+    3. default_role in config (per-env or global)
 
 Resources:
   Documentation: ${WPNAV_URLS.cliDocs}
@@ -453,6 +492,7 @@ async function handleCall(
         dry_run: true,
         tool: toolName,
         args: toolArgs,
+        role: context.role ? { name: context.role.name, source: context.roleSource } : null,
         would_execute: dryRunRequests.length > 0 ? dryRunRequests : null,
         message: dryRunRequests.length > 0
           ? `${dryRunRequests.length} write operation(s) would be executed`
@@ -462,6 +502,7 @@ async function handleCall(
       outputJSON({
         success: true,
         tool: toolName,
+        role: context.role ? { name: context.role.name, source: context.roleSource } : null,
         result: result.content,
       });
     }
@@ -515,6 +556,175 @@ async function handleTools(options: Record<string, string>): Promise<void> {
 }
 
 /**
+ * Handle 'roles' command - list available roles or show role details
+ */
+async function handleRoles(
+  args: string[],
+  options: Record<string, string>
+): Promise<void> {
+  const jsonOutput = options.json === 'true';
+  const roleName = args[0];
+
+  // Discover all roles
+  const discovered = discoverRoles();
+
+  // If a specific role is requested, show its details
+  if (roleName) {
+    const role = discovered.roles.get(roleName);
+    if (!role) {
+      if (jsonOutput) {
+        outputError('ROLE_NOT_FOUND', `Role '${roleName}' not found`, {
+          available: Array.from(discovered.roles.keys()).sort(),
+        });
+      } else {
+        errorMessage(`Role '${roleName}' not found`);
+        const available = listAvailableRoles();
+        if (available.length > 0) {
+          newline();
+          info(`Available roles: ${available.join(', ')}`);
+        }
+      }
+      process.exit(1);
+    }
+
+    if (jsonOutput) {
+      outputJSON({
+        success: true,
+        role: {
+          name: role.name,
+          description: role.description,
+          context: role.context,
+          source: role.source,
+          sourcePath: role.sourcePath,
+          focus_areas: role.focus_areas,
+          avoid: role.avoid,
+          tools: role.tools,
+          tags: role.tags,
+          author: role.author,
+          version: role.version,
+        },
+      });
+    } else {
+      box(`Role: ${role.name}`);
+      newline();
+      keyValue('Description', role.description);
+      keyValue('Source', `${role.source} (${role.sourcePath})`);
+      if (role.version) {
+        keyValue('Version', role.version);
+      }
+      if (role.author) {
+        keyValue('Author', role.author);
+      }
+      newline();
+
+      if (role.focus_areas && role.focus_areas.length > 0) {
+        info('Focus Areas:');
+        list(role.focus_areas);
+        newline();
+      }
+
+      if (role.avoid && role.avoid.length > 0) {
+        info('Things to Avoid:');
+        list(role.avoid);
+        newline();
+      }
+
+      if (role.tools) {
+        if (role.tools.allowed && role.tools.allowed.length > 0) {
+          info(`Allowed Tools (${role.tools.allowed.length}):`);
+          // Show first 10, then summary
+          const displayTools = role.tools.allowed.slice(0, 10);
+          list(displayTools);
+          if (role.tools.allowed.length > 10) {
+            info(`  ... and ${role.tools.allowed.length - 10} more`);
+          }
+          newline();
+        }
+        if (role.tools.denied && role.tools.denied.length > 0) {
+          info(`Denied Tools (${role.tools.denied.length}):`);
+          list(role.tools.denied);
+          newline();
+        }
+      }
+
+      if (role.tags && role.tags.length > 0) {
+        keyValue('Tags', role.tags.join(', '));
+      }
+
+      newline();
+      info('Context (for AI):');
+      console.log(colors.dim + role.context + colors.reset);
+    }
+    return;
+  }
+
+  // List all roles
+  const roleNames = Array.from(discovered.roles.keys()).sort();
+
+  if (jsonOutput) {
+    const rolesData = roleNames.map((name) => {
+      const role = discovered.roles.get(name)!;
+      return {
+        name: role.name,
+        description: role.description,
+        source: role.source,
+        sourcePath: role.sourcePath,
+        tags: role.tags,
+      };
+    });
+
+    outputJSON({
+      success: true,
+      count: rolesData.length,
+      roles: rolesData,
+      sources: {
+        bundled: discovered.sources.bundled,
+        global: discovered.sources.global,
+        project: discovered.sources.project,
+      },
+    });
+  } else {
+    if (roleNames.length === 0) {
+      warning('No roles found');
+      newline();
+      info('Roles can be defined in:');
+      list([
+        './roles/ (project directory)',
+        '~/.wpnav/roles/ (global directory)',
+        'Bundled with WP Navigator',
+      ]);
+      return;
+    }
+
+    box(`Available Roles (${roleNames.length})`);
+    newline();
+
+    for (const name of roleNames) {
+      const role = discovered.roles.get(name)!;
+      const sourceTag = colors.dim + `[${role.source}]` + colors.reset;
+      console.log(`  ${colors.cyan}${name}${colors.reset} ${sourceTag}`);
+      console.log(`    ${role.description}`);
+    }
+
+    newline();
+
+    // Show source summary
+    if (discovered.sources.bundled.length > 0) {
+      info(`Bundled: ${discovered.sources.bundled.length} role(s)`);
+    }
+    if (discovered.sources.global.length > 0) {
+      info(`Global (~/.wpnav/roles/): ${discovered.sources.global.length} role(s)`);
+    }
+    if (discovered.sources.project.length > 0) {
+      info(`Project (./roles/): ${discovered.sources.project.length} role(s)`);
+    }
+
+    newline();
+    info('Use "wpnav roles <name>" to see role details');
+  }
+}
+
+/**
  * Handle 'status' command - check WordPress connection
  */
 async function handleStatus(context: CLIContext): Promise<void> {
@@ -548,6 +758,19 @@ async function handleStatus(context: CLIContext): Promise<void> {
     // Determine environment from introspect or env
     const environment = detection.fullResponse?.environment || process.env.WPNAV_ENVIRONMENT || 'default';
 
+    // Display TUI status box (human-readable output)
+    newline();
+    box(
+      [
+        `Site: ${detection.siteName || context.config.baseUrl}`,
+        `Plugin: WP Navigator ${detection.version || 'unknown'} (${detection.edition || 'Free'})`,
+      ].join('\n'),
+      { title: 'WP Navigator Status' }
+    );
+    newline();
+    modeIndicator(context.config.toggles.enableWrites);
+    newline();
+
     outputJSON({
       success: true,
       connection: 'ok',
@@ -566,6 +789,13 @@ async function handleStatus(context: CLIContext): Promise<void> {
         method: 'application_password',
       },
       environment,
+      role: context.role
+        ? {
+            name: context.role.name,
+            source: context.roleSource,
+            description: context.role.description,
+          }
+        : null,
       mcp_compatibility: mcpCompatibility,
       policy: detection.policy,
       capabilities: detection.capabilities,
@@ -2169,12 +2399,69 @@ function writeSnapshotFile(filePath: string, data: unknown): void {
 }
 
 /**
+ * Merge extracted plugin settings into wpnavigator.jsonc manifest
+ * Creates the plugins section if it doesn't exist
+ */
+async function mergePluginsIntoManifest(
+  extraction: PluginSettingsExtractionResult,
+  isJson: boolean
+): Promise<void> {
+  const manifestPath = path.join(process.cwd(), 'wpnavigator.jsonc');
+
+  // Check if manifest exists
+  if (!fs.existsSync(manifestPath)) {
+    if (!isJson) {
+      warning('No wpnavigator.jsonc found - skipping merge');
+      info('Run "wpnav init" to create a manifest first');
+    }
+    return;
+  }
+
+  try {
+    // Read existing manifest
+    const content = fs.readFileSync(manifestPath, 'utf8');
+
+    // Parse JSONC (strip comments)
+    const stripped = content
+      .replace(/\/\/.*$/gm, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    const manifest = JSON.parse(stripped);
+
+    // Initialize plugins section if needed
+    if (!manifest.plugins) {
+      manifest.plugins = {};
+    }
+
+    // Merge extracted plugin settings
+    for (const [slug, snapshot] of Object.entries(extraction.plugins)) {
+      manifest.plugins[slug] = {
+        enabled: snapshot.enabled,
+        version: snapshot.version,
+        settings: snapshot.settings,
+      };
+    }
+
+    // Write back (pretty-printed JSON, not JSONC - comments will be lost)
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
+
+    if (!isJson) {
+      success('Merged plugin settings into wpnavigator.jsonc');
+      warning('Note: Comments in the manifest file have been removed');
+    }
+  } catch (err) {
+    if (!isJson) {
+      errorMessage(`Failed to merge into manifest: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+}
+
+/**
  * Capture site index snapshot
  */
 async function captureSiteSnapshot(context: CLIContext): Promise<SiteIndexSnapshot> {
   const { wpRequest, config } = context;
 
-  const [siteSettings, activeTheme, plugins, pages, posts, media, introspect] = await Promise.all([
+  const [siteSettings, activeTheme, plugins, pages, posts, media, introspect, themeMods, widgets, sidebars] = await Promise.all([
     wpRequest('/wp/v2/settings').catch(() => ({})),
     wpRequest('/wp/v2/themes?status=active').catch(() => []),
     wpRequest('/wp/v2/plugins').catch(() => []),
@@ -2182,6 +2469,10 @@ async function captureSiteSnapshot(context: CLIContext): Promise<SiteIndexSnapsh
     wpRequest('/wp/v2/posts?per_page=100&status=any').catch(() => []),
     wpRequest('/wp/v2/media?per_page=1').catch(() => []),
     wpRequest('/introspect').catch(() => ({})),
+    // Theme customizer data (v2.1.0 - task-81.11)
+    wpRequest('/wpnav/v1/theme_mods').catch(() => ({})),
+    wpRequest('/wp/v2/widgets').catch(() => []),       // WP 5.8+
+    wpRequest('/wp/v2/sidebars').catch(() => []),      // WP 5.8+
   ]);
 
   const theme = Array.isArray(activeTheme) && activeTheme.length > 0 ? activeTheme[0] : null;
@@ -2221,6 +2512,53 @@ async function captureSiteSnapshot(context: CLIContext): Promise<SiteIndexSnapsh
       version: p.version || '',
     }));
 
+  // Build theme customizer snapshot (v2.1.0 - task-81.11)
+  const wpVersion = parseFloat(introspect.wordpress?.version || '0');
+  const hasWidgetsApi = wpVersion >= 5.8;
+
+  // Build site identity from settings
+  const siteIdentity: SiteIdentitySnapshot = {
+    blogname: siteSettings.title || undefined,
+    blogdescription: siteSettings.description || undefined,
+    site_icon: siteSettings.site_icon || undefined,
+    site_icon_url: siteSettings.site_icon_url || undefined,
+  };
+
+  // Build theme customizer snapshot
+  const customizer: ThemeCustomizerSnapshot = {
+    theme_mods: themeMods || {},
+    custom_css: themeMods?.custom_css_post_id ? undefined : undefined, // Custom CSS handled via theme_mods
+    site_identity: siteIdentity,
+  };
+
+  // Build widgets by sidebar (WP 5.8+ only)
+  let sidebarWidgets: SidebarWidgets | undefined;
+  if (hasWidgetsApi && Array.isArray(widgets) && widgets.length > 0) {
+    sidebarWidgets = {};
+    const sidebarList = Array.isArray(sidebars) ? sidebars : [];
+
+    // Initialize sidebars
+    for (const sidebar of sidebarList) {
+      if (sidebar.id) {
+        sidebarWidgets[sidebar.id] = [];
+      }
+    }
+
+    // Map widgets to their sidebars
+    for (const w of widgets) {
+      const widgetInstance: WidgetInstance = {
+        id: w.id || '',
+        widget: w.id_base || w.widget_type || '',
+        settings: w.instance?.raw || w.settings || {},
+      };
+      const sidebarId = w.sidebar || 'inactive-widgets';
+      if (!sidebarWidgets[sidebarId]) {
+        sidebarWidgets[sidebarId] = [];
+      }
+      sidebarWidgets[sidebarId].push(widgetInstance);
+    }
+  }
+
   const snapshot: SiteIndexSnapshot = {
     snapshot_version: SNAPSHOT_VERSION,
     captured_at: new Date().toISOString(),
@@ -2235,6 +2573,8 @@ async function captureSiteSnapshot(context: CLIContext): Promise<SiteIndexSnapsh
         version: theme?.version || '',
         parent: theme?.template && theme.template !== theme.stylesheet ? theme.name?.rendered : undefined,
         parent_slug: theme?.template && theme.template !== theme.stylesheet ? theme.template : undefined,
+        customizer,
+        widgets: sidebarWidgets,
       },
       tagline: siteSettings.description || undefined,
       admin_email: siteSettings.email || undefined,
@@ -2516,8 +2856,142 @@ async function handleSnapshot(
       break;
     }
 
+    case 'plugins': {
+      const targetSlug = args[1]; // Optional specific plugin slug
+      const merge = options.merge === 'true';
+
+      if (!isJson) {
+        newline();
+        box(targetSlug ? `Plugin Settings: ${targetSlug}` : 'Plugin Settings Snapshot', { title: 'wpnav snapshot plugins' });
+        newline();
+      }
+
+      const spinner = !isJson ? createSpinner({ text: 'Fetching plugin list...' }) : null;
+
+      try {
+        // Get list of active plugins
+        const plugins = await context.wpRequest('/wp/v2/plugins');
+        const activePlugins = (Array.isArray(plugins) ? plugins : [])
+          .filter((p: any) => p.status === 'active')
+          .map((p: any) => ({
+            slug: p.plugin?.split('/')[0] || p.plugin || '',
+            name: p.name?.rendered || p.name || '',
+            version: p.version || '',
+            pluginFile: p.plugin || '',
+          }));
+
+        if (activePlugins.length === 0) {
+          spinner?.warn('No active plugins found');
+          if (isJson) { outputJSON({ success: true, plugins: {}, count: 0 }); }
+          else { warning('No active plugins found'); }
+          return;
+        }
+
+        // Filter to target plugin if specified
+        const pluginsToExtract = targetSlug
+          ? activePlugins.filter(p => p.slug === targetSlug || p.slug.includes(targetSlug))
+          : activePlugins;
+
+        if (targetSlug && pluginsToExtract.length === 0) {
+          spinner?.fail(`Plugin not found: ${targetSlug}`);
+          outputError('PLUGIN_NOT_FOUND', `No active plugin matching "${targetSlug}"`, { available: activePlugins.map(p => p.slug) });
+          process.exit(1);
+        }
+
+        spinner?.succeed(`Found ${pluginsToExtract.length} plugin(s) to extract`);
+
+        const result: PluginSettingsExtractionResult = {
+          plugins: {},
+          errors: [],
+          captured_at: new Date().toISOString(),
+        };
+
+        // Extract settings for each plugin
+        for (const plugin of pluginsToExtract) {
+          const extractSpinner = !isJson ? createSpinner({
+            text: `Extracting settings for "${plugin.name}"...`
+          }) : null;
+
+          try {
+            const { extractor, isGeneric } = getExtractor(plugin.slug, plugin.name);
+
+            // Fetch options with all prefixes
+            let allOptions: Record<string, unknown> = {};
+            for (const prefix of extractor.optionPrefixes) {
+              try {
+                const options = await context.wpRequest(`/wpnav/v1/options?prefix=${encodeURIComponent(prefix)}`);
+                if (options && typeof options === 'object') {
+                  allOptions = { ...allOptions, ...options };
+                }
+              } catch {
+                // Prefix might not have any options
+              }
+            }
+
+            // Extract and transform settings
+            const settings = extractor.extract(allOptions);
+
+            const snapshot: PluginSettingsSnapshot = {
+              slug: plugin.slug,
+              name: plugin.name,
+              version: plugin.version,
+              enabled: true,
+              settings,
+              option_prefixes: extractor.optionPrefixes,
+              extraction_note: isGeneric ? 'Generic prefix-based extraction' : undefined,
+            };
+
+            result.plugins[plugin.slug] = snapshot;
+            extractSpinner?.succeed(`${plugin.name}: ${Object.keys(settings).length} settings extracted`);
+          } catch (err) {
+            result.errors.push({
+              slug: plugin.slug,
+              error: err instanceof Error ? err.message : String(err),
+            });
+            extractSpinner?.fail(`${plugin.name}: extraction failed`);
+          }
+        }
+
+        // Output results
+        if (isJson) {
+          outputJSON({ success: result.errors.length === 0, ...result });
+        } else {
+          // Write to file
+          const pluginsDir = path.join(outputDir, 'plugins');
+          ensureSnapshotsDir(pluginsDir);
+          const filePath = path.join(pluginsDir, 'settings.json');
+          writeSnapshotFile(filePath, result);
+
+          newline();
+          success(`${filePath} created`);
+          newline();
+          keyValue('Plugins Extracted', String(Object.keys(result.plugins).length));
+          keyValue('Supported Plugins', getSupportedPlugins().join(', '));
+
+          if (result.errors.length > 0) {
+            newline();
+            warning(`${result.errors.length} plugin(s) failed:`);
+            for (const err of result.errors) {
+              console.error(`  • ${err.slug}: ${err.error}`);
+            }
+          }
+
+          // Merge into manifest if requested
+          if (merge) {
+            newline();
+            await mergePluginsIntoManifest(result, isJson);
+          }
+        }
+      } catch (error) {
+        spinner?.fail('Failed to extract plugin settings');
+        outputError('SNAPSHOT_FAILED', error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+      break;
+    }
+
     default:
-      outputError('UNKNOWN_SUBCOMMAND', `Unknown snapshot subcommand: ${subcommand}`, { available: ['site', 'page', 'pages'] });
+      outputError('UNKNOWN_SUBCOMMAND', `Unknown snapshot subcommand: ${subcommand}`, { available: ['site', 'page', 'pages', 'plugins'] });
       process.exit(1);
   }
 }
@@ -3068,7 +3542,7 @@ async function main(): Promise<void> {
   }
 
   // Check for known commands before loading config
-  const knownCommands = ['init', 'call', 'tools', 'status', 'validate', 'configure', 'doctor', 'snapshot', 'diff', 'sync', 'rollback', 'cleanup'];
+  const knownCommands = ['init', 'call', 'tools', 'roles', 'status', 'validate', 'configure', 'doctor', 'snapshot', 'diff', 'sync', 'rollback', 'cleanup'];
   if (!knownCommands.includes(command)) {
     outputError('UNKNOWN_COMMAND', `Unknown command: ${command}`, {
       available: [...knownCommands, 'help'],
@@ -3078,11 +3552,17 @@ async function main(): Promise<void> {
 
   // Handle init command separately (doesn't require valid config)
   if (command === 'init') {
-    await handleInit({
+    const exitCode = await handleInit({
       mode: options.mode as 'guided' | 'scaffold' | 'ai-handoff' | undefined,
       skipConfirm: options['skip-confirm'] === 'true',
+      skipSmokeTest: options['skip-smoke-test'] === 'true',
+      json: options.json === 'true',
+      express: options.express === 'true',
+      siteUrl: options.site,
+      username: options.user,
+      password: options.password,
     });
-    process.exit(0);
+    process.exit(exitCode);
   }
 
   // Handle validate command separately (doesn't require valid config)
@@ -3124,9 +3604,16 @@ async function main(): Promise<void> {
 
   // Handle cleanup command separately (doesn't require valid config)
   if (command === 'cleanup') {
-    await handleCleanup({
+    const exitCode = await handleCleanup({
       yes: options.yes === 'true',
+      json: options.json === 'true',
     });
+    process.exit(exitCode);
+  }
+
+  // Handle roles command separately (doesn't require valid config)
+  if (command === 'roles') {
+    await handleRoles(args, options);
     process.exit(0);
   }
 
@@ -3156,9 +3643,30 @@ async function main(): Promise<void> {
   toolRegistry.setFeatureFlag('WP_MIGRATION_PLANNER_ENABLED', config.featureFlags.migrationPlannerEnabled);
   toolRegistry.setFeatureFlag('WP_PERFORMANCE_ANALYZER_ENABLED', config.featureFlags.performanceAnalyzerEnabled);
 
+  // Resolve role (CLI > env > config)
+  let resolvedRoleResult: ResolvedRole | undefined;
+  try {
+    resolvedRoleResult = resolveRole({
+      cliRole: options.role,
+      configDefaultRole: _resolvedConfig?.default_role,
+    });
+  } catch (error) {
+    if (error instanceof RoleNotFoundError) {
+      errorMessage(`Role not found: ${error.roleName}`);
+      info(`Available roles: ${error.availableRoles.join(', ') || '(none)'}`);
+      process.exit(1);
+    }
+    throw error;
+  }
+
   // Create context
   const wpRequest = makeWpRequest(config);
-  const context: CLIContext = { config, wpRequest };
+  const context: CLIContext = {
+    config,
+    wpRequest,
+    role: resolvedRoleResult?.role ?? undefined,
+    roleSource: resolvedRoleResult?.source,
+  };
 
   // Route command
   switch (command) {

@@ -36,6 +36,7 @@ import {
   symbols,
   colors,
   supportsColor,
+  modeIndicator,
 } from '../tui/components.js';
 import {
   printResourceLinks,
@@ -52,6 +53,30 @@ import {
   type PluginEdition,
   type PluginDetectionResult,
 } from '../../plugin-detection.js';
+import {
+  generateClaudeMd,
+  generateMcpJson,
+  getDefaultClaudeMdContext,
+} from '../init/generators.js';
+import {
+  runSmokeTest,
+  displaySmokeTestResult,
+} from '../init/smoke-test.js';
+import {
+  detectEnvironment,
+  getExpressDefaults,
+  formatAppliedDefaults,
+  describeDefaults,
+  isLocalUrl,
+} from '../init/defaults.js';
+import {
+  displayGraduationPrompt,
+} from '../init/graduation.js';
+import {
+  generateGitignore,
+  checkTrackedSensitiveFiles,
+  generateGitignoreAppend,
+} from '../init/gitignore.js';
 
 // =============================================================================
 // Types
@@ -62,10 +87,27 @@ export type InitMode = 'guided' | 'scaffold' | 'ai-handoff';
 export interface InitOptions {
   mode?: InitMode;
   skipConfirm?: boolean;
+  skipSmokeTest?: boolean;
   silent?: boolean;
   siteUrl?: string;
   username?: string;
   password?: string;
+  json?: boolean;
+  express?: boolean;
+}
+
+export interface InitResult {
+  success: boolean;
+  mode: InitMode;
+  files_created: string[];
+  files_skipped: string[];
+  errors: string[];
+  connection?: {
+    site_url: string;
+    site_name?: string;
+    plugin_edition?: string;
+    plugin_version?: string;
+  };
 }
 
 interface ScaffoldResult {
@@ -216,33 +258,6 @@ npx wpnav sync            # Apply changes to WordPress
 - Demo: https://wpnav.ai/start/demo
 - Help: https://wpnav.ai/help
 - Docs: https://wpnav.ai/docs
-`;
-}
-
-/**
- * Generate .gitignore content for WP Navigator projects
- */
-function generateGitignore(): string {
-  return `# WP Navigator - Ignore sensitive files
-
-# WordPress credentials (contains Application Password)
-.wpnav.env
-wp-config.json
-
-# IDE/Editor
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Temporary files
-*.tmp
-*.temp
 `;
 }
 
@@ -1186,7 +1201,7 @@ function writeIfNotExists(filePath: string, content: string): boolean {
 /**
  * Scaffold the complete project structure
  */
-function scaffoldProject(cwd: string): ScaffoldResult {
+async function scaffoldProject(cwd: string): Promise<ScaffoldResult> {
   const result: ScaffoldResult = {
     created: [],
     skipped: [],
@@ -1237,11 +1252,12 @@ function scaffoldProject(cwd: string): ScaffoldResult {
     if (writeIfNotExists(gitignorePath, generateGitignore())) {
       result.created.push('.gitignore');
     } else {
-      // Check if .wpnav.env is already in gitignore
+      // Check if sensitive patterns are already in gitignore
       const existingGitignore = fs.readFileSync(gitignorePath, 'utf8');
-      if (!existingGitignore.includes('.wpnav.env')) {
-        // Append to existing gitignore
-        fs.appendFileSync(gitignorePath, '\n# WP Navigator credentials\n.wpnav.env\n');
+      const appendContent = generateGitignoreAppend(existingGitignore);
+      if (appendContent) {
+        // Append missing patterns to existing gitignore
+        fs.appendFileSync(gitignorePath, appendContent);
         result.created.push('.gitignore (updated)');
       } else {
         result.skipped.push('.gitignore');
@@ -1249,6 +1265,38 @@ function scaffoldProject(cwd: string): ScaffoldResult {
     }
   } catch (err) {
     result.errors.push(`.gitignore: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  // Check for sensitive files already tracked in git
+  const trackedSensitive = await checkTrackedSensitiveFiles(cwd);
+  if (trackedSensitive.length > 0) {
+    warning(`Sensitive files already tracked in git: ${trackedSensitive.join(', ')}`);
+    info('  Run: git rm --cached <file> to untrack');
+  }
+
+  // Create .mcp.json (Claude Code project-level MCP config)
+  const mcpJsonPath = path.join(cwd, '.mcp.json');
+  try {
+    if (writeIfNotExists(mcpJsonPath, generateMcpJson({ enableWrites: false }))) {
+      result.created.push('.mcp.json');
+    } else {
+      result.skipped.push('.mcp.json');
+    }
+  } catch (err) {
+    result.errors.push(`.mcp.json: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  // Create CLAUDE.md (AI assistant context)
+  const claudeMdPath = path.join(cwd, 'CLAUDE.md');
+  try {
+    const claudeMdContent = generateClaudeMd(getDefaultClaudeMdContext());
+    if (writeIfNotExists(claudeMdPath, claudeMdContent)) {
+      result.created.push('CLAUDE.md');
+    } else {
+      result.skipped.push('CLAUDE.md');
+    }
+  } catch (err) {
+    result.errors.push(`CLAUDE.md: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // Create sample prompts
@@ -1591,21 +1639,6 @@ Add this to your Claude Code MCP settings:
 }
 \`\`\`
 
-## Setup for Claude Desktop
-
-Edit \`~/Library/Application Support/Claude/claude_desktop_config.json\`:
-
-\`\`\`json
-{
-  "mcpServers": {
-    "wpnav": {
-      "command": "npx",
-      "args": ["-y", "@littlebearapps/wp-navigator-mcp", "${process.cwd()}/.wpnav.env"]
-    }
-  }
-}
-\`\`\`
-
 ## Available Tools
 
 Once connected, the AI can use tools like:
@@ -1672,7 +1705,7 @@ async function handleScaffoldMode(cwd: string): Promise<void> {
   info('Creating project structure...');
   newline();
 
-  const result = scaffoldProject(cwd);
+  const result = await scaffoldProject(cwd);
   displayScaffoldResults(result);
 
   if (result.errors.length === 0) {
@@ -1724,7 +1757,7 @@ async function handleAIHandoffMode(cwd: string): Promise<void> {
   newline();
 
   // Scaffold basic structure first
-  const scaffoldResult = scaffoldProject(cwd);
+  const scaffoldResult = await scaffoldProject(cwd);
   displayScaffoldResults(scaffoldResult);
 
   // Generate AI handoff file with current state
@@ -1758,9 +1791,6 @@ async function handleAIHandoffMode(cwd: string): Promise<void> {
   console.error('     Upload this folder or connect via GitHub');
   newline();
 
-  console.error(`  ${arrow} ${colorize('Claude Desktop', 'bold')}`);
-  console.error('     Drag the folder into the chat, or attach ai-onboarding-handoff.md');
-  newline();
 
   divider(50);
   newline();
@@ -1826,7 +1856,7 @@ async function guidedStep1Scaffold(cwd: string): Promise<boolean> {
     return false;
   }
 
-  const result = scaffoldProject(cwd);
+  const result = await scaffoldProject(cwd);
   displayScaffoldResults(result);
 
   if (result.errors.length > 0) {
@@ -1879,7 +1909,7 @@ interface ConnectResult {
   pluginVersion?: string;
 }
 
-async function guidedStep3Connect(cwd: string): Promise<ConnectResult> {
+async function guidedStep3Connect(cwd: string, options: { skipSmokeTest?: boolean } = {}): Promise<ConnectResult> {
   displayStep(3, TOTAL_GUIDED_STEPS, 'Connect to WordPress');
 
   info('We only store your details locally in a .wpnav.env file (which is git-ignored).');
@@ -2009,6 +2039,42 @@ async function guidedStep3Connect(cwd: string): Promise<ConnectResult> {
   } catch (err) {
     // Non-fatal: config is supplementary
     warning(`Could not save config: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  // Run smoke test to verify configuration works (unless skipped)
+  if (!options.skipSmokeTest) {
+    newline();
+    const smokeSpinner = createSpinner({ text: 'Verifying connection...' });
+
+    const smokeResult = await runSmokeTest(siteUrl, username, password);
+
+    if (smokeResult.success) {
+      smokeSpinner.succeed('Connection verified!');
+      newline();
+      displaySmokeTestResult(smokeResult);
+
+      // Display graduation prompt with AI starter prompts
+      await displayGraduationPrompt({
+        siteUrl,
+        siteName: smokeResult.siteName,
+        pluginEdition: testResult.pluginEdition,
+      });
+    } else {
+      smokeSpinner.fail('Connection test failed');
+      newline();
+      displaySmokeTestResult(smokeResult);
+
+      // Offer to continue anyway since credentials are already saved
+      newline();
+      const continueAfterSmoke = await confirmPrompt({
+        message: 'Continue with setup? (credentials are saved, you can fix this later)',
+        defaultValue: true,
+      });
+
+      if (!continueAfterSmoke) {
+        return { success: false };
+      }
+    }
   }
 
   return {
@@ -2164,6 +2230,10 @@ async function guidedStep5Summary(cwd: string): Promise<void> {
   console.error(`${celebration} All done!`);
   newline();
 
+  // Show write mode status (writes disabled by default for safety)
+  modeIndicator(false);
+  newline();
+
   info('Here\'s what we\'ve set up for you:');
   newline();
   list([
@@ -2202,14 +2272,247 @@ async function guidedStep5Summary(cwd: string): Promise<void> {
 }
 
 // =============================================================================
+// JSON Output Functions
+// =============================================================================
+
+/**
+ * Output JSON result to stdout
+ */
+function outputJSON(data: unknown): void {
+  console.log(JSON.stringify(data, null, 2));
+}
+
+/**
+ * Handle init in JSON mode (non-interactive)
+ * Requires --mode (scaffold or ai-handoff) or credentials for guided mode
+ */
+async function handleInitJson(cwd: string, options: InitOptions): Promise<number> {
+  const result: InitResult = {
+    success: false,
+    mode: options.mode || 'scaffold',
+    files_created: [],
+    files_skipped: [],
+    errors: [],
+  };
+
+  // Determine mode
+  let mode: InitMode = options.mode || 'scaffold';
+
+  // For guided mode in JSON, credentials are required
+  if (mode === 'guided') {
+    if (!options.siteUrl || !options.username || !options.password) {
+      outputJSON({
+        success: false,
+        command: 'init',
+        error: {
+          code: 'MISSING_CREDENTIALS',
+          message: 'JSON mode with guided requires --site, --user, and --password flags',
+          details: {
+            provided: {
+              site: !!options.siteUrl,
+              user: !!options.username,
+              password: !!options.password,
+            },
+          },
+        },
+      });
+      return 1;
+    }
+  }
+
+  // Scaffold project structure
+  const scaffoldResult = await scaffoldProject(cwd);
+  result.files_created.push(...scaffoldResult.created);
+  result.files_skipped.push(...scaffoldResult.skipped);
+  result.errors.push(...scaffoldResult.errors);
+
+  // If ai-handoff mode, generate handoff file
+  if (mode === 'ai-handoff') {
+    writeHandoffFile(cwd);
+    result.files_created.push('docs/ai-onboarding-handoff.md');
+  }
+
+  // If guided mode with credentials, save credentials and test connection
+  if (mode === 'guided' && options.siteUrl && options.username && options.password) {
+    // Save credentials
+    const envPath = path.join(cwd, '.wpnav.env');
+    try {
+      const envContent = generateWpnavEnvContent(options.siteUrl, options.username, options.password);
+      writeWpnavEnvAtomic(envPath, envContent);
+      result.files_created.push('.wpnav.env');
+    } catch (err) {
+      result.errors.push(`.wpnav.env: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    // Test connection unless skipped
+    if (!options.skipSmokeTest) {
+      const testResult = await testConnection(options.siteUrl, options.username, options.password);
+      if (testResult.success) {
+        result.connection = {
+          site_url: options.siteUrl,
+          site_name: testResult.siteName,
+          plugin_edition: testResult.pluginEdition,
+          plugin_version: testResult.pluginVersion,
+        };
+      } else {
+        result.errors.push(`Connection test failed: ${testResult.error}`);
+      }
+    } else {
+      result.connection = {
+        site_url: options.siteUrl,
+      };
+    }
+
+    // Write handoff file with state
+    writeHandoffFile(cwd);
+  }
+
+  // Determine success
+  result.success = result.errors.length === 0;
+  result.mode = mode;
+
+  outputJSON({
+    success: result.success,
+    command: 'init',
+    data: {
+      mode: result.mode,
+      files_created: result.files_created,
+      files_skipped: result.files_skipped,
+      connection: result.connection,
+      errors: result.errors.length > 0 ? result.errors : undefined,
+    },
+  });
+
+  return result.success ? 0 : 1;
+}
+
+/**
+ * Handle init in express mode (TUI output, non-interactive)
+ * Requires --site, --user, --password flags
+ */
+async function handleInitExpress(cwd: string, options: InitOptions): Promise<number> {
+  // Validate required credentials
+  if (!options.siteUrl || !options.username || !options.password) {
+    errorMessage('Express mode requires --site, --user, and --password flags');
+    newline();
+    info('Example:');
+    console.error('  wpnav init --express --site https://example.com --user admin --password "xxxx xxxx xxxx xxxx"');
+    return 1;
+  }
+
+  // Detect environment and get defaults
+  const isLocal = isLocalUrl(options.siteUrl);
+  const defaults = getExpressDefaults({
+    siteUrl: options.siteUrl,
+    isLocal,
+  });
+
+  // Display express mode header
+  newline();
+  box('WP Navigator Express Setup', { title: 'Express Mode' });
+  newline();
+
+  // Log applied defaults
+  info(describeDefaults(defaults));
+  newline();
+  console.error(formatAppliedDefaults(defaults));
+  newline();
+
+  // Step 1: Scaffold project
+  const scaffoldSpinner = createSpinner({ text: 'Scaffolding project structure...' });
+  const scaffoldResult = await scaffoldProject(cwd);
+  if (scaffoldResult.errors.length > 0) {
+    scaffoldSpinner.fail('Scaffolding failed');
+    for (const err of scaffoldResult.errors) {
+      errorMessage(err);
+    }
+    return 1;
+  }
+  scaffoldSpinner.succeed(`Created ${scaffoldResult.created.length} files/directories`);
+
+  // Step 2: Save credentials
+  const credSpinner = createSpinner({ text: 'Saving credentials...' });
+  const envPath = path.join(cwd, '.wpnav.env');
+  try {
+    const envContent = generateWpnavEnvContent(options.siteUrl, options.username, options.password);
+    writeWpnavEnvAtomic(envPath, envContent);
+    credSpinner.succeed('Credentials saved to .wpnav.env');
+  } catch (err) {
+    credSpinner.fail('Failed to save credentials');
+    errorMessage(err instanceof Error ? err.message : String(err));
+    return 1;
+  }
+
+  // Step 3: Test connection (unless skipped)
+  let connectionResult: ConnectionTestResult | undefined;
+  if (!options.skipSmokeTest) {
+    const testSpinner = createSpinner({ text: 'Testing connection...' });
+    connectionResult = await testConnection(options.siteUrl, options.username, options.password);
+
+    if (connectionResult.success) {
+      testSpinner.succeed('Connection verified!');
+      newline();
+      displaySmokeTestResult({
+        success: true,
+        siteName: connectionResult.siteName,
+        pluginVersion: connectionResult.pluginVersion,
+        pluginEdition: connectionResult.pluginEdition,
+      });
+    } else {
+      testSpinner.warn('Connection test failed (setup completed anyway)');
+      warning(connectionResult.error || 'Unknown error');
+    }
+  } else {
+    info('Skipped connection test (--skip-smoke-test)');
+  }
+
+  // Write handoff file with state
+  writeHandoffFile(cwd);
+
+  // Summary
+  newline();
+  success('Express setup complete!');
+  newline();
+
+  // Show write mode status (writes disabled by default for safety)
+  modeIndicator(false);
+  newline();
+
+  info('Files created:');
+  list(scaffoldResult.created);
+  newline();
+  info('Next steps:');
+  list([
+    'Configure your AI assistant with .mcp.json',
+    'Run "wpnav status" to verify connection',
+    'Edit wpnavigator.jsonc to define your site structure',
+  ]);
+
+  return 0;
+}
+
+// =============================================================================
 // Main Handler
 // =============================================================================
 
 /**
  * Handle the init command
+ * @returns Exit code: 0 for success, 1 for errors
  */
-export async function handleInit(options: InitOptions = {}): Promise<void> {
+export async function handleInit(options: InitOptions = {}): Promise<number> {
   const cwd = process.cwd();
+  const isJson = options.json === true;
+  const isExpress = options.express === true;
+
+  // JSON mode: non-interactive, use handleInitJson
+  if (isJson) {
+    return handleInitJson(cwd, options);
+  }
+
+  // Express mode: non-interactive TUI, use handleInitExpress
+  if (isExpress) {
+    return handleInitExpress(cwd, options);
+  }
 
   // Check if already initialized
   const manifestExists = fs.existsSync(path.join(cwd, 'wpnavigator.jsonc'));
@@ -2223,7 +2526,7 @@ export async function handleInit(options: InitOptions = {}): Promise<void> {
     });
     if (!continueInit) {
       info('Init cancelled. Use "npx wpnav configure" to update credentials.');
-      return;
+      return 0;
     }
   }
 
@@ -2258,7 +2561,7 @@ export async function handleInit(options: InitOptions = {}): Promise<void> {
       await guidedStep2Plugin();
 
       // Step 3: Connect to WordPress
-      const connectResult = await guidedStep3Connect(cwd);
+      const connectResult = await guidedStep3Connect(cwd, { skipSmokeTest: options.skipSmokeTest });
       // Regenerate handoff file to reflect credentials saved
       writeHandoffFile(cwd);
 
@@ -2274,6 +2577,8 @@ export async function handleInit(options: InitOptions = {}): Promise<void> {
       break;
     }
   }
+
+  return 0;
 }
 
 export default handleInit;

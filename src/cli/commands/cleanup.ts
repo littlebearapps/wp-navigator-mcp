@@ -30,6 +30,7 @@ import {
 
 export interface CleanupOptions {
   yes?: boolean; // Skip confirmation
+  json?: boolean; // Output JSON instead of TUI
 }
 
 export interface CleanupResult {
@@ -175,25 +176,79 @@ function displayResults(result: CleanupResult): void {
 // =============================================================================
 
 /**
- * Handle the cleanup command
+ * Output JSON result to stdout
  */
-export async function handleCleanup(options: CleanupOptions = {}): Promise<void> {
+function outputJSON(data: unknown): void {
+  console.log(JSON.stringify(data, null, 2));
+}
+
+/**
+ * Handle the cleanup command
+ * @returns Exit code: 0 for success, 1 for errors
+ */
+export async function handleCleanup(options: CleanupOptions = {}): Promise<number> {
   const cwd = process.cwd();
   const skipConfirm = options.yes === true;
+  const isJson = options.json === true;
 
   // Find files that can be deleted
   const filesToDelete = findDeletableFiles(cwd);
 
   // Check if there's anything to clean up
   if (filesToDelete.length === 0) {
-    info('Nothing to clean up. No onboarding files found.');
-    newline();
-    info('Onboarding files that would be removed if present:');
-    list(DELETABLE_FILES);
-    return;
+    if (isJson) {
+      outputJSON({
+        success: true,
+        command: 'cleanup',
+        data: {
+          deleted: [],
+          not_found: [],
+          message: 'No onboarding files found',
+        },
+      });
+    } else {
+      info('Nothing to clean up. No onboarding files found.');
+      newline();
+      info('Onboarding files that would be removed if present:');
+      list(DELETABLE_FILES);
+    }
+    return 0;
   }
 
-  // Display what will be deleted
+  // In JSON mode with --yes, skip all TUI and just perform cleanup
+  if (isJson) {
+    // JSON mode requires --yes to avoid prompts
+    if (!skipConfirm) {
+      outputJSON({
+        success: false,
+        command: 'cleanup',
+        error: {
+          code: 'CONFIRMATION_REQUIRED',
+          message: 'JSON mode requires --yes flag to skip confirmation',
+          details: { files_to_delete: filesToDelete },
+        },
+      });
+      return 1;
+    }
+
+    // Perform cleanup silently
+    const result = performCleanup(cwd, filesToDelete);
+    const hasErrors = result.errors.length > 0;
+
+    outputJSON({
+      success: !hasErrors,
+      command: 'cleanup',
+      data: {
+        deleted: result.deleted,
+        not_found: result.notFound,
+        errors: result.errors.length > 0 ? result.errors : undefined,
+      },
+    });
+
+    return hasErrors ? 1 : 0;
+  }
+
+  // TUI mode: Display what will be deleted
   newline();
   displayFilesToDelete(filesToDelete);
 
@@ -210,7 +265,7 @@ export async function handleCleanup(options: CleanupOptions = {}): Promise<void>
 
     if (!confirmed) {
       info('Cleanup cancelled. No files were deleted.');
-      return;
+      return 0;
     }
   }
 
@@ -227,6 +282,8 @@ export async function handleCleanup(options: CleanupOptions = {}): Promise<void>
   } else if (result.errors.length > 0) {
     warning('Cleanup completed with errors.');
   }
+
+  return result.errors.length > 0 ? 1 : 0;
 }
 
 export default handleCleanup;

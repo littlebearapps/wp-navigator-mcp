@@ -326,3 +326,30 @@ export function keyValue(key: string, value: string, keyWidth = 15): void {
   const paddedKey = key.padEnd(keyWidth);
   console.error(`  ${colorize(paddedKey, 'dim')} ${value}`);
 }
+
+/**
+ * Display write mode indicator with appropriate styling
+ *
+ * Safe mode (writes disabled): Green checkmark
+ * Write mode (writes enabled): Yellow warning icon
+ *
+ * @example
+ * modeIndicator(false);
+ * // Output: "✔ SAFE MODE (writes disabled)"
+ *
+ * modeIndicator(true);
+ * // Output: "⚠ WRITE MODE (changes allowed)"
+ */
+export function modeIndicator(writesEnabled: boolean): void {
+  if (writesEnabled) {
+    // Write mode - yellow warning
+    console.error(
+      `${colorize(symbols.warning, 'yellow')} ${colorize('WRITE MODE', 'yellow')} ${colorize('(changes allowed)', 'dim')}`
+    );
+  } else {
+    // Safe mode - green checkmark
+    console.error(
+      `${colorize(symbols.success, 'green')} ${colorize('SAFE MODE', 'green')} ${colorize('(writes disabled)', 'dim')}`
+    );
+  }
+}

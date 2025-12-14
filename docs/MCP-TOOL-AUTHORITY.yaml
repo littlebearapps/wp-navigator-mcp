@@ -5,9 +5,9 @@
 # DO NOT EDIT MANUALLY - regenerate with: npm run generate:authority
 
 schema_version: "1.0"
-mcp_version: "1.0.1"
+mcp_version: "2.1.2"
 min_plugin_version: "1.4.0"
-generated: "2025-12-08"
+generated: "2025-12-14"
 
 # Tool categories with endpoint mappings
 categories:
@@ -21,6 +21,20 @@ categories:
       - name: wpnav_introspect
         description: "Get WP Navigator Pro API capabilities, policy configuration, and environment hints. Call this first to understand what the API can do."
         endpoint: "GET /wpnav/v1/introspect"
+        since_mcp: "1.0.0"
+      - name: wpnav_list_cookbooks
+        description: "List all available plugin cookbooks with metadata. Cookbooks provide AI guidance for specific WordPress plugins like Gutenberg, Elementor, etc. Returns slug, name, version, source (bundled/project), and version requirements."
+        endpoint: "GET /wp/v2/cookbook"
+        wordpress_core: true
+        since_mcp: "1.0.0"
+      - name: wpnav_get_cookbook
+        description: "Get full cookbook content for a specific plugin by slug. Returns the SKILL.md body (AI guidance), frontmatter metadata, and allowed tools list. Use this to load guidance before working with a specific plugin."
+        endpoint: "GET /wp/v2/cookbooks/{id}"
+        wordpress_core: true
+        since_mcp: "1.0.0"
+      - name: wpnav_match_cookbooks
+        description: "Match available cookbooks against active WordPress plugins. Fetches active plugins from WordPress and returns cookbooks that match, with version compatibility status. Use this to discover which plugin guidance is available for the current site."
+        endpoint: "UNKNOWN"
         since_mcp: "1.0.0"
       - name: wpnav_get_site_overview
         description: "Get a comprehensive site overview including WordPress version, theme info, plugin counts, content summary, and user counts by role. Designed for AI agents to quickly understand site structure without multiple API calls."
@@ -353,5 +367,5 @@ categories:
 
 # Summary
 summary:
-  total_tools: 65
+  total_tools: 68
   categories: 13

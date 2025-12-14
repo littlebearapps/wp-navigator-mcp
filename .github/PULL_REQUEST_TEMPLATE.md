@@ -16,7 +16,7 @@
 - [ ] Tests pass locally (`npm test`)
 - [ ] New tests added for new functionality
 - [ ] Manual testing completed
-- [ ] Tested with Claude Desktop / Claude Code
+- [ ] Tested with Claude Code
 
 ### Test Instructions
 

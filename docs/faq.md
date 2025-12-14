@@ -8,13 +8,12 @@ Quick answers to common questions about WP Navigator MCP.
 
 ### What is WP Navigator MCP?
 
-WP Navigator MCP is an MCP (Model Context Protocol) server that enables AI assistants like Claude to manage WordPress sites. It provides 65+ tools for content management, plugins, themes, and Gutenberg block editing.
+WP Navigator MCP is an MCP (Model Context Protocol) server that enables AI assistants like Claude to manage WordPress sites. It provides 68+ tools for content management, plugins, themes, and Gutenberg block editing.
 
 ### What AI assistants are supported?
 
 Any MCP-compatible client works, including:
 
-- **Claude Desktop** - Anthropic's desktop app
 - **Claude Code** - CLI for developers
 - **Gemini CLI** - Google's AI assistant
 - **Other MCP clients** - Any client implementing the MCP protocol
@@ -222,10 +221,6 @@ npx @littlebearapps/wp-navigator-mcp --version
 ## Troubleshooting
 
 ### Where are the logs?
-
-**Claude Desktop:**
-- macOS: `~/Library/Logs/Claude/`
-- Windows: `%APPDATA%\Claude\logs\`
 
 **CLI mode:**
 ```bash

@@ -378,7 +378,7 @@ describe('wpnav-config', () => {
     it('should apply default safety settings', () => {
       const result = resolveConfig(baseConfig, '/test/config.json');
 
-      expect(result.safety.enable_writes).toBe(false);
+      expect(result.safety.enable_writes).toBe(true);
       expect(result.safety.allow_insecure_http).toBe(false);
       expect(result.safety.tool_timeout_ms).toBe(600000);
       expect(result.safety.max_response_kb).toBe(64);

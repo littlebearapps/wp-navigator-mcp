@@ -222,19 +222,51 @@ export function registerContentTools() {
         required: ['id'],
       },
     },
-    handler: async (args) => {
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            error: 'not_supported',
-            code: 'NOT_SUPPORTED',
-            message: 'Page delete via safe plan/apply is not available in v1.1. Use update operations or wait for v1.2.',
-            context: { resource_type: 'page', resource_id: args.id, suggestion: 'Use wpnav_update_page to change status to trash instead' },
-          }, null, 2),
-        }],
-        isError: true,
-      };
+    handler: async (args, context) => {
+      try {
+        validateRequired(args, ['id']);
+        const id = validateId(args.id, 'Page');
+
+        const params = new URLSearchParams({
+          force: String(args.force === true),
+        });
+
+        const result = await context.wpRequest(`/wp/v2/pages/${id}?${params.toString()}`, {
+          method: 'DELETE',
+        });
+
+        return {
+          content: [{
+            type: 'text',
+            text: context.clampText(JSON.stringify({
+              success: true,
+              id: result.id,
+              title: result.title?.rendered || result.title?.raw || 'Unknown',
+              status: result.status,
+              message: args.force ? 'Page permanently deleted' : 'Page moved to trash',
+            }, null, 2)),
+          }],
+        };
+      } catch (error: any) {
+        const errorMessage = error.message || 'Unknown error';
+        const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+              code: isWritesDisabled ? 'WRITES_DISABLED' : 'DELETE_FAILED',
+              message: errorMessage,
+              context: {
+                resource_type: 'page',
+                resource_id: args.id,
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check page ID exists with wpnav_get_page',
+              },
+            }, null, 2),
+          }],
+          isError: true,
+        };
+      }
     },
     category: ToolCategory.CONTENT,
   });
@@ -667,19 +699,51 @@ export function registerContentTools() {
         required: ['id'],
       },
     },
-    handler: async (args) => {
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            error: 'not_supported',
-            code: 'NOT_SUPPORTED',
-            message: 'Post delete via safe plan/apply is not available in v1.1. Use update operations or wait for v1.2.',
-            context: { resource_type: 'post', resource_id: args.id, suggestion: 'Use wpnav_update_post to change status to trash instead' },
-          }, null, 2),
-        }],
-        isError: true,
-      };
+    handler: async (args, context) => {
+      try {
+        validateRequired(args, ['id']);
+        const id = validateId(args.id, 'Post');
+
+        const params = new URLSearchParams({
+          force: String(args.force === true),
+        });
+
+        const result = await context.wpRequest(`/wp/v2/posts/${id}?${params.toString()}`, {
+          method: 'DELETE',
+        });
+
+        return {
+          content: [{
+            type: 'text',
+            text: context.clampText(JSON.stringify({
+              success: true,
+              id: result.id,
+              title: result.title?.rendered || result.title?.raw || 'Unknown',
+              status: result.status,
+              message: args.force ? 'Post permanently deleted' : 'Post moved to trash',
+            }, null, 2)),
+          }],
+        };
+      } catch (error: any) {
+        const errorMessage = error.message || 'Unknown error';
+        const isWritesDisabled = errorMessage.includes('WRITES_DISABLED');
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              error: isWritesDisabled ? 'writes_disabled' : 'operation_failed',
+              code: isWritesDisabled ? 'WRITES_DISABLED' : 'DELETE_FAILED',
+              message: errorMessage,
+              context: {
+                resource_type: 'post',
+                resource_id: args.id,
+                suggestion: isWritesDisabled ? 'Set WPNAV_ENABLE_WRITES=1 in MCP server config (.mcp.json env section)' : 'Check post ID exists with wpnav_get_post',
+              },
+            }, null, 2),
+          }],
+          isError: true,
+        };
+      }
     },
     category: ToolCategory.CONTENT,
   });

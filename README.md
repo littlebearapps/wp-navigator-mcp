@@ -6,7 +6,7 @@
 [![codecov](https://codecov.io/gh/littlebearapps/wp-navigator-mcp/branch/main/graph/badge.svg)](https://codecov.io/gh/littlebearapps/wp-navigator-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-**AI-powered WordPress management via Claude Code, Claude Desktop, and MCP-compatible clients.**
+**AI-powered WordPress management via Claude Code and MCP-compatible clients.**
 
 Manage posts, pages, media, plugins, themes, and Gutenberg blocks through natural language — all with safe-by-default writes and full rollback support.
 
@@ -129,28 +129,6 @@ Add to your project's `.mcp.json`:
 
 </details>
 
-<details>
-<summary><strong>Claude Desktop</strong></summary>
-
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
-
-```json
-{
-  "mcpServers": {
-    "wpnav": {
-      "command": "npx",
-      "args": ["-y", "@littlebearapps/wp-navigator-mcp", "/full/path/to/wpnav.config.json"],
-      "env": {
-        "WPNAV_ENABLE_WRITES": "1"
-      }
-    }
-  }
-}
-```
-
-Restart Claude Desktop after editing.
-
-</details>
 
 > **Note**: `WPNAV_ENABLE_WRITES=1` enables create/update/delete operations. Without it, only read operations work (safe by default).
 
@@ -215,9 +193,52 @@ See [CLI Reference](docs/cli-reference.md) for complete documentation.
 
 ---
 
+## Project Structure
+
+When you initialize a WP Navigator project with `npx wpnav init`, the following structure is created:
+
+```
+my-wp-project/
+├── wpnavigator.jsonc       # Site manifest (your intent)
+├── wpnav.config.json       # Connection configuration
+├── .gitignore              # Ignores credentials and snapshots
+├── snapshots/              # Site state snapshots
+│   ├── site_index.json     # Full site structure
+│   └── pages/              # Individual page snapshots
+├── roles/                  # Custom AI role definitions
+├── cookbooks/              # Custom plugin cookbooks (override bundled)
+├── docs/                   # Project documentation
+└── sample-prompts/         # Ready-to-use AI prompts
+    ├── self-test.txt
+    ├── add-page.txt
+    └── content-audit.txt
+```
+
+### Directory Purposes
+
+| Directory | Purpose | Git Status |
+|-----------|---------|------------|
+| `snapshots/` | Read-only state from WordPress | Ignore (regeneratable) |
+| `roles/` | Custom AI behavior definitions | Commit |
+| `cookbooks/` | Plugin-specific AI guidance | Commit |
+| `docs/` | Project documentation | Commit |
+| `sample-prompts/` | Reusable AI prompts | Commit |
+
+### Recommended .gitignore
+
+```gitignore
+# Credentials (NEVER commit)
+wpnav.config.json
+
+# Snapshots (regenerate with wpnav snapshot)
+snapshots/
+```
+
+---
+
 ## Available Tools
 
-**65+ tools** organized by category:
+**68+ tools** organized by category:
 
 | Category | Tools | Examples |
 |----------|-------|----------|
@@ -231,6 +252,7 @@ See [CLI Reference](docs/cli-reference.md) for complete documentation.
 | **Users** | 5 | `wpnav_list_users`, `wpnav_get_user` |
 | **Comments** | 5 | `wpnav_list_comments`, `wpnav_create_comment` |
 | **Taxonomy** | 12 | `wpnav_list_categories`, `wpnav_create_tag` |
+| **Cookbook** | 3 | `wpnav_list_cookbooks`, `wpnav_get_cookbook` |
 
 List all tools:
 ```bash
@@ -244,8 +266,8 @@ npx wpnav tools --category gutenberg
 
 ```
 ┌─────────────────────┐     MCP Protocol     ┌────────────────────┐
-│   Claude Code /     │ ◄──────────────────► │  WP Navigator MCP  │
-│   Claude Desktop    │                       │   (npm package)    │
+│    Claude Code /    │ ◄──────────────────► │  WP Navigator MCP  │
+│    MCP Clients      │                       │   (npm package)    │
 └─────────────────────┘                       └─────────┬──────────┘
                                                         │ REST API
                                                         ▼
@@ -275,7 +297,7 @@ npx wpnav tools --category gutenberg
 |------------------|-------------------|------------------|---------|
 | v1.0.x           | v1.0+             | v1.0+            | 18+     |
 
-**MCP Clients:** Claude Desktop, Claude Code, Gemini CLI, any MCP-compatible client
+**MCP Clients:** Claude Code, Gemini CLI, any MCP-compatible client
 
 **Platforms:** macOS (Apple Silicon & Intel), Linux (x64), Windows (via WSL)
 

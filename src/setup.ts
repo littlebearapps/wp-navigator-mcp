@@ -2,7 +2,7 @@
 /*
  * wp-navigator-setup — Cross-CLI Setup Wizard (STDIO)
  *
- * Generates client config blocks for Claude Desktop (JSON), Codex CLI (TOML),
+ * Generates client config blocks for Claude Code (JSON), Codex CLI (TOML),
  * and Gemini CLI (JSON). Optionally writes them to standard locations with a
  * timestamped backup. Defaults to dry-run with console output.
  */
@@ -152,7 +152,7 @@ function main() {
   if (wantClaude) {
     const cfg = claudeConfig(env);
     const json = JSON.stringify(cfg, null, 2);
-    console.log('--- Claude Desktop (JSON) ---');
+    console.log('--- Claude Code (JSON) ---');
     console.log(json);
     if (!dryRun) {
       const p = target && client === 'claude' ? target : claudePath;

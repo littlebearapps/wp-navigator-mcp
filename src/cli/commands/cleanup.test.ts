@@ -8,11 +8,11 @@
  * @since 1.1.0
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { findDeletableFiles, performCleanup, type CleanupResult } from './cleanup.js';
+import { findDeletableFiles, performCleanup, handleCleanup, type CleanupResult } from './cleanup.js';
 
 describe('Cleanup Command', () => {
   let tempDir: string;
@@ -260,6 +260,84 @@ describe('Cleanup Command', () => {
       expect(result.deleted).toHaveLength(0);
       expect(result.notFound).toHaveLength(0);
       expect(result.errors).toHaveLength(0);
+    });
+  });
+
+  describe('handleCleanup with JSON output', () => {
+    let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+    let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+    let processCwdSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      processCwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(tempDir);
+    });
+
+    afterEach(() => {
+      consoleLogSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
+      processCwdSpy.mockRestore();
+    });
+
+    it('returns JSON with success true when no files to clean', async () => {
+      const exitCode = await handleCleanup({ json: true, yes: true });
+
+      expect(exitCode).toBe(0);
+      expect(consoleLogSpy).toHaveBeenCalled();
+
+      const output = JSON.parse(consoleLogSpy.mock.calls[0][0] as string);
+      expect(output).toEqual({
+        success: true,
+        command: 'cleanup',
+        data: {
+          deleted: [],
+          not_found: [],
+          message: 'No onboarding files found',
+        },
+      });
+    });
+
+    it('returns JSON with deleted files list on success', async () => {
+      // Create deletable files
+      const docsDir = path.join(tempDir, 'docs');
+      fs.mkdirSync(docsDir, { recursive: true });
+      fs.writeFileSync(path.join(docsDir, 'ai-onboarding-handoff.md'), '# Handoff');
+
+      const exitCode = await handleCleanup({ json: true, yes: true });
+
+      expect(exitCode).toBe(0);
+      const output = JSON.parse(consoleLogSpy.mock.calls[0][0] as string);
+      expect(output.success).toBe(true);
+      expect(output.command).toBe('cleanup');
+      expect(output.data.deleted).toContain('docs/ai-onboarding-handoff.md');
+    });
+
+    it('requires --yes flag in JSON mode', async () => {
+      // Create a file to trigger the confirmation check
+      const docsDir = path.join(tempDir, 'docs');
+      fs.mkdirSync(docsDir, { recursive: true });
+      fs.writeFileSync(path.join(docsDir, 'ai-onboarding-handoff.md'), '# Handoff');
+
+      const exitCode = await handleCleanup({ json: true }); // no yes flag
+
+      expect(exitCode).toBe(1);
+      const output = JSON.parse(consoleLogSpy.mock.calls[0][0] as string);
+      expect(output.success).toBe(false);
+      expect(output.error.code).toBe('CONFIRMATION_REQUIRED');
+    });
+
+    it('suppresses TUI output in JSON mode', async () => {
+      // Create deletable files
+      const docsDir = path.join(tempDir, 'docs');
+      fs.mkdirSync(docsDir, { recursive: true });
+      fs.writeFileSync(path.join(docsDir, 'ai-onboarding-handoff.md'), '# Handoff');
+
+      await handleCleanup({ json: true, yes: true });
+
+      // Console.error (TUI output) should not be called with cleanup messages
+      // JSON output goes to console.log
+      expect(consoleLogSpy).toHaveBeenCalledTimes(1);
     });
   });
 });

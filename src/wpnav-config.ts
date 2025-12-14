@@ -90,6 +90,8 @@ export interface EnvironmentConfig {
   features?: FeaturesConfig;
   /** Auto-detected plugin information (populated by configure/init commands) */
   detected_plugin?: DetectedPluginInfo;
+  /** Default role for this environment (overrides global default_role) */
+  default_role?: string;
 }
 
 /**
@@ -106,6 +108,8 @@ export interface WPNavConfigFile {
   safety?: SafetyConfig;
   /** Global feature flags (can be overridden per-environment) */
   features?: FeaturesConfig;
+  /** Default role for AI context (can be overridden per-environment or via CLI --role) */
+  default_role?: string;
 }
 
 /**
@@ -134,6 +138,8 @@ export interface ResolvedConfig {
   features: Required<FeaturesConfig>;
   /** Detected plugin information (may be undefined if not yet detected) */
   detected_plugin?: DetectedPluginInfo;
+  /** Default role from config (env-level overrides global) */
+  default_role?: string;
 }
 
 // =============================================================================
@@ -406,9 +412,9 @@ export function parseConfigFile(filePath: string): WPNavConfigFile {
 // Config Resolution
 // =============================================================================
 
-/** Default safety settings */
+/** Default safety settings - writes enabled by default, plugin guardrails handle safety */
 const DEFAULT_SAFETY: Required<SafetyConfig> = {
-  enable_writes: false,
+  enable_writes: true,
   allow_insecure_http: false,
   tool_timeout_ms: 600000,
   max_response_kb: 64,
@@ -525,6 +531,9 @@ export function resolveConfig(
     );
   }
 
+  // Resolve default_role (env-level overrides global)
+  const defaultRole = envConfig.default_role ?? config.default_role;
+
   return {
     environment: envName,
     config_path: configPath,
@@ -537,6 +546,7 @@ export function resolveConfig(
     safety,
     features,
     detected_plugin: envConfig.detected_plugin,
+    default_role: defaultRole,
   };
 }
 
@@ -606,7 +616,7 @@ function loadFromEnvVars(): ResolvedConfig | null {
     user: process.env.WP_APP_USER!,
     password: process.env.WP_APP_PASS!,
     safety: {
-      enable_writes: readBool(process.env.WPNAV_ENABLE_WRITES, false),
+      enable_writes: readBool(process.env.WPNAV_ENABLE_WRITES, true),
       allow_insecure_http: readBool(process.env.ALLOW_INSECURE_HTTP, false),
       tool_timeout_ms: readInt(process.env.WPNAV_TOOL_TIMEOUT_MS, 600000),
       max_response_kb: readInt(process.env.WPNAV_MAX_RESPONSE_KB, 64),
@@ -622,6 +632,7 @@ function loadFromEnvVars(): ResolvedConfig | null {
       migration_planner: readBool(process.env.WPNAV_FLAG_WP_MIGRATION_PLANNER_ENABLED, false),
       performance_analyzer: readBool(process.env.WPNAV_FLAG_WP_PERFORMANCE_ANALYZER_ENABLED, false),
     },
+    default_role: process.env.WPNAV_ROLE,
   };
 }
 

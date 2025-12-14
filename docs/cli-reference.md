@@ -328,6 +328,11 @@ npx wpnav snapshot page about-us
 # All pages snapshot
 npx wpnav snapshot pages
 
+# Plugin settings snapshot
+npx wpnav snapshot plugins              # All plugins with extractors
+npx wpnav snapshot plugins woocommerce  # Specific plugin
+npx wpnav snapshot plugins --merge      # Update wpnavigator.jsonc manifest
+
 # Output as JSON
 npx wpnav snapshot site --json
 ```
@@ -336,9 +341,12 @@ npx wpnav snapshot site --json
 
 | Type | Description |
 |------|-------------|
-| `site` | Full site index (pages, posts, plugins, themes) |
+| `site` | Full site index (pages, posts, plugins, themes, theme customizer) |
 | `page <slug>` | Single page with full content and blocks |
 | `pages` | All pages with content |
+| `plugins [slug]` | Plugin settings extraction (WooCommerce, Yoast, RankMath, generic) |
+
+**Plugin extractors:** Dedicated extractors for WooCommerce, Yoast SEO, and RankMath. Other plugins use a generic prefix-based extractor. Sensitive data (API keys, passwords, tokens) is automatically excluded.
 
 Snapshots are stored in `.wpnav/snapshots/` for rollback.
 

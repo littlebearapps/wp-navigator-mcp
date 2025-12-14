@@ -3,7 +3,7 @@
 /**
  * WP Navigator Pro MCP Server
  *
- * Enables Claude Desktop to interact with WordPress via typed MCP tools.
+ * Enables MCP clients to interact with WordPress via typed MCP tools.
  * Provides type-safe, policy-aware WordPress operations.
  *
  * @package WP_Navigator_Pro
@@ -51,7 +51,7 @@ toolRegistry.setFeatureFlag('WP_PERFORMANCE_ANALYZER_ENABLED', config.featureFla
 const server = new Server(
   {
     name: 'wp-navigator',
-    version: '1.0.0',
+    version: '2.1.3',
   },
   {
     capabilities: {

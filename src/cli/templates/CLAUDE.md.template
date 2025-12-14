@@ -1,0 +1,142 @@
+# CLAUDE.md - WP Navigator Project
+
+{{#if site_name}}**Site**: {{site_name}}
+{{/if}}{{#if site_url}}**URL**: {{site_url}}
+{{/if}}**Environment**: {{environment}}
+**Generated**: {{generated_date}}
+
+---
+
+## Overview
+
+This is a WP Navigator-managed WordPress project. AI assistants can use MCP tools and CLI commands to manage the site safely.
+
+**What is WP Navigator?**
+WP Navigator connects AI assistants to WordPress via the Model Context Protocol (MCP). It provides 65+ tools for content management, plugins, themes, users, and Gutenberg block editing.
+
+## Quick Start
+
+1. Read `wpnavigator.jsonc` to understand site intent
+2. Read `snapshots/site_index.json` for current state (if exists)
+3. Use `wpnav diff` to compare intent vs reality
+4. Use `wpnav sync --dry-run` before applying changes
+
+## Safety Defaults
+
+- **Writes are DISABLED by default** - read operations only
+- To enable writes: set `WPNAV_ENABLE_WRITES=1` in environment
+- Always use `--dry-run` before running `sync`
+- Pre-sync snapshots are created automatically for rollback
+- The `.wpnav.env` file contains credentials and is git-ignored
+
+## Available CLI Commands
+
+```bash
+# Project setup
+wpnav init                    # Initialize new project
+wpnav configure               # Set up credentials
+wpnav doctor                  # System diagnostics
+wpnav validate                # Validate config and manifest
+
+# Site operations
+wpnav status                  # Check WordPress connection
+wpnav snapshot site           # Capture full site index
+wpnav snapshot page <slug>    # Capture single page
+wpnav diff                    # Compare manifest vs WordPress
+wpnav sync --dry-run          # Preview changes
+wpnav sync                    # Apply changes (requires WPNAV_ENABLE_WRITES=1)
+wpnav rollback <id>           # Restore from pre-sync snapshot
+
+# Tool access
+wpnav call <tool> [args]      # Invoke MCP tool directly
+wpnav tools                   # List available tools
+wpnav tools --category <cat>  # List tools by category
+```
+
+## MCP Tool Categories
+
+| Category | Count | Key Tools |
+|----------|-------|-----------|
+| Core | 5 | `wpnav_introspect`, `wpnav_help`, `wpnav_get_site_overview` |
+| Pages | 6 | `wpnav_list_pages`, `wpnav_create_page`, `wpnav_snapshot_page` |
+| Posts | 6 | `wpnav_list_posts`, `wpnav_create_post`, `wpnav_create_post_with_blocks` |
+| Media | 4 | `wpnav_list_media`, `wpnav_upload_media_from_url` |
+| Comments | 5 | `wpnav_list_comments`, `wpnav_create_comment`, `wpnav_moderate_comment` |
+| Categories | 5 | `wpnav_list_categories`, `wpnav_create_category` |
+| Tags | 5 | `wpnav_list_tags`, `wpnav_create_tag` |
+| Taxonomies | 2 | `wpnav_list_taxonomies`, `wpnav_get_taxonomy` |
+| Users | 5 | `wpnav_list_users`, `wpnav_get_user`, `wpnav_update_user` |
+| Plugins | 7 | `wpnav_list_plugins`, `wpnav_activate_plugin`, `wpnav_deactivate_plugin` |
+| Themes | 7 | `wpnav_list_themes`, `wpnav_activate_theme`, `wpnav_revert_theme` |
+| Gutenberg | 7 | `wpnav_gutenberg_insert_block`, `wpnav_gutenberg_insert_pattern` |
+| Testing | 2 | `wpnav_test_metrics`, `wpnav_seed_test_data` |
+
+Run `wpnav tools` to see all available tools with descriptions.
+
+## Common Workflows
+
+### Add a New Page
+
+1. Edit `wpnavigator.jsonc` to add page entry under `pages`
+2. Run `wpnav validate` to check syntax
+3. Run `wpnav diff` to see changes
+4. Run `wpnav sync --dry-run` to preview
+5. Set `WPNAV_ENABLE_WRITES=1` and run `wpnav sync`
+
+### Update Plugin States
+
+1. Edit `plugins` section in `wpnavigator.jsonc`
+2. Run `wpnav diff` to see plugin state changes
+3. Run `wpnav sync` to apply (activates/deactivates plugins)
+
+### Snapshot Current State
+
+```bash
+wpnav snapshot site           # Full site index
+wpnav snapshot page home      # Single page by slug
+wpnav snapshot pages          # All pages
+```
+
+### Rollback Changes
+
+1. Run `wpnav rollback --list` to see available snapshots
+2. Run `wpnav rollback <sync-id>` to restore
+
+## Project Files
+
+| File | Purpose |
+|------|---------|
+| `wpnavigator.jsonc` | Site intent manifest (pages, plugins, theme) |
+| `.wpnav.env` | Connection credentials (git-ignored) |
+| `wpnav.config.json` | Multi-environment configuration |
+| `.mcp.json` | Claude Code MCP server config |
+| `snapshots/` | Site and page snapshots |
+| `sample-prompts/` | Ready-to-use AI interaction prompts |
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Connection failed | Check URL in `.wpnav.env`, verify site is accessible |
+| 401 Unauthorized | Regenerate Application Password in WordPress admin |
+| Plugin not found (404) | Install and activate WP Navigator plugin |
+| Writes disabled | Set `WPNAV_ENABLE_WRITES=1` in environment or `.mcp.json` |
+| SSL certificate error | Use `http://` for local dev or set `ALLOW_INSECURE_HTTP=1` |
+
+### Debug Commands
+
+```bash
+wpnav doctor                  # Full system diagnostics
+wpnav status                  # Connection check
+wpnav validate --check-connection  # Validate with live test
+```
+
+## Resources
+
+- Documentation: https://wpnav.ai/docs
+- Help: https://wpnav.ai/help
+- GitHub: https://github.com/littlebearapps/wp-navigator-mcp
+
+---
+
+*Generated by WP Navigator v{{mcp_version}}*

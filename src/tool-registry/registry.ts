@@ -161,6 +161,7 @@ export class ToolRegistry implements IToolRegistry {
       [ToolCategory.PLUGINS]: 0,
       [ToolCategory.THEMES]: 0,
       [ToolCategory.WORKFLOWS]: 0,
+      [ToolCategory.COOKBOOK]: 0,
     };
 
     let enabledTools = 0;

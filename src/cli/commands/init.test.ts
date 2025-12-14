@@ -8,11 +8,11 @@
  * @since 1.1.0
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { buildHandoffState, generateAIHandoff, writeHandoffFile, generateSelfTestPrompt, type HandoffState } from './init.js';
+import { buildHandoffState, generateAIHandoff, writeHandoffFile, generateSelfTestPrompt, handleInit, type HandoffState } from './init.js';
 
 // Test scaffold-related functions directly from init module
 // Since the module exports handleInit as default, we need to test internal functions
@@ -937,5 +937,192 @@ Add this to your Claude Code MCP settings:
       expect(content).toContain('`plugins` object exists');
       expect(content).toContain('valid `status` values');
     });
+  });
+});
+
+describe('handleInit with JSON output', () => {
+  let tempDir: string;
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  let processCwdSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wpnav-init-json-test-'));
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    processCwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(tempDir);
+  });
+
+  afterEach(() => {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    consoleLogSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+    processCwdSpy.mockRestore();
+  });
+
+  it('returns JSON with scaffold mode files list', async () => {
+    const exitCode = await handleInit({ json: true, mode: 'scaffold' });
+
+    expect(exitCode).toBe(0);
+    expect(consoleLogSpy).toHaveBeenCalled();
+
+    const output = JSON.parse(consoleLogSpy.mock.calls[0][0] as string);
+    expect(output.success).toBe(true);
+    expect(output.command).toBe('init');
+    expect(output.data.mode).toBe('scaffold');
+    expect(output.data.files_created).toBeInstanceOf(Array);
+    expect(output.data.files_created.length).toBeGreaterThan(0);
+  });
+
+  it('returns JSON with ai-handoff mode', async () => {
+    const exitCode = await handleInit({ json: true, mode: 'ai-handoff' });
+
+    expect(exitCode).toBe(0);
+    const output = JSON.parse(consoleLogSpy.mock.calls[0][0] as string);
+    expect(output.success).toBe(true);
+    expect(output.data.mode).toBe('ai-handoff');
+    expect(output.data.files_created).toContain('docs/ai-onboarding-handoff.md');
+  });
+
+  it('requires credentials for guided mode in JSON', async () => {
+    const exitCode = await handleInit({ json: true, mode: 'guided' });
+
+    expect(exitCode).toBe(1);
+    const output = JSON.parse(consoleLogSpy.mock.calls[0][0] as string);
+    expect(output.success).toBe(false);
+    expect(output.error.code).toBe('MISSING_CREDENTIALS');
+  });
+
+  it('creates files with credentials in guided mode', async () => {
+    const exitCode = await handleInit({
+      json: true,
+      mode: 'guided',
+      siteUrl: 'https://example.com',
+      username: 'admin',
+      password: 'test1234',
+      skipSmokeTest: true,
+    });
+
+    expect(exitCode).toBe(0);
+    const output = JSON.parse(consoleLogSpy.mock.calls[0][0] as string);
+    expect(output.success).toBe(true);
+    expect(output.data.mode).toBe('guided');
+    expect(output.data.files_created).toContain('.wpnav.env');
+    expect(output.data.connection.site_url).toBe('https://example.com');
+
+    // Verify .wpnav.env was actually created
+    expect(fs.existsSync(path.join(tempDir, '.wpnav.env'))).toBe(true);
+  });
+
+  it('suppresses TUI output in JSON mode', async () => {
+    await handleInit({ json: true, mode: 'scaffold' });
+
+    // Only one console.log call for JSON output
+    expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns exit code 0 on success', async () => {
+    const exitCode = await handleInit({ json: true, mode: 'scaffold' });
+    expect(exitCode).toBe(0);
+  });
+
+  it('returns exit code 1 on error', async () => {
+    const exitCode = await handleInit({ json: true, mode: 'guided' }); // missing credentials
+    expect(exitCode).toBe(1);
+  });
+});
+
+describe('handleInit with express mode', () => {
+  let tempDir: string;
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  let processCwdSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wpnav-init-express-test-'));
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    processCwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(tempDir);
+  });
+
+  afterEach(() => {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    consoleLogSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+    processCwdSpy.mockRestore();
+  });
+
+  it('requires --site, --user, --password flags', async () => {
+    const exitCode = await handleInit({ express: true });
+
+    expect(exitCode).toBe(1);
+    // Should show error message via TUI
+    expect(consoleErrorSpy).toHaveBeenCalled();
+  });
+
+  it('creates project structure with credentials', async () => {
+    const exitCode = await handleInit({
+      express: true,
+      siteUrl: 'https://example.com',
+      username: 'admin',
+      password: 'test1234',
+      skipSmokeTest: true,
+    });
+
+    expect(exitCode).toBe(0);
+
+    // Verify files created
+    expect(fs.existsSync(path.join(tempDir, 'wpnavigator.jsonc'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, '.wpnav.env'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, 'snapshots'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, 'roles'))).toBe(true);
+  });
+
+  it('saves credentials to .wpnav.env', async () => {
+    await handleInit({
+      express: true,
+      siteUrl: 'https://example.com',
+      username: 'admin',
+      password: 'test1234',
+      skipSmokeTest: true,
+    });
+
+    const envContent = fs.readFileSync(path.join(tempDir, '.wpnav.env'), 'utf8');
+    expect(envContent).toContain('WP_BASE_URL=https://example.com');
+    expect(envContent).toContain('WP_APP_USER=admin');
+    expect(envContent).toContain('WP_APP_PASS=test1234');
+  });
+
+  it('detects local environment for localhost URLs', async () => {
+    await handleInit({
+      express: true,
+      siteUrl: 'http://localhost:8080',
+      username: 'admin',
+      password: 'test1234',
+      skipSmokeTest: true,
+    });
+
+    // Should mention "local development" in TUI output
+    const allCalls = consoleErrorSpy.mock.calls.flat().join(' ');
+    expect(allCalls).toContain('local');
+  });
+
+  it('generates same files as guided mode', async () => {
+    const expressResult = await handleInit({
+      express: true,
+      siteUrl: 'https://example.com',
+      username: 'admin',
+      password: 'test1234',
+      skipSmokeTest: true,
+    });
+
+    expect(expressResult).toBe(0);
+
+    // Check core files exist
+    expect(fs.existsSync(path.join(tempDir, 'wpnavigator.jsonc'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, '.wpnav.env'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, '.gitignore'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, '.mcp.json'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, 'CLAUDE.md'))).toBe(true);
   });
 });

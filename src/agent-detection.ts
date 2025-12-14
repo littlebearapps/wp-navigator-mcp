@@ -69,7 +69,7 @@ export function getAgentName(): string {
  * @returns AI model name or 'Unknown'
  */
 function detectModelInfo(): string {
-  // Claude Desktop / Claude Code sets these
+  // Claude Code sets these
   if (process.env.ANTHROPIC_MODEL) return process.env.ANTHROPIC_MODEL;
 
   // Codex / OpenAI CLI
@@ -177,9 +177,9 @@ export function getAgentHeaders(config?: {
   const timestamp = new Date().toISOString();
 
   const headers: Record<string, string> = {
-    'User-Agent': `WP-Navigator-MCP/1.0.0 (${agent})`,
+    'User-Agent': `WP-Navigator-MCP/2.1.3 (${agent})`,
     'X-WP-Navigator-Client': 'wp-navigator',
-    'X-WP-Navigator-Version': '1.0.0',
+    'X-WP-Navigator-Version': '2.1.3',
     'X-WP-Navigator-Agent': agent,
     'X-WP-Navigator-Agent-Name': agentName,
     'X-WP-Navigator-Session': sessionId,

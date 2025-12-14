@@ -28,6 +28,8 @@ export enum ToolCategory {
   THEMES = 'themes',
   /** AI workflow tools (v1.1+) */
   WORKFLOWS = 'workflows',
+  /** Cookbook guidance (v2.1+) */
+  COOKBOOK = 'cookbook',
 }
 
 /**

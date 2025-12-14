@@ -59,22 +59,10 @@ npm run lint
 
 ```
 wp-navigator-mcp/
-├── src/
+├── src/                      # TypeScript source code
 │   ├── index.ts              # MCP server entry point
 │   ├── cli.ts                # CLI entry point
-│   ├── tool-registry/        # Tool registration system
-│   │   ├── registry.ts       # Central registry
-│   │   ├── types.ts          # TypeScript interfaces
-│   │   └── utils.ts          # Validation utilities
-│   ├── tools/                # Tool implementations
-│   │   ├── core/             # introspect, help, site_overview
-│   │   ├── content/          # posts, pages, media
-│   │   ├── taxonomy/         # categories, tags
-│   │   ├── plugins/          # plugin management
-│   │   ├── themes/           # theme management
-│   │   └── gutenberg/        # block editor
-│   └── cli/
-│       └── tui/              # Terminal UI components
+│   └── tools/                # Tool implementations by category
 ├── tests/                    # Test files
 ├── docs/                     # Documentation
 └── .github/                  # GitHub templates and workflows
@@ -110,64 +98,19 @@ npm run format
 
 ## Adding a New Tool
 
-1. **Create tool file** in appropriate category (`src/tools/[category]/`):
+1. **Create tool file** in appropriate category under `src/tools/`
 
-```typescript
-// src/tools/content/my-new-tool.ts
-import { toolRegistry, ToolCategory } from '../../tool-registry';
-import { validateRequired, validateId } from '../../tool-registry/utils';
+2. **Follow existing patterns** - Look at existing tools in the same category for examples
 
-toolRegistry.register({
-  definition: {
-    name: 'wpnav_my_new_tool',
-    description: 'Brief description of what this tool does',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: { type: 'number', description: 'Resource ID' },
-      },
-      required: ['id'],
-    },
-  },
-  handler: async (args, context) => {
-    validateRequired(args, ['id']);
-    validateId(args.id, 'id');
+3. **Add tests** - Create corresponding test file with Vitest
 
-    const result = await context.wpRequest(`/wp/v2/resource/${args.id}`);
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-    };
-  },
-  category: ToolCategory.CONTENT,
-});
-```
-
-2. **Export from category index**:
-
-```typescript
-// src/tools/content/index.ts
-export * from './my-new-tool';
-```
-
-3. **Add tests**:
-
-```typescript
-// src/tools/content/my-new-tool.test.ts
-import { describe, it, expect } from 'vitest';
-
-describe('wpnav_my_new_tool', () => {
-  it('should validate required parameters', async () => {
-    // Test implementation
-  });
-});
-```
-
-4. **Update authority file**:
+4. **Run tests** to verify:
 
 ```bash
-npm run generate:authority
+npm test
 ```
+
+For detailed guidance, open an issue or discussion to coordinate with maintainers before implementing new tools.
 
 ---
 

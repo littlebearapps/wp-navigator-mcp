@@ -283,36 +283,6 @@ This checks Node.js, configuration, network, and authentication.
 
 ## MCP Client Issues
 
-### Claude Desktop: "MCP server not appearing"
-
-**Symptoms:**
-- No wpnav tools in Claude
-- Server not listed in Claude Desktop settings
-
-**Solutions:**
-
-1. **Restart Claude Desktop** after config changes
-
-2. **Check config file location:**
-   - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-   - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-
-3. **Validate JSON syntax:**
-   ```bash
-   cat ~/Library/Application\ Support/Claude/claude_desktop_config.json | jq .
-   ```
-
-4. **Check Claude Desktop logs:**
-   ```bash
-   # macOS
-   tail -f ~/Library/Logs/Claude/mcp*.log
-   ```
-
-5. **Test MCP server directly:**
-   ```bash
-   npx @littlebearapps/wp-navigator-mcp --help
-   ```
-
 ### Claude Code: "Tools not loading"
 
 **Symptoms:**

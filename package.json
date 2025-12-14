@@ -1,7 +1,7 @@
 {
   "name": "@littlebearapps/wp-navigator-mcp",
-  "version": "2.1.2",
-  "description": "MCP server for AI-assisted WordPress management via Claude Code, Claude Desktop, and other MCP clients",
+  "version": "2.2.0",
+  "description": "MCP server for AI-assisted WordPress management via Claude Code and other MCP clients",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -46,6 +46,7 @@
   },
   "files": [
     "dist",
+    "src/roles/bundled",
     "README.md",
     "LICENSE"
   ],

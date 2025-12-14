@@ -31,6 +31,60 @@ export interface SiteThemeInfo {
   parent?: string;
   /** Parent theme slug (for child themes) */
   parent_slug?: string;
+  /** Theme customizer settings (v2.1.0) */
+  customizer?: ThemeCustomizerSnapshot;
+  /** Widget configurations by sidebar (v2.1.0) */
+  widgets?: SidebarWidgets;
+}
+
+// =============================================================================
+// Theme Customizer Snapshot Schema (task-81.11)
+// =============================================================================
+
+/**
+ * Widget instance in a sidebar
+ */
+export interface WidgetInstance {
+  /** Widget ID (e.g., "search-2", "recent-posts-3") */
+  id: string;
+  /** Widget type/base (e.g., "search", "recent-posts") */
+  widget: string;
+  /** Widget settings */
+  settings: Record<string, unknown>;
+}
+
+/**
+ * Widget configurations by sidebar ID
+ */
+export interface SidebarWidgets {
+  [sidebarId: string]: WidgetInstance[];
+}
+
+/**
+ * Site identity settings from customizer
+ */
+export interface SiteIdentitySnapshot {
+  /** Site name/title */
+  blogname?: string;
+  /** Site tagline/description */
+  blogdescription?: string;
+  /** Site icon attachment ID */
+  site_icon?: number;
+  /** Site icon URL (resolved) */
+  site_icon_url?: string;
+}
+
+/**
+ * Theme customizer snapshot
+ * Captures all customizer settings including theme_mods, custom CSS, and site identity
+ */
+export interface ThemeCustomizerSnapshot {
+  /** All theme_mods options (colors, fonts, layout settings) */
+  theme_mods: Record<string, unknown>;
+  /** Custom CSS from Additional CSS panel */
+  custom_css?: string;
+  /** Site identity settings */
+  site_identity: SiteIdentitySnapshot;
 }
 
 /**
@@ -292,6 +346,42 @@ export interface PageSnapshot {
   content: PageContentSnapshot;
   /** Additional metadata (featured image, SEO, etc.) */
   meta: PageExtraMetadata;
+}
+
+// =============================================================================
+// Plugin Settings Snapshot Schema (task-81.12)
+// =============================================================================
+
+/**
+ * Plugin settings extracted from WordPress options
+ */
+export interface PluginSettingsSnapshot {
+  /** Plugin slug */
+  slug: string;
+  /** Plugin name */
+  name: string;
+  /** Plugin version */
+  version: string;
+  /** Whether plugin is active */
+  enabled: boolean;
+  /** Extracted settings from wp_options */
+  settings: Record<string, unknown>;
+  /** Option prefixes scanned */
+  option_prefixes?: string[];
+  /** Note about extraction method */
+  extraction_note?: string;
+}
+
+/**
+ * Plugin settings extraction result
+ */
+export interface PluginSettingsExtractionResult {
+  /** Successful extractions keyed by plugin slug */
+  plugins: Record<string, PluginSettingsSnapshot>;
+  /** Plugins that failed extraction */
+  errors: Array<{ slug: string; error: string }>;
+  /** ISO timestamp when extracted */
+  captured_at: string;
 }
 
 // =============================================================================
