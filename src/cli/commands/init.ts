@@ -34,6 +34,8 @@ import {
   modeIndicator,
 } from '../tui/components.js';
 import { printResourceLinks, demoLink, helpLink, docsLink, WPNAV_URLS } from '../tui/links.js';
+import { createWizardPage, type WizardPage } from '../tui/wizard-page.js';
+import { supportsPageTUI } from '../tui/terminal.js';
 import {
   detectPlugin,
   checkMcpCompatibility,
@@ -64,6 +66,13 @@ import {
   generateGitignoreAppend,
 } from '../init/gitignore.js';
 import { handleRepairMode, shouldOfferRepair, buildRepairState } from '../init/repair.js';
+import {
+  createWizard,
+  defineStep,
+  stepSuccess,
+  stepFailure,
+  type WizardResult,
+} from '../init/wizard.js';
 
 // =============================================================================
 // Types
@@ -125,6 +134,91 @@ const TOTAL_GUIDED_STEPS = 5;
 const PROJECT_DIRS = ['snapshots', 'snapshots/pages', 'roles', 'docs', 'sample-prompts'];
 
 // =============================================================================
+// Step Help Text (v2.5.0)
+// =============================================================================
+
+const STEP_HELP_TEXT = {
+  scaffold: `Project Structure
+
+WP Navigator creates a folder structure for managing your WordPress site:
+
+• wpnavigator.jsonc - Your site configuration (what you WANT)
+• snapshots/       - Current state of your site (what IS)
+• roles/           - AI behaviour definitions (future)
+• docs/            - Documentation and guides
+• sample-prompts/  - Ready-to-use AI prompts
+
+The AI reads these files to understand your site and help you make changes.
+
+Press any key to continue...`,
+
+  plugin: `WP Navigator Plugin
+
+The WP Navigator plugin provides:
+• REST API endpoints for AI tools
+• Safe write operations with rollback
+• Audit logging of all changes
+
+Free Edition: Core read/write tools (65+ tools)
+Pro Edition: Advanced features (roles, workflows)
+
+Download at: https://wpnav.ai/download
+
+Press any key to continue...`,
+
+  connect: `WordPress Connection
+
+You'll need:
+1. Your WordPress site URL (e.g., https://example.com)
+2. An Administrator username
+3. An Application Password (NOT your login password)
+
+To create an Application Password:
+1. Log into WordPress admin
+2. Go to: Users → Profile
+3. Scroll to "Application Passwords"
+4. Enter a name (e.g., "WP Navigator")
+5. Click "Add New Application Password"
+6. Copy the generated password
+
+The credentials are stored locally in .wpnav.env (git-ignored).
+
+Press any key to continue...`,
+
+  setup: `Setup Depth
+
+Quick Start (recommended):
+• Takes ~20 seconds
+• Creates basic project structure
+• Ready to start using immediately
+
+Full Setup:
+• Configure brand colors and fonts
+• Set up multiple pages
+• More detailed configuration
+
+You can always add more configuration later.
+
+Press any key to continue...`,
+
+  summary: `MCP Configuration
+
+MCP (Model Context Protocol) lets AI assistants call WP Navigator
+tools directly. Instead of running commands manually, the AI can
+fetch data and suggest changes automatically.
+
+Supported AI tools:
+• Claude Code - Uses .mcp.json file
+• OpenAI Codex - Uses AGENTS.md file
+• Google Gemini - Uses GEMINI.md file
+
+You can set this up now or later with:
+  npx wpnav mcp-config
+
+Press any key to continue...`,
+};
+
+// =============================================================================
 // Branded Header
 // =============================================================================
 
@@ -144,12 +238,71 @@ function displayHeader(): void {
 
 /**
  * Display step with progress
+ *
+ * In TTY environments with ANSI support, this clears the screen and
+ * displays a clean page with header showing step progress.
+ *
+ * In non-TTY environments, it falls back to inline step headers.
+ *
+ * @param current - Current step number (1-based)
+ * @param total - Total number of steps
+ * @param title - Step title
+ * @param options - Display options
  */
-function displayStep(current: number, total: number, title: string): void {
-  newline();
-  console.error(stepHeader({ current, total, title }));
-  console.error(progressBar({ percent: (current / total) * 100, width: 30 }));
-  newline();
+function displayStep(
+  current: number,
+  total: number,
+  title: string,
+  options: { clearScreen?: boolean } = {}
+): void {
+  const { clearScreen = true } = options;
+
+  // Use page-based rendering if supported
+  if (clearScreen && supportsPageTUI()) {
+    const wizardPage = createWizardPage({
+      title: 'WP Navigator Setup',
+      currentStep: current,
+      totalSteps: total,
+      showBackHint: current > 1,
+      showHelpHint: true,
+      showQuitHint: true,
+    });
+
+    // Clear screen and render header
+    wizardPage.clear();
+    wizardPage
+      .getPage()
+      .renderHeader(`WP Navigator Setup${' '.repeat(40)}Step ${current}/${total}`);
+    newline();
+    // Display step title prominently
+    console.error(colorize(`${symbols.arrow} ${title}`, 'bold'));
+    newline();
+  } else {
+    // Fallback: inline step header (original behavior)
+    newline();
+    console.error(stepHeader({ current, total, title }));
+    console.error(progressBar({ percent: (current / total) * 100, width: 30 }));
+    newline();
+  }
+}
+
+/**
+ * Display wizard footer with navigation hints
+ *
+ * Call this at the end of each step (before prompts) to show navigation hints.
+ */
+function displayWizardFooter(current: number, total: number): void {
+  if (supportsPageTUI()) {
+    const hints: string[] = [];
+    if (current > 1) hints.push('[B]ack');
+    hints.push('[H]elp');
+    hints.push('[Q]uit');
+
+    console.error('');
+    console.error(colorize('─'.repeat(60), 'dim'));
+    console.error(colorize(hints.join('  '), 'dim'));
+  }
+  // Non-TTY: no footer needed (prompts speak for themselves)
 }
 
 // =============================================================================
@@ -2425,6 +2578,547 @@ async function guidedStep5Summary(cwd: string): Promise<void> {
 }
 
 // =============================================================================
+// Wizard-Compatible Step Functions (v2.5.0)
+// =============================================================================
+
+/**
+ * Create wizard steps for guided mode
+ * These wrap the existing step functions with wizard-compatible interfaces
+ */
+function createGuidedWizardSteps(cwd: string, options: { skipSmokeTest?: boolean } = {}) {
+  return [
+    // Step 1: Scaffold project files
+    defineStep({
+      number: 1,
+      name: 'Scaffold',
+      title: 'Create project files',
+      help: STEP_HELP_TEXT.scaffold,
+      canGoBack: false, // First step can't go back
+      execute: async (_data: Record<string, unknown>) => {
+        // Note: displayStep is handled by wizard, so we skip it here
+        info("We'll create:");
+        list([
+          "wpnavigator.jsonc        (your site's configuration / intent)",
+          'snapshots/               (where site snapshots will live)',
+          'roles/                   (AI behaviour definitions)',
+          'docs/README.md           (quick reference)',
+          'sample-prompts/          (ready-to-use AI prompts)',
+          '.gitignore               (ignores .wpnav.env for safety)',
+        ]);
+        newline();
+
+        const confirm = await confirmPrompt({
+          message: 'Create these files in the current directory?',
+          defaultValue: true,
+        });
+
+        if (!confirm) {
+          warning('Skipped creating project files');
+          return stepSuccess({ scaffoldSkipped: true });
+        }
+
+        // Platform selection
+        const platform = await selectPlatform();
+
+        const result = await scaffoldProject(cwd, platform);
+        displayScaffoldResults(result);
+        displayPlatformExpansionHelp(platform);
+
+        if (result.errors.length > 0) {
+          return stepFailure('Some files could not be created', {
+            platform,
+            scaffoldResult: result,
+          });
+        }
+
+        newline();
+        success('Project structure is ready!');
+        writeHandoffFile(cwd);
+
+        return stepSuccess({ platform, scaffoldResult: result });
+      },
+    }),
+
+    // Step 2: Plugin installation instructions
+    defineStep({
+      number: 2,
+      name: 'Plugin',
+      title: 'Install WP Navigator plugin',
+      help: STEP_HELP_TEXT.plugin,
+      canGoBack: true,
+      execute: async (_data: Record<string, unknown>) => {
+        info('WP Navigator needs a plugin installed on your WordPress site.');
+        newline();
+        console.error('  1. Log in to your WordPress admin');
+        console.error('  2. Go to: Plugins → Add New → Upload Plugin');
+        console.error('  3. Upload the WP Navigator plugin zip');
+        console.error('  4. Click "Activate"');
+        newline();
+        info('Download the plugin at: https://wpnav.ai/download');
+        newline();
+
+        const response = await inputPrompt({
+          message: 'Press Enter when done, or type "skip" to continue without plugin',
+          defaultValue: '',
+        });
+
+        const skipped = response.toLowerCase() === 'skip';
+        if (skipped) {
+          warning('Skipped plugin installation. Connection tests may fail.');
+        } else {
+          success("Great! Let's connect to your site.");
+        }
+
+        return stepSuccess({ pluginSkipped: skipped });
+      },
+    }),
+
+    // Step 3: Connect to WordPress
+    defineStep({
+      number: 3,
+      name: 'Connect',
+      title: 'Connect to WordPress',
+      help: STEP_HELP_TEXT.connect,
+      canGoBack: true,
+      execute: async (_data: Record<string, unknown>) => {
+        info('We only store your details locally in a .wpnav.env file (which is git-ignored).');
+        newline();
+
+        // Pre-populate from environment variables
+        const envSiteUrl = process.env.WPNAV_SITE_URL || process.env.WP_BASE_URL || '';
+        const envUsername = process.env.WPNAV_USERNAME || process.env.WP_APP_USER || '';
+        const envPassword = process.env.WPNAV_APP_PASSWORD || process.env.WP_APP_PASS || '';
+
+        if (envSiteUrl || envUsername || envPassword) {
+          info('Detected credentials from environment variables:');
+          if (envSiteUrl) info(`  Site URL: ${envSiteUrl}`);
+          if (envUsername) info(`  Username: ${envUsername}`);
+          if (envPassword) info(`  Password: ****`);
+          newline();
+        }
+
+        // Get WordPress URL
+        let siteUrl = '';
+        while (true) {
+          const urlInput = await inputPrompt({
+            message: 'WordPress URL (e.g. https://example.com)',
+            defaultValue: envSiteUrl || undefined,
+          });
+
+          const urlResult = smartValidateUrl(urlInput);
+          if (!urlResult.valid) {
+            errorMessage(urlResult.error || 'Invalid URL');
+            continue;
+          }
+
+          if (urlResult.corrected && urlResult.corrected !== urlInput) {
+            info(`Auto-corrected to: ${urlResult.corrected}`);
+          }
+
+          if (urlResult.warning) {
+            warning(urlResult.warning);
+          }
+
+          siteUrl = urlResult.corrected || urlInput;
+          break;
+        }
+
+        // Get username
+        const username = await inputPrompt({
+          message: 'WordPress username (Administrator)',
+          defaultValue: envUsername || undefined,
+          validate: (v) => (v.length < 2 ? 'Username must be at least 2 characters' : null),
+        });
+
+        // Get Application Password
+        newline();
+        let password = '';
+
+        if (envPassword) {
+          const useEnvPassword = await confirmPrompt({
+            message: 'Use Application Password from environment variable?',
+            defaultValue: true,
+          });
+
+          if (useEnvPassword) {
+            password = envPassword;
+            success('Using password from environment');
+          }
+        }
+
+        if (!password) {
+          info(`Generate an Application Password at:`);
+          info(`${siteUrl}/wp-admin/profile.php#application-passwords`);
+          newline();
+
+          while (true) {
+            password = await inputPrompt({
+              message: 'Application Password',
+              secret: true,
+            });
+
+            const passResult = validateAppPassword(password);
+            if (!passResult.valid) {
+              errorMessage(passResult.error || 'Invalid password');
+              continue;
+            }
+
+            if (passResult.feedback) {
+              success(passResult.feedback);
+            }
+            break;
+          }
+        }
+
+        // Test connection
+        newline();
+        const spinner = createSpinner({ text: 'Testing connection...' });
+        const testResult = await testConnection(siteUrl, username, password);
+
+        let connectionSuccess = false;
+        let pluginEdition: PluginEdition | undefined;
+        let pluginVersion: string | undefined;
+
+        if (testResult.success) {
+          spinner.succeed('Connection successful!');
+          newline();
+          keyValue('Site', testResult.siteName || 'WordPress Site');
+
+          const editionLabel = testResult.pluginEdition === 'pro' ? 'Pro' : 'Free';
+          const proNote = testResult.pluginEdition === 'pro' ? ' (Pro features available)' : '';
+          keyValue('Plugin', `WP Navigator ${editionLabel} v${testResult.pluginVersion}${proNote}`);
+
+          if (testResult.mcpCompatWarning) {
+            newline();
+            warning(`MCP Compatibility: ${testResult.mcpCompatWarning}`);
+          }
+
+          connectionSuccess = true;
+          pluginEdition = testResult.pluginEdition;
+          pluginVersion = testResult.pluginVersion;
+        } else {
+          spinner.fail('Connection failed');
+          newline();
+          errorMessage(testResult.error || 'Unknown error');
+          newline();
+          info('Troubleshooting tips:');
+          list([
+            'Check that WP Navigator plugin is installed and activated',
+            'Verify the URL is correct and accessible',
+            'Ensure the username has Administrator role',
+            'Regenerate the Application Password if expired',
+          ]);
+          newline();
+
+          const continueAnyway = await confirmPrompt({
+            message: 'Save credentials anyway? (you can fix this later)',
+            defaultValue: false,
+          });
+
+          if (!continueAnyway) {
+            return stepFailure('Connection failed and user chose not to save', { siteUrl });
+          }
+        }
+
+        // Save .wpnav.env
+        newline();
+        const envPath = path.join(cwd, '.wpnav.env');
+        try {
+          writeWpnavEnvAtomic(envPath, generateWpnavEnvContent(siteUrl, username, password));
+          success('Saved credentials to .wpnav.env');
+        } catch (err) {
+          return stepFailure(
+            `Failed to save credentials: ${err instanceof Error ? err.message : String(err)}`,
+            { siteUrl }
+          );
+        }
+
+        // Create/update wpnav.config.json
+        try {
+          updateConfigWithDetectedPlugin(cwd, siteUrl, username, pluginEdition, pluginVersion);
+          success('Created wpnav.config.json with plugin detection');
+        } catch (err) {
+          warning(`Could not save config: ${err instanceof Error ? err.message : String(err)}`);
+        }
+
+        // Run smoke test unless skipped
+        if (!options.skipSmokeTest && connectionSuccess) {
+          newline();
+          const smokeSpinner = createSpinner({ text: 'Verifying connection...' });
+
+          const smokeResult = await runSmokeTest(siteUrl, username, password);
+
+          if (smokeResult.success) {
+            smokeSpinner.succeed('Connection verified!');
+            newline();
+            displaySmokeTestResult(smokeResult);
+
+            await displayGraduationPrompt({
+              siteUrl,
+              siteName: smokeResult.siteName,
+              pluginEdition,
+            });
+          } else {
+            smokeSpinner.fail('Connection test failed');
+            newline();
+            displaySmokeTestResult(smokeResult);
+          }
+        }
+
+        writeHandoffFile(cwd);
+
+        return stepSuccess({
+          siteUrl,
+          username,
+          connectionSuccess,
+          pluginEdition,
+          pluginVersion,
+        });
+      },
+    }),
+
+    // Step 4: Quick Start vs Full Setup
+    defineStep({
+      number: 4,
+      name: 'Setup',
+      title: 'Choose setup depth',
+      help: STEP_HELP_TEXT.setup,
+      canGoBack: true,
+      execute: async (data: Record<string, unknown>) => {
+        const siteUrl = data.siteUrl as string | undefined;
+
+        const choice = await selectPrompt({
+          message: 'How much do you want to configure now?',
+          choices: [
+            {
+              label: 'Quick Start (20 seconds)',
+              value: 'quick',
+              recommended: true,
+            },
+            {
+              label: 'Full Setup (brand, multiple pages)',
+              value: 'full',
+            },
+          ],
+        });
+
+        if (choice === 'quick') {
+          newline();
+          info('Taking your first snapshot...');
+
+          const envPath = path.join(cwd, '.wpnav.env');
+          if (!fs.existsSync(envPath)) {
+            warning(
+              'No connection configured. Run "npx wpnav configure" first, then "npx wpnav snapshot site"'
+            );
+            return stepSuccess({ setupChoice: 'quick', snapshotSkipped: true });
+          }
+
+          newline();
+          info('Run this command to capture your first snapshot:');
+          console.error('');
+          console.error(`  ${colorize('npx wpnav snapshot site', 'cyan')}`);
+          console.error('');
+          info('This will create snapshots/site_index.json with your site structure.');
+
+          writeHandoffFile(cwd);
+          return stepSuccess({ setupChoice: 'quick' });
+        } else {
+          // Full Setup
+          newline();
+          info("Let's configure your brand settings.");
+          newline();
+
+          const manifestPath = path.join(cwd, 'wpnavigator.jsonc');
+          let manifestContent = '';
+          try {
+            manifestContent = fs.readFileSync(manifestPath, 'utf8');
+          } catch {
+            warning('Could not read wpnavigator.jsonc. Please configure brand settings manually.');
+            return stepSuccess({ setupChoice: 'full', brandSkipped: true });
+          }
+
+          const brandName = await inputPrompt({
+            message: 'Brand/Site name',
+            defaultValue: '',
+          });
+
+          const primaryColor = await inputPrompt({
+            message: 'Primary color (hex, e.g. #0073aa)',
+            defaultValue: '#0073aa',
+            validate: (v) => {
+              if (!v) return null;
+              if (!/^#[0-9a-fA-F]{6}$/.test(v)) return 'Enter a valid hex color (e.g. #0073aa)';
+              return null;
+            },
+          });
+
+          if (brandName) {
+            manifestContent = manifestContent.replace('"name": ""', `"name": "${brandName}"`);
+          }
+          if (primaryColor !== '#0073aa') {
+            manifestContent = manifestContent.replace(
+              '// "primary_color": "#0073aa"',
+              `"primary_color": "${primaryColor}"`
+            );
+          }
+
+          try {
+            fs.writeFileSync(manifestPath, manifestContent, 'utf8');
+            success('Updated wpnavigator.jsonc with brand settings');
+          } catch (err) {
+            errorMessage(
+              'Failed to update manifest',
+              err instanceof Error ? err.message : undefined
+            );
+          }
+
+          newline();
+          info('Run this command to capture your site:');
+          console.error('');
+          console.error(`  ${colorize('npx wpnav snapshot site', 'cyan')}`);
+          console.error('');
+
+          writeHandoffFile(cwd);
+          return stepSuccess({ setupChoice: 'full', brandName, primaryColor });
+        }
+      },
+    }),
+
+    // Step 5: MCP setup and final summary
+    defineStep({
+      number: 5,
+      name: 'Summary',
+      title: 'Final setup',
+      help: STEP_HELP_TEXT.summary,
+      canGoBack: true,
+      execute: async (_data: Record<string, unknown>) => {
+        // Ask about MCP
+        const setupMcp = await confirmPrompt({
+          message: 'Set up MCP for AI assistants? (Claude Code, Codex)',
+          defaultValue: false,
+        });
+
+        if (setupMcp) {
+          const mcpConfigPath = path.join(cwd, 'mcp-config.json');
+          const mcpGuidePath = path.join(cwd, 'docs', 'ai-setup-wpnavigator.md');
+
+          try {
+            fs.writeFileSync(mcpConfigPath, generateMcpConfig(), 'utf8');
+            success('Created mcp-config.json');
+          } catch (err) {
+            errorMessage(
+              'Failed to create MCP config',
+              err instanceof Error ? err.message : undefined
+            );
+          }
+
+          try {
+            fs.writeFileSync(mcpGuidePath, generateMcpSetupGuide(), 'utf8');
+            success('Created docs/ai-setup-wpnavigator.md');
+          } catch (err) {
+            errorMessage(
+              'Failed to create MCP guide',
+              err instanceof Error ? err.message : undefined
+            );
+          }
+        } else {
+          info('You can run "npx wpnav init --mcp" later to set up MCP support.');
+        }
+
+        // Final summary
+        newline();
+        divider(50);
+        newline();
+
+        const celebration = supportsColor() ? '\ud83c\udf89' : '';
+        console.error(`${celebration} All done!`);
+        newline();
+
+        modeIndicator(false);
+        newline();
+
+        info("Here's what we've set up for you:");
+        newline();
+        list([
+          "wpnavigator.jsonc   (your site's configuration / intent)",
+          'snapshots/          (structured data about your site)',
+          'roles/              (reserved for future AI roles)',
+          'sample-prompts/     (ready-to-use AI prompts)',
+          '.wpnav.env          (local-only WordPress credentials)',
+        ]);
+
+        newline();
+        divider(50);
+        newline();
+
+        info('Next steps:');
+        newline();
+        console.error('  1. Open this folder in Claude Code or Codex Cloud');
+        console.error('  2. Run: npx wpnav snapshot site');
+        console.error('  3. Show the AI:');
+        console.error('     - wpnavigator.jsonc');
+        console.error('     - snapshots/site_index.json');
+        console.error('  4. Ask: "Help me review and refine my WP Navigator config"');
+        console.error('  5. When ready: npx wpnav sync');
+
+        newline();
+        divider(50);
+        newline();
+
+        info('Tip: Use sample-prompts/self-test.txt to verify your setup:');
+        console.error('     Copy the prompt into your AI assistant to run a comprehensive');
+        console.error('     validation of your WP Navigator configuration.');
+
+        newline();
+        printResourceLinks('Resources:', ['demo', 'help', 'docs']);
+        newline();
+
+        writeHandoffFile(cwd);
+
+        return stepSuccess({ mcpConfigured: setupMcp, completed: true });
+      },
+    }),
+  ];
+}
+
+/**
+ * Run the guided wizard with navigation support (v2.5.0)
+ *
+ * @param cwd - Current working directory
+ * @param options - Init options
+ * @returns Exit code: 0 for success, 1 for errors
+ */
+async function runGuidedWizard(cwd: string, options: InitOptions): Promise<number> {
+  const steps = createGuidedWizardSteps(cwd, { skipSmokeTest: options.skipSmokeTest });
+
+  const wizard = createWizard({
+    steps,
+    title: 'WP Navigator Setup',
+    baseDir: cwd,
+    disableLogging: false, // Enable logging to .wpnav/init.log
+    onComplete: async (data) => {
+      // Final handoff file update with complete state
+      writeHandoffFile(cwd);
+    },
+    onCancel: async () => {
+      newline();
+      info('Setup cancelled. Your progress has been saved.');
+      info('Run "npx wpnav init" to continue, or "npx wpnav init --repair" to validate.');
+      newline();
+    },
+  });
+
+  const result = await wizard.run();
+
+  if (result.cancelled) {
+    return 0; // User chose to quit, not an error
+  }
+
+  return result.success ? 0 : 1;
+}
+
+// =============================================================================
 // JSON Output Functions
 // =============================================================================
 
@@ -2743,33 +3437,8 @@ export async function handleInit(options: InitOptions = {}): Promise<number> {
 
     case 'guided':
     default: {
-      // Step 1: Scaffold (includes platform selection)
-      const scaffoldResult = await guidedStep1Scaffold(cwd);
-      if (!scaffoldResult.success) {
-        // User cancelled, but continue to let them configure
-        warning('Continuing without scaffolding...');
-      }
-      // Regenerate handoff file to reflect scaffolding
-      writeHandoffFile(cwd);
-
-      // Step 2: Plugin instructions
-      await guidedStep2Plugin();
-
-      // Step 3: Connect to WordPress
-      const connectResult = await guidedStep3Connect(cwd, { skipSmokeTest: options.skipSmokeTest });
-      // Regenerate handoff file to reflect credentials saved
-      writeHandoffFile(cwd);
-
-      // Step 4: Quick Start vs Full Setup
-      await guidedStep4Setup(cwd, connectResult.siteUrl);
-      // Regenerate handoff file to reflect setup choices
-      writeHandoffFile(cwd);
-
-      // Step 5: MCP and Summary
-      await guidedStep5Summary(cwd);
-      // Final handoff file regeneration with complete state
-      writeHandoffFile(cwd);
-      break;
+      // v2.5.0: Use wizard with navigation support (B/H/Q/R keys, step history)
+      return runGuidedWizard(cwd, options);
     }
   }
 
