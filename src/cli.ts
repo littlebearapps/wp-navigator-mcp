@@ -11,7 +11,7 @@
  *
  * Commands:
  *   call <tool> [--param value]  - Invoke a tool directly
- *   tools [--category <cat>]     - List available tools
+ *   tools [--category <cat>] [--format json|markdown] - List available tools
  *   status                       - Check WordPress connection
  *   help                         - Show this help message
  *
@@ -127,6 +127,11 @@ import {
 } from './rollback.js';
 import { handleInit } from './cli/commands/init.js';
 import { handleCleanup } from './cli/commands/cleanup.js';
+import { handleCodexSetup } from './cli/commands/codex-setup.js';
+import { handleClaudeSetup } from './cli/commands/claude-setup.js';
+import { handleGeminiSetup } from './cli/commands/gemini-setup.js';
+import { handleExportEnv } from './cli/commands/export-env.js';
+import { handleMcpConfig } from './cli/commands/mcp-config.js';
 import {
   resolveRole,
   formatRoleInfo,
@@ -137,6 +142,11 @@ import {
   type LoadedRole,
   type ResolvedRole,
 } from './roles/index.js';
+import {
+  formatToolsAsMarkdown,
+  toolToDocumentation,
+  type ToolDocumentation,
+} from './cli/output/index.js';
 
 // CLI version (matches package.json)
 const CLI_VERSION = '2.1.3';
@@ -275,7 +285,11 @@ Usage: npx wpnav <command> [options]
 Commands:
   init                          Set up a new WP Navigator project (wizard)
   call <tool> [--param value]   Invoke a WordPress tool directly
-  tools [--category <cat>]      List available tools
+  tools [options]               List available tools
+    --category <cat>              Filter by category
+    --format json|markdown        Output format (default: json)
+    --examples                    Include examples in markdown
+    --toc                         Include table of contents in markdown
   roles [<name>]                List roles or show role details
   status                        Check WordPress connection status
   snapshot <subcommand>         Capture WordPress state to local files
@@ -285,6 +299,16 @@ Commands:
   configure                     Set up WordPress connection credentials
   doctor                        Run system diagnostics
   cleanup                       Remove onboarding helper files
+  codex-setup                   Add OpenAI Codex support to project
+  claude-setup                  Add Claude Code support to project
+  gemini-setup                  Add Google Gemini CLI support to project
+  export-env [options]          Export config as environment variables
+    --format shell|docker|github  Output format (default: shell)
+  mcp-config [options]          Generate MCP configuration snippets
+    --claude                      Claude Code (.mcp.json)
+    --codex                       OpenAI Codex (config.toml)
+    --gemini                      Google Gemini CLI (settings.json)
+    --all                         All platforms
   help                          Show this help message
 
 Global Options:
@@ -518,13 +542,21 @@ async function handleCall(
 
 /**
  * Handle 'tools' command - list available tools
+ * Supports --format json (default) or --format markdown
  */
 async function handleTools(options: Record<string, string>): Promise<void> {
   const allTools = toolRegistry.getAllDefinitions();
   const categoryFilter = options.category?.toLowerCase();
+  const format = options.format?.toLowerCase() || 'json';
 
-  // Group tools by category
-  const toolsByCategory: Record<string, Array<{ name: string; description: string }>> = {};
+  // Validate format option
+  if (format !== 'json' && format !== 'markdown') {
+    outputError('INVALID_FORMAT', `Invalid format: "${options.format}". Supported formats: json, markdown`);
+    process.exit(1);
+  }
+
+  // Group tools by category with full documentation
+  const toolsByCategory: Record<string, ToolDocumentation[]> = {};
 
   for (const tool of allTools) {
     // Get registered tool to access category
@@ -539,20 +571,37 @@ async function handleTools(options: Record<string, string>): Promise<void> {
       toolsByCategory[category] = [];
     }
 
-    toolsByCategory[category].push({
-      name: tool.name,
-      description: tool.description ?? '',
-    });
+    toolsByCategory[category].push(toolToDocumentation(tool, category));
   }
 
   const totalTools = Object.values(toolsByCategory).reduce((sum, tools) => sum + tools.length, 0);
 
-  outputJSON({
-    success: true,
-    total: totalTools,
-    categories: Object.keys(toolsByCategory).length,
-    tools: toolsByCategory,
-  });
+  // Output based on format
+  if (format === 'markdown') {
+    const includeExamples = options.examples === 'true';
+    const includeToc = options.toc === 'true';
+
+    const markdown = formatToolsAsMarkdown(toolsByCategory, {
+      includeExamples,
+      includeTableOfContents: includeToc,
+    });
+
+    // Output markdown to stdout (not via outputJSON)
+    console.log(markdown);
+  } else {
+    // JSON format (default) - simplified for backward compatibility
+    const simplifiedTools: Record<string, Array<{ name: string; description: string }>> = {};
+    for (const [category, tools] of Object.entries(toolsByCategory)) {
+      simplifiedTools[category] = tools.map(t => ({ name: t.name, description: t.description }));
+    }
+
+    outputJSON({
+      success: true,
+      total: totalTools,
+      categories: Object.keys(toolsByCategory).length,
+      tools: simplifiedTools,
+    });
+  }
 }
 
 /**
@@ -3542,7 +3591,7 @@ async function main(): Promise<void> {
   }
 
   // Check for known commands before loading config
-  const knownCommands = ['init', 'call', 'tools', 'roles', 'status', 'validate', 'configure', 'doctor', 'snapshot', 'diff', 'sync', 'rollback', 'cleanup'];
+  const knownCommands = ['init', 'call', 'tools', 'roles', 'status', 'validate', 'configure', 'doctor', 'snapshot', 'diff', 'sync', 'rollback', 'cleanup', 'codex-setup', 'claude-setup', 'gemini-setup', 'export-env', 'mcp-config'];
   if (!knownCommands.includes(command)) {
     outputError('UNKNOWN_COMMAND', `Unknown command: ${command}`, {
       available: [...knownCommands, 'help'],
@@ -3611,10 +3660,67 @@ async function main(): Promise<void> {
     process.exit(exitCode);
   }
 
+  // Handle codex-setup command separately (doesn't require valid config)
+  if (command === 'codex-setup') {
+    const exitCode = await handleCodexSetup({
+      yes: options.yes === 'true',
+      json: options.json === 'true',
+    });
+    process.exit(exitCode);
+  }
+
+  // Handle claude-setup command separately (doesn't require valid config)
+  if (command === 'claude-setup') {
+    const exitCode = await handleClaudeSetup({
+      yes: options.yes === 'true',
+      json: options.json === 'true',
+    });
+    process.exit(exitCode);
+  }
+
+  // Handle gemini-setup command separately (doesn't require valid config)
+  if (command === 'gemini-setup') {
+    const exitCode = await handleGeminiSetup({
+      yes: options.yes === 'true',
+      json: options.json === 'true',
+    });
+    process.exit(exitCode);
+  }
+
   // Handle roles command separately (doesn't require valid config)
   if (command === 'roles') {
     await handleRoles(args, options);
     process.exit(0);
+  }
+
+  // Handle tools command separately (doesn't require valid config)
+  if (command === 'tools') {
+    registerAllTools();
+    await handleTools(options);
+    process.exit(0);
+  }
+
+  // Handle export-env command separately (reads config but doesn't need connection)
+  if (command === 'export-env') {
+    const exitCode = await handleExportEnv({
+      format: options.format as 'shell' | 'docker' | 'github' | undefined,
+      json: options.json === 'true',
+      config: options.config,
+      env: options.env,
+    });
+    process.exit(exitCode);
+  }
+
+  // Handle mcp-config command separately (doesn't require valid config)
+  if (command === 'mcp-config') {
+    const exitCode = await handleMcpConfig({
+      claude: options.claude === 'true',
+      codex: options.codex === 'true',
+      gemini: options.gemini === 'true',
+      all: options.all === 'true',
+      json: options.json === 'true',
+    });
+    process.exit(exitCode);
   }
 
   // Load configuration (new wpnav-config or legacy)
@@ -3674,10 +3780,6 @@ async function main(): Promise<void> {
       await handleCall(args, options, context);
       break;
 
-    case 'tools':
-      await handleTools(options);
-      break;
-
     case 'status':
       await handleStatus(context);
       break;
@@ -3700,7 +3802,7 @@ async function main(): Promise<void> {
 
     default:
       outputError('UNKNOWN_COMMAND', `Unknown command: ${command}`, {
-        available: ['init', 'call', 'tools', 'status', 'snapshot', 'diff', 'sync', 'rollback', 'validate', 'configure', 'doctor', 'cleanup', 'help'],
+        available: ['init', 'call', 'tools', 'status', 'snapshot', 'diff', 'sync', 'rollback', 'validate', 'configure', 'doctor', 'cleanup', 'codex-setup', 'claude-setup', 'gemini-setup', 'export-env', 'mcp-config', 'help'],
       });
       process.exit(1);
   }

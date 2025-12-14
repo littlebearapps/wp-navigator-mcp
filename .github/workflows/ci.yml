@@ -7,6 +7,32 @@ on:
     branches: [main]
 
 jobs:
+  validate-workflows:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate YAML syntax
+        run: |
+          echo "## Workflow YAML Validation" >> "$GITHUB_STEP_SUMMARY"
+          ERRORS=0
+          for file in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -f "$file" ] || continue
+            if python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
+              echo "- $file: valid" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "- $file: INVALID" >> "$GITHUB_STEP_SUMMARY"
+              echo "::error file=$file::Invalid YAML syntax"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          if [ $ERRORS -gt 0 ]; then
+            echo "::error::$ERRORS workflow file(s) have invalid YAML syntax"
+            exit 1
+          fi
+          echo "All workflow files have valid YAML syntax"
+
   build-and-test:
     runs-on: ubuntu-latest
     steps:

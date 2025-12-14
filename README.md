@@ -171,11 +171,25 @@ npx wpnav call wpnav_update_post --id 1 --title "New Title" --dry-run
 ```bash
 npx wpnav status      # Check WordPress connection and plugin edition
 npx wpnav tools       # List available tools
+npx wpnav tools --format markdown  # Generate documentation
 npx wpnav configure   # Set up credentials interactively
 npx wpnav validate    # Validate config and manifest
-npx wpnav validate --json --snapshots  # Machine-readable output with snapshot validation
 npx wpnav doctor      # Run system diagnostics
 npx wpnav cleanup     # Remove onboarding helper files
+```
+
+### Multi-Platform Support (v2.3.0)
+
+```bash
+# Generate MCP configuration for your platform
+npx wpnav mcp-config --claude    # Claude Code (.mcp.json)
+npx wpnav mcp-config --codex     # OpenAI Codex (config.toml)
+npx wpnav mcp-config --gemini    # Google Gemini CLI (settings.json)
+
+# Export config as environment variables
+npx wpnav export-env             # Shell format
+npx wpnav export-env --format docker  # Dockerfile
+npx wpnav export-env --format github  # GitHub Actions
 ```
 
 ### Snapshot & Sync Workflow

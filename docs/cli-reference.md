@@ -188,7 +188,21 @@ npx wpnav tools --category gutenberg
 
 # Output as JSON
 npx wpnav tools --json
+
+# Output as markdown (for documentation)
+npx wpnav tools --format markdown
+npx wpnav tools --format markdown --examples --toc
 ```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--category <name>` | Filter tools by category |
+| `--json` | Output as JSON (default) |
+| `--format <type>` | Output format: `json` or `markdown` |
+| `--examples` | Include example usage (markdown only) |
+| `--toc` | Include table of contents (markdown only) |
 
 **Categories:**
 
@@ -433,6 +447,86 @@ npx wpnav cleanup --yes
 - Sample prompts folder
 - AI handoff document
 - Onboarding state files
+
+---
+
+### `wpnav export-env`
+
+Export configuration as environment variables.
+
+```bash
+# Export as shell script (default)
+npx wpnav export-env
+
+# Export as Docker ENV statements
+npx wpnav export-env --format docker
+
+# Export as GitHub Actions format
+npx wpnav export-env --format github
+
+# Output as JSON
+npx wpnav export-env --json
+
+# Use specific config file
+npx wpnav export-env --config ./my-config.json --env production
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--format <type>` | Output format: `shell`, `docker`, or `github` |
+| `--json` | Output as JSON with metadata |
+| `--config <path>` | Path to configuration file |
+| `--env <name>` | Environment to export (local/staging/production) |
+
+**Formats:**
+
+| Format | Output | Use Case |
+|--------|--------|----------|
+| `shell` | `export VAR="value"` | Source in bash/zsh |
+| `docker` | `ENV VAR=value` | Dockerfile |
+| `github` | `VAR: "value"` | GitHub Actions workflow |
+
+---
+
+### `wpnav mcp-config`
+
+Generate MCP configuration snippets for AI platforms.
+
+```bash
+# Interactive platform selection
+npx wpnav mcp-config
+
+# Generate for specific platform
+npx wpnav mcp-config --claude
+npx wpnav mcp-config --codex
+npx wpnav mcp-config --gemini
+
+# Generate for all platforms
+npx wpnav mcp-config --all
+
+# Output as JSON
+npx wpnav mcp-config --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--claude` | Generate Claude Code configuration (.mcp.json) |
+| `--codex` | Generate OpenAI Codex configuration (config.toml) |
+| `--gemini` | Generate Google Gemini CLI configuration (settings.json) |
+| `--all` | Generate configurations for all platforms |
+| `--json` | Output as JSON with metadata |
+
+**Platform Config Files:**
+
+| Platform | File | Format |
+|----------|------|--------|
+| Claude Code | `.mcp.json` | JSON |
+| OpenAI Codex | `config.toml` | TOML |
+| Google Gemini CLI | `settings.json` | JSON |
 
 ---
 

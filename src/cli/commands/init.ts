@@ -55,6 +55,8 @@ import {
 } from '../../plugin-detection.js';
 import {
   generateClaudeMd,
+  generateAgentsMd,
+  generateGeminiMd,
   generateMcpJson,
   getDefaultClaudeMdContext,
 } from '../init/generators.js';
@@ -83,6 +85,8 @@ import {
 // =============================================================================
 
 export type InitMode = 'guided' | 'scaffold' | 'ai-handoff';
+
+export type AIPlatform = 'claude' | 'codex' | 'gemini' | 'all';
 
 export interface InitOptions {
   mode?: InitMode;
@@ -1200,8 +1204,10 @@ function writeIfNotExists(filePath: string, content: string): boolean {
 
 /**
  * Scaffold the complete project structure
+ * @param cwd - Current working directory
+ * @param platform - AI platform to generate files for (default: 'all')
  */
-async function scaffoldProject(cwd: string): Promise<ScaffoldResult> {
+async function scaffoldProject(cwd: string, platform: AIPlatform = 'all'): Promise<ScaffoldResult> {
   const result: ScaffoldResult = {
     created: [],
     skipped: [],
@@ -1274,29 +1280,65 @@ async function scaffoldProject(cwd: string): Promise<ScaffoldResult> {
     info('  Run: git rm --cached <file> to untrack');
   }
 
-  // Create .mcp.json (Claude Code project-level MCP config)
-  const mcpJsonPath = path.join(cwd, '.mcp.json');
-  try {
-    if (writeIfNotExists(mcpJsonPath, generateMcpJson({ enableWrites: false }))) {
-      result.created.push('.mcp.json');
-    } else {
-      result.skipped.push('.mcp.json');
+  // Platform-specific files: Generate based on selected platform
+  const context = getDefaultClaudeMdContext();
+
+  // Claude Code files: .mcp.json and CLAUDE.md
+  if (platform === 'claude' || platform === 'all') {
+    // Create .mcp.json (Claude Code project-level MCP config)
+    const mcpJsonPath = path.join(cwd, '.mcp.json');
+    try {
+      if (writeIfNotExists(mcpJsonPath, generateMcpJson({ enableWrites: false }))) {
+        result.created.push('.mcp.json');
+      } else {
+        result.skipped.push('.mcp.json');
+      }
+    } catch (err) {
+      result.errors.push(`.mcp.json: ${err instanceof Error ? err.message : String(err)}`);
     }
-  } catch (err) {
-    result.errors.push(`.mcp.json: ${err instanceof Error ? err.message : String(err)}`);
+
+    // Create CLAUDE.md (Claude Code context)
+    const claudeMdPath = path.join(cwd, 'CLAUDE.md');
+    try {
+      const claudeMdContent = generateClaudeMd(context);
+      if (writeIfNotExists(claudeMdPath, claudeMdContent)) {
+        result.created.push('CLAUDE.md');
+      } else {
+        result.skipped.push('CLAUDE.md');
+      }
+    } catch (err) {
+      result.errors.push(`CLAUDE.md: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
-  // Create CLAUDE.md (AI assistant context)
-  const claudeMdPath = path.join(cwd, 'CLAUDE.md');
-  try {
-    const claudeMdContent = generateClaudeMd(getDefaultClaudeMdContext());
-    if (writeIfNotExists(claudeMdPath, claudeMdContent)) {
-      result.created.push('CLAUDE.md');
-    } else {
-      result.skipped.push('CLAUDE.md');
+  // OpenAI Codex files: AGENTS.md
+  if (platform === 'codex' || platform === 'all') {
+    const agentsMdPath = path.join(cwd, 'AGENTS.md');
+    try {
+      const agentsMdContent = generateAgentsMd(context);
+      if (writeIfNotExists(agentsMdPath, agentsMdContent)) {
+        result.created.push('AGENTS.md');
+      } else {
+        result.skipped.push('AGENTS.md');
+      }
+    } catch (err) {
+      result.errors.push(`AGENTS.md: ${err instanceof Error ? err.message : String(err)}`);
     }
-  } catch (err) {
-    result.errors.push(`CLAUDE.md: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  // Google Gemini files: GEMINI.md
+  if (platform === 'gemini' || platform === 'all') {
+    const geminiMdPath = path.join(cwd, 'GEMINI.md');
+    try {
+      const geminiMdContent = generateGeminiMd(context);
+      if (writeIfNotExists(geminiMdPath, geminiMdContent)) {
+        result.created.push('GEMINI.md');
+      } else {
+        result.skipped.push('GEMINI.md');
+      }
+    } catch (err) {
+      result.errors.push(`GEMINI.md: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   // Create sample prompts
@@ -1693,6 +1735,65 @@ async function showEntryScreen(): Promise<InitMode> {
   return choice as InitMode;
 }
 
+/**
+ * Display platform selection prompt and get user's choice
+ */
+async function selectPlatform(): Promise<AIPlatform> {
+  newline();
+
+  const choice = await selectPrompt({
+    message: 'Which AI assistant will you use?',
+    choices: [
+      {
+        label: 'Claude Code',
+        value: 'claude',
+        recommended: true,
+      },
+      {
+        label: 'OpenAI Codex',
+        value: 'codex',
+      },
+      {
+        label: 'Google Gemini',
+        value: 'gemini',
+      },
+      {
+        label: 'All of them / I\'m not sure',
+        value: 'all',
+      },
+    ],
+  });
+
+  return choice as AIPlatform;
+}
+
+/**
+ * Display post-scaffold help message about adding more platforms
+ */
+function displayPlatformExpansionHelp(platform: AIPlatform): void {
+  if (platform === 'all') {
+    return; // No expansion needed if all platforms selected
+  }
+
+  newline();
+  info('Add more platforms later with:');
+  const expansions: string[] = [];
+
+  if (platform !== 'claude') {
+    expansions.push(`  ${colorize('wpnav claude-setup', 'cyan')}   (for Claude Code)`);
+  }
+  if (platform !== 'codex') {
+    expansions.push(`  ${colorize('wpnav codex-setup', 'cyan')}    (for OpenAI Codex)`);
+  }
+  if (platform !== 'gemini') {
+    expansions.push(`  ${colorize('wpnav gemini-setup', 'cyan')}   (for Google Gemini)`);
+  }
+
+  for (const line of expansions) {
+    console.error(line);
+  }
+}
+
 // =============================================================================
 // Scaffold Mode Handler
 // =============================================================================
@@ -1831,8 +1932,9 @@ complete my WP Navigator setup."`,
 
 /**
  * Step 1: Scaffold project files
+ * @returns Object with success status and selected platform
  */
-async function guidedStep1Scaffold(cwd: string): Promise<boolean> {
+async function guidedStep1Scaffold(cwd: string): Promise<{ success: boolean; platform: AIPlatform }> {
   displayStep(1, TOTAL_GUIDED_STEPS, 'Create project files');
 
   info('We\'ll create:');
@@ -1853,20 +1955,26 @@ async function guidedStep1Scaffold(cwd: string): Promise<boolean> {
 
   if (!confirm) {
     warning('Skipped creating project files');
-    return false;
+    return { success: false, platform: 'all' };
   }
 
-  const result = await scaffoldProject(cwd);
+  // Platform selection: which AI assistant will they use?
+  const platform = await selectPlatform();
+
+  const result = await scaffoldProject(cwd, platform);
   displayScaffoldResults(result);
+
+  // Show expansion help for adding more platforms
+  displayPlatformExpansionHelp(platform);
 
   if (result.errors.length > 0) {
     errorMessage('Some files could not be created');
-    return false;
+    return { success: false, platform };
   }
 
   newline();
   success('Project structure is ready!');
-  return true;
+  return { success: true, platform };
 }
 
 /**
@@ -2548,9 +2656,9 @@ export async function handleInit(options: InitOptions = {}): Promise<number> {
 
     case 'guided':
     default: {
-      // Step 1: Scaffold
-      const scaffoldOk = await guidedStep1Scaffold(cwd);
-      if (!scaffoldOk) {
+      // Step 1: Scaffold (includes platform selection)
+      const scaffoldResult = await guidedStep1Scaffold(cwd);
+      if (!scaffoldResult.success) {
         // User cancelled, but continue to let them configure
         warning('Continuing without scaffolding...');
       }

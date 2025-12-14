@@ -100,6 +100,28 @@ export function generateClaudeMd(context: ClaudeMdContext): string {
 }
 
 /**
+ * Generate AGENTS.md content from template (OpenAI Codex)
+ *
+ * @param context - Template context with site info
+ * @returns Rendered AGENTS.md content
+ */
+export function generateAgentsMd(context: ClaudeMdContext): string {
+  const template = loadTemplate('AGENTS.md.template');
+  return renderTemplate(template, context as unknown as Record<string, unknown>);
+}
+
+/**
+ * Generate GEMINI.md content from template (Google Gemini CLI)
+ *
+ * @param context - Template context with site info
+ * @returns Rendered GEMINI.md content
+ */
+export function generateGeminiMd(context: ClaudeMdContext): string {
+  const template = loadTemplate('GEMINI.md.template');
+  return renderTemplate(template, context as unknown as Record<string, unknown>);
+}
+
+/**
  * Get default CLAUDE.md context with current date and package version
  *
  * @param overrides - Optional context values to override defaults

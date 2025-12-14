@@ -1,0 +1,71 @@
+# GitHub Auto-generated Release Notes Configuration
+# https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
+
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+      - duplicate
+      - invalid
+      - wontfix
+    authors:
+      - dependabot[bot]
+      - github-actions[bot]
+
+  categories:
+    - title: ":boom: Breaking Changes"
+      labels:
+        - breaking-change
+        - breaking
+        - semver-major
+
+    - title: ":sparkles: New Features"
+      labels:
+        - feature
+        - enhancement
+        - semver-minor
+
+    - title: ":bug: Bug Fixes"
+      labels:
+        - bug
+        - fix
+        - bugfix
+
+    - title: ":lock: Security"
+      labels:
+        - security
+        - vulnerability
+        - CVE
+
+    - title: ":recycle: Improvements"
+      labels:
+        - improvement
+        - refactor
+        - performance
+        - optimization
+
+    - title: ":book: Documentation"
+      labels:
+        - documentation
+        - docs
+
+    - title: ":package: Dependencies"
+      labels:
+        - dependencies
+        - deps
+
+    - title: ":wrench: Maintenance"
+      labels:
+        - chore
+        - maintenance
+        - ci
+        - tooling
+
+    - title: ":test_tube: Testing"
+      labels:
+        - test
+        - testing
+
+    - title: ":ghost: Other Changes"
+      labels:
+        - "*"
