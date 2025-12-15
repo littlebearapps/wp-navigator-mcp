@@ -68,6 +68,17 @@ export function renderTemplate(template: string, context: Record<string, unknown
 }
 
 /**
+ * Get the path to template files directory.
+ * Handles both development (src/) and installed (dist/) contexts.
+ * Templates are stored in src/cli/templates/ and included in package.json files.
+ */
+function getTemplatesPath(): string {
+  // In dist: dist/cli/init/generators.js
+  // Templates are at: src/cli/templates/
+  return path.join(__dirname, '..', '..', '..', 'src', 'cli', 'templates');
+}
+
+/**
  * Load a template file from the templates directory
  *
  * @param templateName - Name of the template file (e.g., 'CLAUDE.md.template')
@@ -75,7 +86,7 @@ export function renderTemplate(template: string, context: Record<string, unknown
  * @throws Error if template file not found
  */
 export function loadTemplate(templateName: string): string {
-  const templatePath = path.join(__dirname, '..', 'templates', templateName);
+  const templatePath = path.join(getTemplatesPath(), templateName);
   try {
     return fs.readFileSync(templatePath, 'utf8');
   } catch (err) {

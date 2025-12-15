@@ -143,6 +143,21 @@ In Claude, try:
 
 WP Navigator MCP also works as a standalone CLI for scripts and web-based AI agents.
 
+### Invocation Patterns
+
+```bash
+# Recommended: Use the package directly (runs CLI if command provided)
+npx @littlebearapps/wp-navigator-mcp init
+npx @littlebearapps/wp-navigator-mcp --version
+npx @littlebearapps/wp-navigator-mcp tools
+
+# Alternative: Use the wpnav binary (installed globally or via npx -p)
+npx -p @littlebearapps/wp-navigator-mcp wpnav init
+npm install -g @littlebearapps/wp-navigator-mcp && wpnav init
+```
+
+> **Note**: The package is scoped, so `npx wpnav@version` won't work. Use the full package name `@littlebearapps/wp-navigator-mcp`.
+
 ### Initialize a Project
 
 ```bash

@@ -22,6 +22,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { fileURLToPath } from 'url';
 import { inputPrompt, selectPrompt, confirmPrompt } from './cli/tui/prompts.js';
 import {
   success,
@@ -147,7 +148,7 @@ import {
 } from './cli/output/index.js';
 
 // CLI version (matches package.json)
-const CLI_VERSION = '2.4.0';
+const CLI_VERSION = '2.6.1';
 
 // Dry-run request collector
 interface DryRunRequest {
@@ -3752,17 +3753,19 @@ async function handleRollback(
 /**
  * Main CLI entry point
  */
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const { command, args, options } = parseArgs(process.argv);
 
   // Handle help early (no config needed)
-  if (command === 'help' || options.help) {
+  // Support both `wpnav help` and `wpnav --help`
+  if (command === 'help' || command === '--help' || command === '-h' || options.help) {
     showHelp();
     process.exit(0);
   }
 
   // Handle version flag
-  if (options.version) {
+  // Support both `wpnav <cmd> --version` and `wpnav --version`
+  if (command === '--version' || command === '-v' || options.version) {
     console.log(CLI_VERSION);
     process.exit(0);
   }
@@ -4055,8 +4058,14 @@ async function main(): Promise<void> {
   }
 }
 
-// Run CLI
-main().catch((error) => {
-  outputError('FATAL', error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+// Run CLI only when this file is the direct entry point
+// (not when imported by index.ts for CLI delegation)
+const __filename = fileURLToPath(import.meta.url);
+const isDirectEntry = process.argv[1] === __filename || process.argv[1]?.endsWith('/cli.js');
+
+if (isDirectEntry) {
+  main().catch((error) => {
+    outputError('FATAL', error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
+}

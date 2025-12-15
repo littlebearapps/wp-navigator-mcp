@@ -1,6 +1,6 @@
 {
   "name": "@littlebearapps/wp-navigator-mcp",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "description": "MCP server for AI-assisted WordPress management via Claude Code and other MCP clients",
   "type": "module",
   "main": "dist/index.js",
@@ -20,6 +20,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "generate:authority": "node scripts/generate-authority.mjs",
+    "sync-version": "node scripts/sync-version.mjs",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
@@ -52,6 +53,8 @@
   "files": [
     "dist",
     "src/roles/bundled",
+    "src/cookbook/bundled",
+    "src/cli/templates",
     "README.md",
     "LICENSE"
   ],
