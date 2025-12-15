@@ -3,10 +3,11 @@
 # This workflow fetches Codex review comments and BLOCKS merge if P0/P1 issues found.
 #
 # How it works:
-# 1. Fetches all PR comments from users containing "codex" in login
-# 2. Counts P0 (blocker) and P1 (major) severity issues
-# 3. Generates summary table in GitHub Actions check summary
-# 4. FAILS the check if P0 or P1 issues found (blocking merge)
+# 1. Fetches PR review threads using GraphQL (filters out resolved threads)
+# 2. Fetches issue comments from users containing "codex" in login
+# 3. Counts P0 (blocker) and P1 (major) severity issues from UNRESOLVED threads only
+# 4. Generates summary table in GitHub Actions check summary
+# 5. FAILS the check if P0 or P1 issues found (blocking merge)
 #
 # To request a review: Comment "@codex review" on the PR
 #
@@ -14,6 +15,9 @@
 # - P0 (Blocker): Must address before merge - BLOCKS
 # - P1 (Major): Should address before merge - BLOCKS
 # - P2+ (Minor): Address in follow-up if complex - Does NOT block
+#
+# Note: Resolved review threads are ignored - if you've addressed the issue and
+# resolved the thread, it won't block the PR.
 
 name: Codex Code Review
 
@@ -91,23 +95,65 @@ jobs:
         run: |
           echo "Fetching Codex comments for PR #$PR_NUM..."
 
-          # Fetch PR review comments from Codex users
-          REVIEW_COMMENTS=$(gh api \
-            "repos/$REPO/pulls/$PR_NUM/comments" \
-            --jq '[.[] | select(.user.login | test("codex"; "i"))]' 2>/dev/null || echo "[]")
+          # Extract owner and repo name
+          OWNER="${REPO%/*}"
+          REPO_NAME="${REPO#*/}"
 
-          # Fetch issue comments from Codex users
+          # Use GraphQL to fetch review threads with resolution status
+          # Only comments from UNRESOLVED threads are considered
+          echo "Fetching review threads via GraphQL (filtering out resolved threads)..."
+
+          GRAPHQL_RESPONSE=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                  reviewThreads(first: 100) {
+                    nodes {
+                      isResolved
+                      comments(first: 50) {
+                        nodes {
+                          author { login }
+                          body
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ' -f owner="$OWNER" -f repo="$REPO_NAME" -F pr="$PR_NUM" 2>/dev/null || echo '{"data":{"repository":{"pullRequest":{"reviewThreads":{"nodes":[]}}}}}')
+
+          # Extract comments from UNRESOLVED threads only, from Codex users
+          UNRESOLVED_THREAD_COMMENTS=$(echo "$GRAPHQL_RESPONSE" | jq '
+            [.data.repository.pullRequest.reviewThreads.nodes[]
+             | select(.isResolved == false)
+             | .comments.nodes[]
+             | select(.author.login | test("codex"; "i"))
+             | {body: .body}]
+          ' 2>/dev/null || echo "[]")
+
+          RESOLVED_COUNT=$(echo "$GRAPHQL_RESPONSE" | jq '
+            [.data.repository.pullRequest.reviewThreads.nodes[]
+             | select(.isResolved == true)
+             | .comments.nodes[]
+             | select(.author.login | test("codex"; "i"))]
+             | length
+          ' 2>/dev/null || echo "0")
+
+          echo "Resolved Codex threads (ignored): $RESOLVED_COUNT"
+
+          # Fetch issue comments from Codex users (these don't have thread resolution)
           ISSUE_COMMENTS=$(gh api \
             "repos/$REPO/issues/$PR_NUM/comments" \
-            --jq '[.[] | select(.user.login | test("codex"; "i"))]' 2>/dev/null || echo "[]")
+            --jq '[.[] | select(.user.login | test("codex"; "i")) | {body: .body}]' 2>/dev/null || echo "[]")
 
-          # Fetch PR reviews from Codex users
+          # Fetch PR reviews from Codex users (overall review comments, not line-specific)
           REVIEWS=$(gh api \
             "repos/$REPO/pulls/$PR_NUM/reviews" \
-            --jq '[.[] | select(.user.login | test("codex"; "i"))]' 2>/dev/null || echo "[]")
+            --jq '[.[] | select(.user.login | test("codex"; "i")) | {body: .body}]' 2>/dev/null || echo "[]")
 
-          # Combine all comments
-          ALL_COMMENTS=$(echo "$REVIEW_COMMENTS" "$ISSUE_COMMENTS" "$REVIEWS" | jq -s 'add')
+          # Combine all comments (unresolved thread comments + issue comments + reviews)
+          ALL_COMMENTS=$(echo "$UNRESOLVED_THREAD_COMMENTS" "$ISSUE_COMMENTS" "$REVIEWS" | jq -s 'add | map(select(.body != null and .body != ""))')
           TOTAL=$(echo "$ALL_COMMENTS" | jq 'length')
           echo "codex_comment_count=$TOTAL" >> $GITHUB_OUTPUT
 
@@ -120,9 +166,12 @@ jobs:
           echo "p1_count=$P1" >> $GITHUB_OUTPUT
 
           # Debug output
-          echo "Total Codex comments: $TOTAL"
+          echo "Total active Codex comments: $TOTAL"
           echo "P0 (blocker) issues: $P0"
           echo "P1 (major) issues: $P1"
+          if [ "$RESOLVED_COUNT" != "0" ]; then
+            echo "Note: $RESOLVED_COUNT resolved thread comment(s) were ignored"
+          fi
 
       - name: Generate summary
         env:
@@ -164,9 +213,10 @@ jobs:
               echo "" >> $GITHUB_STEP_SUMMARY
               echo "1. Review Codex comments on the **Conversation** and **Files changed** tabs" >> $GITHUB_STEP_SUMMARY
               echo "2. Address all P0 and P1 issues" >> $GITHUB_STEP_SUMMARY
-              echo "3. Push fixes" >> $GITHUB_STEP_SUMMARY
-              echo "4. Request re-review: Comment \`@codex review\` on the PR" >> $GITHUB_STEP_SUMMARY
-              echo "5. Re-run this check via Actions tab or push new commits" >> $GITHUB_STEP_SUMMARY
+              echo "3. Push fixes OR resolve the review thread if the issue is a false positive" >> $GITHUB_STEP_SUMMARY
+              echo "4. Re-run this check via Actions tab or push new commits" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "_Note: Resolved review threads are automatically ignored._" >> $GITHUB_STEP_SUMMARY
             else
               echo ":white_check_mark: **No blocking issues found!** PR is ready for merge." >> $GITHUB_STEP_SUMMARY
             fi
