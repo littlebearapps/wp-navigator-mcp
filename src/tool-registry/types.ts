@@ -30,6 +30,10 @@ export enum ToolCategory {
   WORKFLOWS = 'workflows',
   /** Cookbook guidance (v2.1+) */
   COOKBOOK = 'cookbook',
+  /** Role guidance (v2.6+) */
+  ROLES = 'roles',
+  /** Batch operations (v2.6+) */
+  BATCH = 'batch',
 }
 
 /**

@@ -5,6 +5,13 @@ All notable changes to @littlebearapps/wp-navigator-mcp will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0](https://github.com/littlebearapps/wp-navigator-mcp-master/compare/v2.5.0...v2.6.0) (2025-12-15)
+
+
+### Features
+
+* v2.6.0 MCP Excellence Release ([#29](https://github.com/littlebearapps/wp-navigator-mcp-master/issues/29)) ([bb7bc6f](https://github.com/littlebearapps/wp-navigator-mcp-master/commit/bb7bc6f7020e29916946510f63a4aaecf36a6ae2))
+
 ## [2.5.0](https://github.com/littlebearapps/wp-navigator-mcp-master/compare/v2.4.0...v2.5.0) (2025-12-14)
 
 

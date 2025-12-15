@@ -8,7 +8,7 @@
  */
 
 import { toolRegistry, ToolCategory } from '../../tool-registry/index.js';
-import { validateRequired } from '../../tool-registry/utils.js';
+import { validateRequired, buildFieldsParam } from '../../tool-registry/utils.js';
 
 /**
  * Normalize plugin identifier for WordPress REST API.
@@ -57,6 +57,12 @@ export function registerPluginTools() {
             description:
               'Optional filter by status (e.g., "active" or "inactive"). If omitted or set to "all", returns all plugins.',
           },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              'Fields to return (e.g., ["plugin", "name", "status"]). Reduces response size.',
+          },
         },
         required: [],
       },
@@ -65,6 +71,10 @@ export function registerPluginTools() {
       const params = new URLSearchParams();
       if (args.status && args.status !== 'all') {
         params.append('status', args.status);
+      }
+      const fieldsParam = buildFieldsParam(args.fields);
+      if (fieldsParam) {
+        params.append('_fields', fieldsParam);
       }
 
       const qs = params.toString();
@@ -94,13 +104,21 @@ export function registerPluginTools() {
             description:
               'Plugin identifier from wpnav_list_plugins "plugin" field (e.g., "wordfence/wordfence", "hello"). Do NOT include .php extension.',
           },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              'Fields to return (e.g., ["plugin", "name", "version"]). Reduces response size.',
+          },
         },
         required: ['plugin'],
       },
     },
     handler: async (args, context) => {
       validateRequired(args, ['plugin']);
-      const endpoint = `/wp/v2/plugins/${normalizePluginPath(args.plugin)}`;
+      const fieldsParam = buildFieldsParam(args.fields);
+      const basePath = `/wp/v2/plugins/${normalizePluginPath(args.plugin)}`;
+      const endpoint = fieldsParam ? `${basePath}?_fields=${fieldsParam}` : basePath;
       const plugin = await context.wpRequest(endpoint);
 
       return {

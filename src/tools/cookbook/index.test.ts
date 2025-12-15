@@ -53,8 +53,8 @@ describe('Cookbook Tools Registration', () => {
     expect(tool?.category).toBe(ToolCategory.COOKBOOK);
   });
 
-  it('should register wpnav_get_cookbook tool', () => {
-    const tool = toolRegistry.getTool('wpnav_get_cookbook');
+  it('should register wpnav_load_cookbook tool', () => {
+    const tool = toolRegistry.getTool('wpnav_load_cookbook');
     expect(tool).toBeDefined();
     expect(tool?.category).toBe(ToolCategory.COOKBOOK);
   });
@@ -103,15 +103,35 @@ describe('wpnav_list_cookbooks', () => {
     expect(gutenberg.has_skill_body).toBe(true);
     expect(gutenberg.allowed_tools_count).toBeGreaterThan(0);
   });
+
+  it('should include description and requires_wpnav_pro fields', async () => {
+    const tool = toolRegistry.getTool('wpnav_list_cookbooks');
+    const result = await tool!.handler({}, createMockContext());
+    const data = JSON.parse(result.content[0].text!);
+
+    // Gutenberg should have description but not requires_wpnav_pro
+    const gutenberg = data.cookbooks.find((c: any) => c.slug === 'gutenberg');
+    expect(gutenberg).toBeDefined();
+    expect(gutenberg.description).toBeTruthy();
+    expect(gutenberg.description).toContain('Block Editor');
+    expect(gutenberg.requires_wpnav_pro).toBeNull();
+
+    // Elementor has requires-wpnav-pro in its frontmatter
+    const elementor = data.cookbooks.find((c: any) => c.slug === 'elementor');
+    expect(elementor).toBeDefined();
+    expect(elementor.description).toBeTruthy();
+    // Elementor requires wpnav-pro according to the SKILL.md file
+    expect(elementor.requires_wpnav_pro).toBeDefined();
+  });
 });
 
 // =============================================================================
-// wpnav_get_cookbook Tests
+// wpnav_load_cookbook Tests
 // =============================================================================
 
-describe('wpnav_get_cookbook', () => {
+describe('wpnav_load_cookbook', () => {
   it('should return full cookbook content for valid slug', async () => {
-    const tool = toolRegistry.getTool('wpnav_get_cookbook');
+    const tool = toolRegistry.getTool('wpnav_load_cookbook');
     expect(tool).toBeDefined();
 
     const result = await tool!.handler({ slug: 'gutenberg' }, createMockContext());
@@ -128,7 +148,7 @@ describe('wpnav_get_cookbook', () => {
   });
 
   it('should return error for invalid slug', async () => {
-    const tool = toolRegistry.getTool('wpnav_get_cookbook');
+    const tool = toolRegistry.getTool('wpnav_load_cookbook');
     const result = await tool!.handler({ slug: 'nonexistent-plugin' }, createMockContext());
 
     expect(result.isError).toBe(true);
@@ -139,7 +159,7 @@ describe('wpnav_get_cookbook', () => {
   });
 
   it('should return error for missing slug parameter', async () => {
-    const tool = toolRegistry.getTool('wpnav_get_cookbook');
+    const tool = toolRegistry.getTool('wpnav_load_cookbook');
     const result = await tool!.handler({}, createMockContext());
 
     expect(result.isError).toBe(true);
@@ -149,7 +169,7 @@ describe('wpnav_get_cookbook', () => {
   });
 
   it('should return elementor cookbook', async () => {
-    const tool = toolRegistry.getTool('wpnav_get_cookbook');
+    const tool = toolRegistry.getTool('wpnav_load_cookbook');
     const result = await tool!.handler({ slug: 'elementor' }, createMockContext());
 
     expect(result.isError).toBeFalsy();

@@ -23,7 +23,13 @@ import {
 } from './validation.js';
 import { parseSkillMd, extractPluginSlug, SkillParseError } from './skill-parser.js';
 import { COOKBOOK_SCHEMA_VERSION } from './types.js';
-import type { Cookbook, LoadedCookbook, CookbookLoadResult } from './types.js';
+import type {
+  Cookbook,
+  LoadedCookbook,
+  CookbookLoadResult,
+  CookbookRegistry,
+  CookbookRegistryEntry,
+} from './types.js';
 import type { SkillCookbook } from './skill-types.js';
 
 // Re-export error classes
@@ -107,6 +113,61 @@ function getBundledCookbooksPath(): string {
   // In dist: dist/cookbook/loader.js
   // Bundled cookbooks are at: src/cookbook/bundled/
   return path.join(__dirname, '..', '..', 'src', 'cookbook', 'bundled');
+}
+
+// =============================================================================
+// Registry Loading (Fast Enumeration)
+// =============================================================================
+
+/**
+ * Load the bundled cookbook registry for fast enumeration.
+ * Returns null if registry doesn't exist (triggers fallback to directory scan).
+ */
+function loadBundledRegistry(): CookbookRegistry | null {
+  const bundledPath = getBundledCookbooksPath();
+  const registryPath = path.join(bundledPath, 'registry.json');
+
+  if (!fs.existsSync(registryPath)) {
+    return null;
+  }
+
+  try {
+    const content = fs.readFileSync(registryPath, 'utf8');
+    return JSON.parse(content) as CookbookRegistry;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * List bundled cookbook slugs using registry (fast path).
+ * Returns null if registry unavailable (triggers fallback).
+ */
+export function listBundledFromRegistry(): string[] | null {
+  const registry = loadBundledRegistry();
+  if (!registry) return null;
+  return registry.cookbooks.map((c) => c.slug);
+}
+
+/**
+ * Get registry entry for a specific cookbook.
+ * Returns null if not in registry.
+ *
+ * @param slug - Plugin slug to look up
+ * @returns CookbookRegistryEntry if found, null otherwise
+ */
+export function getRegistryEntry(slug: string): CookbookRegistryEntry | null {
+  const registry = loadBundledRegistry();
+  if (!registry) return null;
+  return registry.cookbooks.find((c) => c.slug === slug) || null;
+}
+
+/**
+ * Get the full bundled registry.
+ * Returns null if registry doesn't exist.
+ */
+export function getBundledRegistry(): CookbookRegistry | null {
+  return loadBundledRegistry();
 }
 
 // =============================================================================
@@ -306,13 +367,30 @@ export function discoverCookbooks(options: CookbookDiscoveryOptions = {}): Disco
   // Load bundled first (lower priority)
   if (includeBundled) {
     const bundledPath = getBundledCookbooksPath();
-    const bundledResults = loadCookbooksFromDirectory(bundledPath, 'bundled');
-    for (const result of bundledResults) {
-      if (result.success && result.cookbook) {
-        cookbooks.set(result.cookbook.plugin.slug, result.cookbook);
-        sources.bundled.push(result.cookbook.plugin.slug);
-      } else {
-        errors.push(result);
+    const registry = loadBundledRegistry();
+
+    if (registry) {
+      // Fast path: use registry to load only listed files
+      for (const entry of registry.cookbooks) {
+        const filePath = path.join(bundledPath, entry.file);
+        const result = loadCookbook(filePath, 'bundled');
+        if (result.success && result.cookbook) {
+          cookbooks.set(result.cookbook.plugin.slug, result.cookbook);
+          sources.bundled.push(result.cookbook.plugin.slug);
+        } else {
+          errors.push(result);
+        }
+      }
+    } else {
+      // Fallback: scan directory (backwards compatible)
+      const bundledResults = loadCookbooksFromDirectory(bundledPath, 'bundled');
+      for (const result of bundledResults) {
+        if (result.success && result.cookbook) {
+          cookbooks.set(result.cookbook.plugin.slug, result.cookbook);
+          sources.bundled.push(result.cookbook.plugin.slug);
+        } else {
+          errors.push(result);
+        }
       }
     }
   }

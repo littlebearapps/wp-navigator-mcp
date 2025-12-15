@@ -5,9 +5,9 @@
 # DO NOT EDIT MANUALLY - regenerate with: npm run generate:authority
 
 schema_version: "1.0"
-mcp_version: "2.3.0"
+mcp_version: "2.5.0"
 min_plugin_version: "1.4.0"
-generated: "2025-12-14"
+generated: "2025-12-15"
 
 # Tool categories with endpoint mappings
 categories:
@@ -22,15 +22,30 @@ categories:
         description: "Get WP Navigator Pro API capabilities, policy configuration, and environment hints. Call this first to understand what the API can do."
         endpoint: "GET /wpnav/v1/introspect"
         since_mcp: "1.0.0"
+      - name: wpnav_batch_get
+        description: "Fetch multiple WordPress items by ID in a single call. Supports ${BATCH_CONTENT_TYPES.join("
+        endpoint: "UNKNOWN"
+        since_mcp: "1.0.0"
+      - name: wpnav_batch_update
+        description: "Update multiple WordPress items in a single call. Supports ${BATCH_CONTENT_TYPES.join("
+        endpoint: "UNKNOWN"
+        since_mcp: "1.0.0"
+      - name: wpnav_batch_delete
+        description: "DELETE multiple WordPress items in a single call. HIGH RISK: Requires confirm_destructive=true and WPNAV_ENABLE_WRITES=1. Supports ${BATCH_CONTENT_TYPES.join("
+        endpoint: "UNKNOWN"
+        since_mcp: "1.0.0"
+      - name: wpnav_search
+        description: "Unified search across WordPress content. Searches posts, pages, media, and optionally users in parallel. Returns grouped results by content type."
+        endpoint: "UNKNOWN"
+        since_mcp: "1.0.0"
       - name: wpnav_list_cookbooks
         description: "List all available plugin cookbooks with metadata. Cookbooks provide AI guidance for specific WordPress plugins like Gutenberg, Elementor, etc. Returns slug, name, version, source (bundled/project), and version requirements."
         endpoint: "GET /wp/v2/cookbook"
         wordpress_core: true
         since_mcp: "1.0.0"
-      - name: wpnav_get_cookbook
-        description: "Get full cookbook content for a specific plugin by slug. Returns the SKILL.md body (AI guidance), frontmatter metadata, and allowed tools list. Use this to load guidance before working with a specific plugin."
-        endpoint: "GET /wp/v2/cookbooks/{id}"
-        wordpress_core: true
+      - name: wpnav_load_cookbook
+        description: "Load a cookbook by slug to get AI guidance for a specific plugin. Returns the full SKILL.md markdown body, parsed frontmatter metadata, and allowed-tools list. Use this when working with plugins like Elementor or WooCommerce."
+        endpoint: "UNKNOWN"
         since_mcp: "1.0.0"
       - name: wpnav_match_cookbooks
         description: "Match available cookbooks against active WordPress plugins. Fetches active plugins from WordPress and returns cookbooks that match, with version compatibility status. Use this to discover which plugin guidance is available for the current site."
@@ -44,6 +59,15 @@ categories:
       - name: wpnav_gutenberg_introspect
         description: "Introspect Gutenberg capabilities: available blocks, patterns, and attributes. Use this to discover what blocks you can create."
         endpoint: "GET /wpnav/v1/gutenberg/introspect"
+        since_mcp: "1.0.0"
+      - name: wpnav_list_roles
+        description: "List all available AI roles with metadata. Roles define how AI assistants should interact with WordPress - including focus areas, things to avoid, and allowed/denied tools. Returns slug, description, focus areas, tool counts, and source (bundled/global/project)."
+        endpoint: "GET /wp/v2/role"
+        wordpress_core: true
+        since_mcp: "1.0.0"
+      - name: wpnav_load_role
+        description: "Load a role by slug to get AI guidance for a specific persona. Returns the full role definition including context (system prompt), focus areas, things to avoid, and allowed/denied tools lists. Use this when you need detailed role configuration."
+        endpoint: "UNKNOWN"
         since_mcp: "1.0.0"
   pages:
     description: "Page management"
@@ -108,6 +132,11 @@ categories:
       - name: wpnav_create_post_with_blocks
         description: "Create a new post with Gutenberg blocks in a single atomic operation. Safer than creating empty post then adding blocks."
         endpoint: "POST /wp/v2/post_with_blockss"
+        wordpress_core: true
+        since_mcp: "1.0.0"
+      - name: wpnav_list_post_types
+        description: "List all registered WordPress post types including custom types (products, events, etc.). Returns REST API support status, capabilities, and hierarchical status for each type."
+        endpoint: "GET /wp/v2/post_type"
         wordpress_core: true
         since_mcp: "1.0.0"
   media:
@@ -367,5 +396,5 @@ categories:
 
 # Summary
 summary:
-  total_tools: 68
+  total_tools: 75
   categories: 13

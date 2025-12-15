@@ -193,6 +193,28 @@ npx wpnav export-env --format docker  # Dockerfile
 npx wpnav export-env --format github  # GitHub Actions
 ```
 
+### AI Guidance Features (v2.6.0)
+
+**Roles** — AI personas with focused tool access and behavior guidance:
+```bash
+npx wpnav call wpnav_list_roles           # List available roles
+npx wpnav call wpnav_load_role --slug content-editor  # Load a role
+```
+
+Built-in roles: `content-editor`, `developer`, `seo-specialist`, `site-admin`
+
+**Cookbooks** — Plugin-specific AI guidance for Gutenberg, Elementor, and more:
+```bash
+npx wpnav call wpnav_list_cookbooks       # List available cookbooks
+npx wpnav call wpnav_load_cookbook --slug gutenberg  # Load cookbook
+```
+
+**MCP Resources** — Context delivery for AI assistants:
+- `wpnav://tools/overview` — Categorized tool list
+- `wpnav://site/context` — Current site information
+- `wpnav://roles/{slug}` — Role definitions
+- `wpnav://cookbooks/{slug}` — Plugin guidance
+
 ### Snapshot & Sync Workflow
 
 ```bash
@@ -253,11 +275,11 @@ snapshots/
 
 ## Available Tools
 
-**68+ tools** organized by category:
+**75+ tools** organized by category:
 
 | Category | Tools | Examples |
 |----------|-------|----------|
-| **Core** | 5 | `wpnav_introspect`, `wpnav_get_site_overview` |
+| **Core** | 7 | `wpnav_introspect`, `wpnav_get_site_overview`, `wpnav_search`, `wpnav_list_post_types` |
 | **Posts** | 7 | `wpnav_list_posts`, `wpnav_create_post_with_blocks` |
 | **Pages** | 6 | `wpnav_list_pages`, `wpnav_snapshot_page` |
 | **Media** | 4 | `wpnav_upload_media_from_url` |
@@ -267,7 +289,9 @@ snapshots/
 | **Users** | 5 | `wpnav_list_users`, `wpnav_get_user` |
 | **Comments** | 5 | `wpnav_list_comments`, `wpnav_create_comment` |
 | **Taxonomy** | 12 | `wpnav_list_categories`, `wpnav_create_tag` |
-| **Cookbook** | 3 | `wpnav_list_cookbooks`, `wpnav_get_cookbook` |
+| **Batch** | 3 | `wpnav_batch_get`, `wpnav_batch_update`, `wpnav_batch_delete` |
+| **Cookbook** | 3 | `wpnav_list_cookbooks`, `wpnav_load_cookbook` |
+| **Roles** | 2 | `wpnav_list_roles`, `wpnav_load_role` |
 
 List all tools:
 ```bash

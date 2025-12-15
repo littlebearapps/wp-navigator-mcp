@@ -239,3 +239,43 @@ export interface CookbookLoadResult {
   /** File path that was attempted */
   path: string;
 }
+
+// =============================================================================
+// Cookbook Registry Types (Fast Enumeration)
+// =============================================================================
+
+/**
+ * Cookbook registry entry (minimal metadata for fast enumeration).
+ * Contains pre-computed metadata to avoid parsing each SKILL.md file.
+ */
+export interface CookbookRegistryEntry {
+  /** Plugin slug (e.g., "gutenberg") */
+  slug: string;
+  /** Filename relative to bundled directory (e.g., "gutenberg.md") */
+  file: string;
+  /** Human-readable display name */
+  name: string;
+  /** Short description of the cookbook */
+  description: string;
+  /** Cookbook content version (semver) */
+  version: string;
+  /** Minimum supported plugin version */
+  min_plugin_version?: string;
+  /** Maximum supported plugin version */
+  max_plugin_version?: string;
+  /** Pre-parsed list of allowed tools */
+  allowed_tools?: string[];
+}
+
+/**
+ * Bundled cookbook registry for fast enumeration.
+ * Avoids filesystem scans and full file parsing.
+ */
+export interface CookbookRegistry {
+  /** Registry format version */
+  registry_version: 1;
+  /** ISO timestamp when registry was generated */
+  generated: string;
+  /** List of bundled cookbook entries */
+  cookbooks: CookbookRegistryEntry[];
+}

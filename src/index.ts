@@ -12,7 +12,12 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 import { tools } from './tools.js';
 import { loadEnvFromArgOrDotEnv, getConfigOrExit } from './config.js';
 import { makeWpRequest } from './http.js';
@@ -23,6 +28,11 @@ import { applyContentChanges } from './safety.js';
 import { validateStartup, printStartupSummary, printFriendlyError } from './startup-validator.js';
 import { toolRegistry } from './tool-registry/index.js';
 import { registerAllTools } from './tools/index.js';
+import {
+  registerAllResources,
+  handleListResources,
+  handleReadResource,
+} from './resources/index.js';
 
 // Load configuration from file or environment (matches previous behavior)
 loadEnvFromArgOrDotEnv();
@@ -33,6 +43,9 @@ const wpRequest = makeWpRequest(config);
 
 // Register all tools with the registry
 registerAllTools();
+
+// Register all resources with the registry
+registerAllResources();
 
 // Configure feature flags from config
 toolRegistry.setFeatureFlag('WORKFLOWS_ENABLED', config.featureFlags.workflowsEnabled);
@@ -57,11 +70,12 @@ toolRegistry.setFeatureFlag(
 const server = new Server(
   {
     name: 'wp-navigator',
-    version: '2.4.0',
+    version: '2.6.0',
   },
   {
     capabilities: {
       tools: {},
+      resources: {},
     },
   }
 );
@@ -119,6 +133,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<any> =>
     // Surface errors to the MCP client as JSON‑RPC errors
     throw error instanceof Error ? error : new Error(String(error));
   }
+});
+
+/**
+ * Resource Definitions
+ */
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  return handleListResources();
+});
+
+/**
+ * Resource Implementations
+ */
+server.setRequestHandler(ReadResourceRequestSchema, async (request): Promise<any> => {
+  const { uri } = request.params;
+
+  // Build execution context for resource generators
+  const context = {
+    wpRequest: (endpoint: string, options?: RequestInit) => wpRequest(endpoint, options),
+    config,
+  };
+
+  return handleReadResource(uri, context);
 });
 
 /**

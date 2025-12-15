@@ -158,6 +158,8 @@ export class ToolRegistry implements IToolRegistry {
       [ToolCategory.THEMES]: 0,
       [ToolCategory.WORKFLOWS]: 0,
       [ToolCategory.COOKBOOK]: 0,
+      [ToolCategory.ROLES]: 0,
+      [ToolCategory.BATCH]: 0,
     };
 
     let enabledTools = 0;

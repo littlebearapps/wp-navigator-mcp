@@ -14,6 +14,7 @@ import {
   validateId,
   buildQueryString,
   extractSummary,
+  buildFieldsParam,
 } from '../../tool-registry/utils.js';
 import { applyContentChanges, applyContentCreation } from '../../safety.js';
 import fetch from 'cross-fetch';
@@ -48,6 +49,12 @@ export function registerContentTools() {
             type: 'string',
             description: 'Search term to filter pages by title or content',
           },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              'Fields to return (e.g., ["id", "title", "status"]). Reduces response size.',
+          },
         },
         required: [],
       },
@@ -56,7 +63,13 @@ export function registerContentTools() {
       const { page, per_page } = validatePagination(args);
       const status = args.status || 'publish';
 
-      const qs = buildQueryString({ page, per_page, status, search: args.search });
+      const qs = buildQueryString({
+        page,
+        per_page,
+        status,
+        search: args.search,
+        _fields: buildFieldsParam(args.fields),
+      });
       const pages = await context.wpRequest(`/wp/v2/pages?${qs}`);
 
       const summary = pages.map((p: any) =>
@@ -79,6 +92,12 @@ export function registerContentTools() {
         type: 'object',
         properties: {
           id: { type: 'number', description: 'WordPress page ID' },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              'Fields to return (e.g., ["id", "title", "content"]). Reduces response size.',
+          },
         },
         required: ['id'],
       },
@@ -87,7 +106,9 @@ export function registerContentTools() {
       validateRequired(args, ['id']);
       const id = validateId(args.id, 'Page');
 
-      const page = await context.wpRequest(`/wp/v2/pages/${id}`);
+      const fieldsParam = buildFieldsParam(args.fields);
+      const url = fieldsParam ? `/wp/v2/pages/${id}?_fields=${fieldsParam}` : `/wp/v2/pages/${id}`;
+      const page = await context.wpRequest(url);
 
       const summary = extractSummary(page, [
         'id',
@@ -535,6 +556,12 @@ export function registerContentTools() {
             type: 'string',
             description: 'Search term to filter posts by title or content',
           },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              'Fields to return (e.g., ["id", "title", "status"]). Reduces response size.',
+          },
         },
         required: [],
       },
@@ -543,7 +570,13 @@ export function registerContentTools() {
       const { page, per_page } = validatePagination(args);
       const status = args.status || 'publish';
 
-      const qs = buildQueryString({ page, per_page, status, search: args.search });
+      const qs = buildQueryString({
+        page,
+        per_page,
+        status,
+        search: args.search,
+        _fields: buildFieldsParam(args.fields),
+      });
       const posts = await context.wpRequest(`/wp/v2/posts?${qs}`);
 
       const summary = posts.map((p: any) =>
@@ -566,6 +599,12 @@ export function registerContentTools() {
         type: 'object',
         properties: {
           id: { type: 'number', description: 'WordPress post ID' },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              'Fields to return (e.g., ["id", "title", "content"]). Reduces response size.',
+          },
         },
         required: ['id'],
       },
@@ -574,7 +613,9 @@ export function registerContentTools() {
       validateRequired(args, ['id']);
       const id = validateId(args.id, 'Post');
 
-      const post = await context.wpRequest(`/wp/v2/posts/${id}`);
+      const fieldsParam = buildFieldsParam(args.fields);
+      const url = fieldsParam ? `/wp/v2/posts/${id}?_fields=${fieldsParam}` : `/wp/v2/posts/${id}`;
+      const post = await context.wpRequest(url);
 
       const summary = extractSummary(post, [
         'id',
@@ -987,6 +1028,12 @@ export function registerContentTools() {
             type: 'string',
             description: 'Search term to filter media by title or filename',
           },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              'Fields to return (e.g., ["id", "title", "source_url"]). Reduces response size.',
+          },
         },
         required: [],
       },
@@ -998,6 +1045,7 @@ export function registerContentTools() {
         per_page,
         media_type: args.media_type,
         search: args.search,
+        _fields: buildFieldsParam(args.fields),
       });
 
       const media = await context.wpRequest(`/wp/v2/media?${qs}`);
@@ -1022,6 +1070,12 @@ export function registerContentTools() {
         type: 'object',
         properties: {
           id: { type: 'number', description: 'WordPress media ID' },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              'Fields to return (e.g., ["id", "title", "source_url"]). Reduces response size.',
+          },
         },
         required: ['id'],
       },
@@ -1030,7 +1084,9 @@ export function registerContentTools() {
       validateRequired(args, ['id']);
       const id = validateId(args.id, 'Media');
 
-      const media = await context.wpRequest(`/wp/v2/media/${id}`);
+      const fieldsParam = buildFieldsParam(args.fields);
+      const url = fieldsParam ? `/wp/v2/media/${id}?_fields=${fieldsParam}` : `/wp/v2/media/${id}`;
+      const media = await context.wpRequest(url);
 
       const summary = extractSummary(media, [
         'id',
@@ -1226,13 +1282,25 @@ export function registerContentTools() {
             description: 'Filter by status: approve, hold, spam, trash, any',
           },
           post: { type: 'number', description: 'Filter by post ID' },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              'Fields to return (e.g., ["id", "author_name", "content"]). Reduces response size.',
+          },
         },
         required: [],
       },
     },
     handler: async (args, context) => {
       const { page, per_page } = validatePagination(args);
-      const qs = buildQueryString({ page, per_page, status: args.status, post: args.post });
+      const qs = buildQueryString({
+        page,
+        per_page,
+        status: args.status,
+        post: args.post,
+        _fields: buildFieldsParam(args.fields),
+      });
 
       const comments = await context.wpRequest(`/wp/v2/comments?${qs}`);
 
@@ -1256,6 +1324,12 @@ export function registerContentTools() {
         type: 'object',
         properties: {
           id: { type: 'number', description: 'WordPress comment ID' },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              'Fields to return (e.g., ["id", "author_name", "content"]). Reduces response size.',
+          },
         },
         required: ['id'],
       },
@@ -1264,7 +1338,11 @@ export function registerContentTools() {
       validateRequired(args, ['id']);
       const id = validateId(args.id, 'Comment');
 
-      const comment = await context.wpRequest(`/wp/v2/comments/${id}`);
+      const fieldsParam = buildFieldsParam(args.fields);
+      const url = fieldsParam
+        ? `/wp/v2/comments/${id}?_fields=${fieldsParam}`
+        : `/wp/v2/comments/${id}`;
+      const comment = await context.wpRequest(url);
 
       const summary = extractSummary(comment, [
         'id',
@@ -1566,6 +1644,102 @@ export function registerContentTools() {
           isError: true,
         };
       }
+    },
+    category: ToolCategory.CONTENT,
+  });
+
+  // ============================================================================
+  // wpnav_search - Unified search across content types
+  // ============================================================================
+  toolRegistry.register({
+    definition: {
+      name: 'wpnav_search',
+      description:
+        'Unified search across WordPress content. Searches posts, pages, media, and optionally users in parallel. Returns grouped results by content type.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'Search term (required)',
+          },
+          types: {
+            type: 'array',
+            items: { type: 'string', enum: ['posts', 'pages', 'media', 'users'] },
+            description: 'Content types to search (default: posts, pages, media)',
+          },
+          per_page: {
+            type: 'number',
+            description: 'Results per type (default: 5, max: 20)',
+          },
+        },
+        required: ['query'],
+      },
+    },
+    handler: async (args, context) => {
+      validateRequired(args, ['query']);
+
+      const queryString = encodeURIComponent(String(args.query));
+      const typesToSearch: string[] = args.types || ['posts', 'pages', 'media'];
+      const perPage = Math.min(20, Math.max(1, args.per_page || 5));
+
+      // Build parallel requests
+      const requests: Record<string, Promise<any>> = {};
+
+      if (typesToSearch.includes('posts')) {
+        requests.posts = context
+          .wpRequest(`/wp/v2/posts?search=${queryString}&per_page=${perPage}`)
+          .catch(() => []);
+      }
+      if (typesToSearch.includes('pages')) {
+        requests.pages = context
+          .wpRequest(`/wp/v2/pages?search=${queryString}&per_page=${perPage}`)
+          .catch(() => []);
+      }
+      if (typesToSearch.includes('media')) {
+        requests.media = context
+          .wpRequest(`/wp/v2/media?search=${queryString}&per_page=${perPage}`)
+          .catch(() => []);
+      }
+      if (typesToSearch.includes('users')) {
+        requests.users = context
+          .wpRequest(`/wp/v2/users?search=${queryString}&per_page=${perPage}`)
+          .catch(() => []);
+      }
+
+      // Execute parallel
+      const keys = Object.keys(requests);
+      const results = await Promise.all(Object.values(requests));
+
+      // Build response with counts
+      const grouped: Record<string, any> = {};
+      let totalCount = 0;
+
+      keys.forEach((key, index) => {
+        const items = results[index] || [];
+        grouped[key] = {
+          count: items.length,
+          items: items.map((item: any) =>
+            extractSummary(
+              item,
+              key === 'users'
+                ? ['id', 'name', 'slug']
+                : ['id', 'title.rendered', 'link', 'modified']
+            )
+          ),
+        };
+        totalCount += items.length;
+      });
+
+      const response = {
+        query: args.query,
+        total_results: totalCount,
+        results: grouped,
+      };
+
+      return {
+        content: [{ type: 'text', text: context.clampText(JSON.stringify(response, null, 2)) }],
+      };
     },
     category: ToolCategory.CONTENT,
   });

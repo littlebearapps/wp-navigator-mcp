@@ -6,6 +6,8 @@
  */
 
 import { toolRegistry, ToolCategory } from '../../tool-registry/index.js';
+import { discoverCookbooks, type LoadedSkillCookbook } from '../../cookbook/index.js';
+import { discoverRoles } from '../../roles/index.js';
 
 /**
  * Register core tools (introspection, help, status)
@@ -82,14 +84,69 @@ export function registerCoreTools() {
     handler: async (args, context) => {
       const { wpRequest, config } = context;
 
-      const introspectUrl = config.wpnavIntrospect;
-      const data = await wpRequest(introspectUrl);
+      // Fetch introspect, active plugins, and current user in parallel
+      const [introspectData, wpPlugins, currentUser] = await Promise.all([
+        wpRequest(config.wpnavIntrospect),
+        wpRequest('/wp/v2/plugins?status=active').catch(() => []),
+        wpRequest('/wp/v2/users/me').catch(() => null),
+      ]);
+
+      // Discover available cookbooks and roles
+      const { cookbooks } = discoverCookbooks();
+      const { roles: rolesMap } = discoverRoles();
+
+      // Extract active plugin slugs from WordPress response
+      // WordPress plugin slugs are in format "plugin-dir/plugin-file.php"
+      const pluginArray = Array.isArray(wpPlugins) ? wpPlugins : [];
+      const activePluginSlugs = new Set(
+        pluginArray.map((p: { plugin?: string }) => {
+          const pluginFile = p.plugin || '';
+          return pluginFile.split('/')[0] || pluginFile;
+        })
+      );
+
+      // Build available_cookbooks array
+      const availableCookbooks = Array.from(cookbooks.entries()).map(([slug, cookbook]) => {
+        const skillCookbook = cookbook as LoadedSkillCookbook;
+        return {
+          slug,
+          description: skillCookbook.skillFrontmatter?.description || null,
+          detected: activePluginSlugs.has(slug),
+        };
+      });
+
+      // Build available_roles array and determine recommended role
+      const availableRoles = Array.from(rolesMap.keys()).sort();
+
+      // Determine recommended role based on WordPress user capabilities
+      const userRoles: string[] = (currentUser as any)?.roles || [];
+      let recommendedRole = 'content-editor'; // Safe default
+
+      if (userRoles.includes('administrator')) {
+        recommendedRole = 'site-admin';
+      } else if (userRoles.includes('editor')) {
+        recommendedRole = 'content-editor';
+      } else if (userRoles.includes('author') || userRoles.includes('contributor')) {
+        recommendedRole = 'content-editor';
+      }
+      // For subscriber or unknown roles, default to content-editor (already set)
+
+      // Augment response with cookbook and role discovery
+      const response = {
+        ...(introspectData as object),
+        available_cookbooks: availableCookbooks,
+        roles: {
+          available: availableRoles,
+          recommended: recommendedRole,
+          count: availableRoles.length,
+        },
+      };
 
       return {
         content: [
           {
             type: 'text',
-            text: context.clampText(JSON.stringify(data, null, 2)),
+            text: context.clampText(JSON.stringify(response, null, 2)),
           },
         ],
       };
@@ -210,6 +267,40 @@ export function registerCoreTools() {
             text: JSON.stringify(overview, null, 2),
           },
         ],
+      };
+    },
+    category: ToolCategory.CORE,
+  });
+
+  // ============================================================================
+  // wpnav_list_post_types - Post types discovery
+  // ============================================================================
+  toolRegistry.register({
+    definition: {
+      name: 'wpnav_list_post_types',
+      description:
+        'List all registered WordPress post types including custom types (products, events, etc.). Returns REST API support status, capabilities, and hierarchical status for each type.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
+    },
+    handler: async (args, context) => {
+      const types = await context.wpRequest('/wp/v2/types');
+
+      // Transform object to array with type metadata
+      const typeList = Object.entries(types).map(([slug, typeData]: [string, any]) => ({
+        slug,
+        name: typeData.name,
+        description: typeData.description || null,
+        hierarchical: typeData.hierarchical || false,
+        rest_base: typeData.rest_base || slug,
+        rest_namespace: typeData.rest_namespace || 'wp/v2',
+      }));
+
+      return {
+        content: [{ type: 'text', text: context.clampText(JSON.stringify(typeList, null, 2)) }],
       };
     },
     category: ToolCategory.CORE,

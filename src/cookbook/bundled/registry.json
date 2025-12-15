@@ -1,0 +1,51 @@
+{
+  "registry_version": 1,
+  "generated": "2025-12-14T00:00:00Z",
+  "cookbooks": [
+    {
+      "slug": "gutenberg",
+      "file": "gutenberg.md",
+      "name": "Gutenberg",
+      "description": "Best practices for creating and editing content with the WordPress Block Editor (Gutenberg). Use when working with block-based pages and posts.",
+      "version": "1.0.0",
+      "min_plugin_version": "6.0",
+      "allowed_tools": [
+        "wpnav_list_posts",
+        "wpnav_get_post",
+        "wpnav_create_post",
+        "wpnav_update_post",
+        "wpnav_list_pages",
+        "wpnav_get_page",
+        "wpnav_create_page",
+        "wpnav_update_page",
+        "wpnav_snapshot_page",
+        "wpnav_gutenberg_list_blocks",
+        "wpnav_gutenberg_insert_block",
+        "wpnav_gutenberg_update_block",
+        "wpnav_gutenberg_delete_block",
+        "wpnav_gutenberg_insert_pattern"
+      ]
+    },
+    {
+      "slug": "elementor",
+      "file": "elementor.md",
+      "name": "Elementor",
+      "description": "Best practices for editing Elementor pages via WP Navigator MCP. Use when working with pages that have data-elementor-type markers or _elementor_data post meta.",
+      "version": "1.0.0",
+      "min_plugin_version": "3.20.0",
+      "allowed_tools": [
+        "wpnav_get_page",
+        "wpnav_update_page",
+        "wpnav_snapshot_page",
+        "wpnav_list_pages",
+        "wpnav_elementor_list_elements",
+        "wpnav_elementor_update_widget",
+        "wpnav_elementor_insert_element",
+        "wpnav_elementor_delete_element",
+        "wpnav_elementor_move_element",
+        "wpnav_elementor_regenerate_css",
+        "wpnav_elementor_use_preset"
+      ]
+    }
+  ]
+}

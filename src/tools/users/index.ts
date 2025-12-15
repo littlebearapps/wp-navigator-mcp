@@ -13,6 +13,7 @@ import {
   validatePagination,
   validateId,
   buildQueryString,
+  buildFieldsParam,
 } from '../../tool-registry/utils.js';
 
 /**
@@ -43,13 +44,24 @@ export function registerUserTools() {
             type: 'string',
             description: 'Search term to filter users by username, email, or display name',
           },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Fields to return (e.g., ["id", "name", "email"]). Reduces response size.',
+          },
         },
         required: [],
       },
     },
     handler: async (args, context) => {
       const { page, per_page } = validatePagination(args);
-      const qs = buildQueryString({ page, per_page, roles: args.roles, search: args.search });
+      const qs = buildQueryString({
+        page,
+        per_page,
+        roles: args.roles,
+        search: args.search,
+        _fields: buildFieldsParam(args.fields),
+      });
 
       const users = await context.wpRequest(`/wp/v2/users?${qs}`);
 
@@ -72,6 +84,11 @@ export function registerUserTools() {
         type: 'object',
         properties: {
           id: { type: 'number', description: 'WordPress user ID' },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Fields to return (e.g., ["id", "name", "email"]). Reduces response size.',
+          },
         },
         required: ['id'],
       },
@@ -80,7 +97,9 @@ export function registerUserTools() {
       validateRequired(args, ['id']);
       const id = validateId(args.id, 'User');
 
-      const user = await context.wpRequest(`/wp/v2/users/${id}`);
+      const fieldsParam = buildFieldsParam(args.fields);
+      const url = fieldsParam ? `/wp/v2/users/${id}?_fields=${fieldsParam}` : `/wp/v2/users/${id}`;
+      const user = await context.wpRequest(url);
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(user, null, 2)) }],

@@ -229,3 +229,16 @@ export function validateEnum<T extends string>(
 
   return strValue as T;
 }
+
+/**
+ * Build _fields parameter for WordPress REST API
+ *
+ * @param fields - Optional array of field names to include in response
+ * @returns Comma-separated field names or undefined if no fields provided
+ */
+export function buildFieldsParam(fields?: string[]): string | undefined {
+  if (!fields || fields.length === 0) {
+    return undefined;
+  }
+  return fields.join(',');
+}

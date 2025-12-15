@@ -35,6 +35,8 @@ export {
   type Cookbook,
   type LoadedCookbook,
   type CookbookLoadResult,
+  type CookbookRegistryEntry,
+  type CookbookRegistry,
 } from './types.js';
 
 // SKILL.md types
@@ -70,6 +72,10 @@ export {
   getCookbook,
   hasCookbook,
   getBundledPath,
+  // Registry functions (fast enumeration)
+  listBundledFromRegistry,
+  getRegistryEntry,
+  getBundledRegistry,
   type CookbookDiscoveryOptions,
   type DiscoveredCookbooks,
   type LoadedSkillCookbook,

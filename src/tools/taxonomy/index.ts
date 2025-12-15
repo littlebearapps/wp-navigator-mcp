@@ -13,6 +13,7 @@ import {
   validatePagination,
   validateId,
   buildQueryString,
+  buildFieldsParam,
 } from '../../tool-registry/utils.js';
 
 /**
@@ -37,13 +38,24 @@ export function registerTaxonomyTools() {
           },
           search: { type: 'string', description: 'Search term to filter categories by name' },
           parent: { type: 'number', description: 'Filter by parent category ID' },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Fields to return (e.g., ["id", "name", "count"]). Reduces response size.',
+          },
         },
         required: [],
       },
     },
     handler: async (args, context) => {
       const { page, per_page } = validatePagination(args);
-      const qs = buildQueryString({ page, per_page, search: args.search, parent: args.parent });
+      const qs = buildQueryString({
+        page,
+        per_page,
+        search: args.search,
+        parent: args.parent,
+        _fields: buildFieldsParam(args.fields),
+      });
 
       const categories = await context.wpRequest(`/wp/v2/categories?${qs}`);
 
@@ -63,6 +75,11 @@ export function registerTaxonomyTools() {
         type: 'object',
         properties: {
           id: { type: 'number', description: 'WordPress category ID' },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Fields to return (e.g., ["id", "name", "count"]). Reduces response size.',
+          },
         },
         required: ['id'],
       },
@@ -71,7 +88,11 @@ export function registerTaxonomyTools() {
       validateRequired(args, ['id']);
       const id = validateId(args.id, 'Category');
 
-      const category = await context.wpRequest(`/wp/v2/categories/${id}`);
+      const fieldsParam = buildFieldsParam(args.fields);
+      const url = fieldsParam
+        ? `/wp/v2/categories/${id}?_fields=${fieldsParam}`
+        : `/wp/v2/categories/${id}`;
+      const category = await context.wpRequest(url);
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(category, null, 2)) }],
@@ -369,13 +390,23 @@ export function registerTaxonomyTools() {
             description: 'Number of tags to return (default: 10, max: 100)',
           },
           search: { type: 'string', description: 'Search term to filter tags by name' },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Fields to return (e.g., ["id", "name", "count"]). Reduces response size.',
+          },
         },
         required: [],
       },
     },
     handler: async (args, context) => {
       const { page, per_page } = validatePagination(args);
-      const qs = buildQueryString({ page, per_page, search: args.search });
+      const qs = buildQueryString({
+        page,
+        per_page,
+        search: args.search,
+        _fields: buildFieldsParam(args.fields),
+      });
 
       const tags = await context.wpRequest(`/wp/v2/tags?${qs}`);
 
@@ -395,6 +426,11 @@ export function registerTaxonomyTools() {
         type: 'object',
         properties: {
           id: { type: 'number', description: 'WordPress tag ID' },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Fields to return (e.g., ["id", "name", "count"]). Reduces response size.',
+          },
         },
         required: ['id'],
       },
@@ -403,7 +439,9 @@ export function registerTaxonomyTools() {
       validateRequired(args, ['id']);
       const id = validateId(args.id, 'Tag');
 
-      const tag = await context.wpRequest(`/wp/v2/tags/${id}`);
+      const fieldsParam = buildFieldsParam(args.fields);
+      const url = fieldsParam ? `/wp/v2/tags/${id}?_fields=${fieldsParam}` : `/wp/v2/tags/${id}`;
+      const tag = await context.wpRequest(url);
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(tag, null, 2)) }],
@@ -687,12 +725,21 @@ export function registerTaxonomyTools() {
         type: 'object',
         properties: {
           type: { type: 'string', description: 'Filter by post type (e.g., "post", "page")' },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              'Fields to return (e.g., ["name", "slug", "hierarchical"]). Reduces response size.',
+          },
         },
         required: [],
       },
     },
     handler: async (args, context) => {
-      const qs = buildQueryString({ type: args.type });
+      const qs = buildQueryString({
+        type: args.type,
+        _fields: buildFieldsParam(args.fields),
+      });
 
       const taxonomies = await context.wpRequest(`/wp/v2/taxonomies?${qs}`);
 
@@ -715,6 +762,12 @@ export function registerTaxonomyTools() {
             type: 'string',
             description: 'Taxonomy name (e.g., "category", "post_tag", or custom taxonomy)',
           },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              'Fields to return (e.g., ["name", "slug", "hierarchical"]). Reduces response size.',
+          },
         },
         required: ['taxonomy'],
       },
@@ -722,7 +775,11 @@ export function registerTaxonomyTools() {
     handler: async (args, context) => {
       validateRequired(args, ['taxonomy']);
 
-      const taxonomy = await context.wpRequest(`/wp/v2/taxonomies/${args.taxonomy}`);
+      const fieldsParam = buildFieldsParam(args.fields);
+      const url = fieldsParam
+        ? `/wp/v2/taxonomies/${args.taxonomy}?_fields=${fieldsParam}`
+        : `/wp/v2/taxonomies/${args.taxonomy}`;
+      const taxonomy = await context.wpRequest(url);
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(taxonomy, null, 2)) }],

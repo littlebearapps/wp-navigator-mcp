@@ -1,0 +1,103 @@
+# Codex Code Review Integration
+#
+# Fetches Codex review comments from PRs and surfaces them in CI check summary.
+# Does not block merges - informational only for visibility.
+#
+# How it works:
+# 1. Fetches all PR comments from users containing "codex" in login
+# 2. Counts P0 (blocker) and P1 (major) severity issues
+# 3. Generates summary table in GitHub Actions check summary
+# 4. Warns if P0 issues found (does not block)
+#
+# Triggers:
+# - pull_request: opened/synchronize (new PR or new commits)
+# - issue_comment: created (catches @codex review requests)
+# - pull_request_review_comment: created (catches Codex posting reviews)
+
+name: Codex Review Summary
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+# Security: Least-privilege permissions (read-only)
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  codex-summary:
+    name: Codex Findings
+    runs-on: ubuntu-latest
+    # Only run on PRs (not issues) and only for relevant comment events
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request) ||
+      github.event_name == 'pull_request_review_comment'
+    steps:
+      - name: Fetch Codex comments
+        id: codex
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          # Handle different event types for PR number
+          PR_NUM: ${{ github.event.pull_request.number || github.event.issue.number }}
+        run: |
+          # Fetch PR review comments from Codex users
+          COMMENTS=$(gh api \
+            "repos/${REPO}/pulls/${PR_NUM}/comments" \
+            --jq '[.[] | select(.user.login | contains("codex"))] | length' 2>/dev/null || echo "0")
+
+          echo "codex_comment_count=${COMMENTS}" >> "$GITHUB_OUTPUT"
+
+          # Fetch P0/P1 issues (look for severity patterns in comment body)
+          P0=$(gh api \
+            "repos/${REPO}/pulls/${PR_NUM}/comments" \
+            --jq '[.[] | select(.user.login | contains("codex")) | select(.body | test("P0|blocker|critical"; "i"))] | length' 2>/dev/null || echo "0")
+          P1=$(gh api \
+            "repos/${REPO}/pulls/${PR_NUM}/comments" \
+            --jq '[.[] | select(.user.login | contains("codex")) | select(.body | test("P1|major|high"; "i"))] | length' 2>/dev/null || echo "0")
+
+          echo "p0_count=${P0}" >> "$GITHUB_OUTPUT"
+          echo "p1_count=${P1}" >> "$GITHUB_OUTPUT"
+
+          # Log for debugging
+          echo "Total Codex comments: ${COMMENTS}"
+          echo "P0 (blocker) issues: ${P0}"
+          echo "P1 (major) issues: ${P1}"
+
+      - name: Generate summary
+        env:
+          TOTAL: ${{ steps.codex.outputs.codex_comment_count }}
+          P0: ${{ steps.codex.outputs.p0_count }}
+          P1: ${{ steps.codex.outputs.p1_count }}
+        run: |
+          {
+            echo "## Codex Review Summary"
+            echo ""
+
+            if [ "${TOTAL}" = "0" ]; then
+              echo "No Codex review comments found on this PR."
+              echo ""
+              echo "_Tip: Tag \`@codex\` in a PR comment to request a code review._"
+            else
+              echo "| Severity | Count | Action |"
+              echo "|----------|-------|--------|"
+              echo "| P0 (Blocker) | ${P0} | Must address before merge |"
+              echo "| P1 (Major) | ${P1} | Should address before merge |"
+              echo "| **Total Comments** | **${TOTAL}** | |"
+              echo ""
+              echo "Review Codex comments on the **Conversation** tab."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Warn on critical findings
+        if: steps.codex.outputs.p0_count != '0'
+        env:
+          P0_COUNT: ${{ steps.codex.outputs.p0_count }}
+        run: |
+          echo "::warning::Codex found ${P0_COUNT} P0 (blocker) issue(s). Review before merging."

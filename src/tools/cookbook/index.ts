@@ -42,10 +42,12 @@ export function registerCookbookTools() {
         return {
           slug,
           name: cookbook.plugin.name,
+          description: skillCookbook.skillFrontmatter?.description || null,
           version: cookbook.cookbook_version,
           source: cookbook.source,
           min_plugin_version: cookbook.plugin.min_version || null,
           max_plugin_version: cookbook.plugin.max_version || null,
+          requires_wpnav_pro: skillCookbook.skillFrontmatter?.['requires-wpnav-pro'] || null,
           has_skill_body: !!skillCookbook.skillBody,
           allowed_tools_count: skillCookbook.allowedTools?.length || 0,
         };
@@ -75,13 +77,13 @@ export function registerCookbookTools() {
   });
 
   // ============================================================================
-  // wpnav_get_cookbook - Get full cookbook content by slug
+  // wpnav_load_cookbook - Load full cookbook content by slug
   // ============================================================================
   toolRegistry.register({
     definition: {
-      name: 'wpnav_get_cookbook',
+      name: 'wpnav_load_cookbook',
       description:
-        'Get full cookbook content for a specific plugin by slug. Returns the SKILL.md body (AI guidance), frontmatter metadata, and allowed tools list. Use this to load guidance before working with a specific plugin.',
+        'Load a cookbook by slug to get AI guidance for a specific plugin. Returns the full SKILL.md markdown body, parsed frontmatter metadata, and allowed-tools list. Use this when working with plugins like Elementor or WooCommerce.',
       inputSchema: {
         type: 'object',
         properties: {

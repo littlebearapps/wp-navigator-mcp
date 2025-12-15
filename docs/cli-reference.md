@@ -262,13 +262,16 @@ npx wpnav tools --format markdown --examples --toc
 
 **Categories:**
 
-- `core` - Discovery and introspection
+- `core` - Discovery, introspection, post types, search
 - `content` - Posts, pages, media, comments
 - `taxonomy` - Categories and tags
 - `users` - User management
 - `plugins` - Plugin management
 - `themes` - Theme management
 - `gutenberg` - Block editor operations
+- `batch` - Batch get, update, delete operations
+- `cookbook` - AI plugin guidance (Gutenberg, Elementor)
+- `roles` - AI role personas (content-editor, developer, etc.)
 
 ---
 

@@ -21,6 +21,9 @@ import {
   listAvailableCookbooks,
   getCookbook,
   hasCookbook,
+  listBundledFromRegistry,
+  getRegistryEntry,
+  getBundledRegistry,
   type Cookbook,
 } from './index.js';
 
@@ -720,5 +723,90 @@ describe('COOKBOOK_SCHEMA_VERSION', () => {
   it('is defined and is a number', () => {
     expect(typeof COOKBOOK_SCHEMA_VERSION).toBe('number');
     expect(COOKBOOK_SCHEMA_VERSION).toBe(1);
+  });
+});
+
+// =============================================================================
+// Registry Tests
+// =============================================================================
+
+describe('Cookbook Registry', () => {
+  describe('getBundledRegistry', () => {
+    it('loads registry.json from bundled directory', () => {
+      const registry = getBundledRegistry();
+      expect(registry).not.toBeNull();
+      expect(registry?.registry_version).toBe(1);
+      expect(registry?.cookbooks.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('has valid generated timestamp', () => {
+      const registry = getBundledRegistry();
+      expect(registry?.generated).toBeDefined();
+      expect(typeof registry?.generated).toBe('string');
+    });
+  });
+
+  describe('listBundledFromRegistry', () => {
+    it('returns array of bundled cookbook slugs', () => {
+      const slugs = listBundledFromRegistry();
+      expect(slugs).not.toBeNull();
+      expect(Array.isArray(slugs)).toBe(true);
+      expect(slugs).toContain('gutenberg');
+      expect(slugs).toContain('elementor');
+    });
+  });
+
+  describe('getRegistryEntry', () => {
+    it('returns entry for valid slug', () => {
+      const entry = getRegistryEntry('gutenberg');
+      expect(entry).not.toBeNull();
+      expect(entry?.slug).toBe('gutenberg');
+      expect(entry?.file).toBe('gutenberg.md');
+      expect(entry?.name).toBe('Gutenberg');
+      expect(entry?.version).toBe('1.0.0');
+    });
+
+    it('includes allowed_tools for gutenberg', () => {
+      const entry = getRegistryEntry('gutenberg');
+      expect(entry?.allowed_tools).toBeDefined();
+      expect(Array.isArray(entry?.allowed_tools)).toBe(true);
+      expect(entry?.allowed_tools).toContain('wpnav_list_posts');
+      expect(entry?.allowed_tools).toContain('wpnav_gutenberg_insert_block');
+    });
+
+    it('includes allowed_tools for elementor', () => {
+      const entry = getRegistryEntry('elementor');
+      expect(entry?.allowed_tools).toBeDefined();
+      expect(entry?.allowed_tools).toContain('wpnav_elementor_list_elements');
+    });
+
+    it('returns null for unknown slug', () => {
+      const entry = getRegistryEntry('nonexistent-plugin');
+      expect(entry).toBeNull();
+    });
+
+    it('includes min_plugin_version', () => {
+      const gutenberg = getRegistryEntry('gutenberg');
+      expect(gutenberg?.min_plugin_version).toBe('6.0');
+
+      const elementor = getRegistryEntry('elementor');
+      expect(elementor?.min_plugin_version).toBe('3.20.0');
+    });
+  });
+
+  describe('discoverCookbooks with registry', () => {
+    it('discovers bundled cookbooks using registry', () => {
+      const { cookbooks, sources } = discoverCookbooks({ includeBundled: true });
+      expect(sources.bundled).toContain('gutenberg');
+      expect(sources.bundled).toContain('elementor');
+      expect(cookbooks.has('gutenberg')).toBe(true);
+      expect(cookbooks.has('elementor')).toBe(true);
+    });
+
+    it('loaded cookbooks have correct source', () => {
+      const { cookbooks } = discoverCookbooks({ includeBundled: true });
+      const gutenberg = cookbooks.get('gutenberg');
+      expect(gutenberg?.source).toBe('bundled');
+    });
   });
 });

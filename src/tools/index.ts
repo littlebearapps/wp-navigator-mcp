@@ -16,6 +16,8 @@ import { registerThemeTools } from './themes/index.js';
 import { registerTestingTools } from './testing/index.js';
 import { registerGutenbergTools } from './gutenberg/index.js';
 import { registerCookbookTools } from './cookbook/index.js';
+import { registerRoleTools } from './roles/index.js';
+import { registerBatchTools } from './batch/index.js';
 
 /**
  * Register all tools with the tool registry
@@ -32,4 +34,6 @@ export function registerAllTools() {
   registerTestingTools();
   registerGutenbergTools();
   registerCookbookTools();
+  registerRoleTools();
+  registerBatchTools();
 }

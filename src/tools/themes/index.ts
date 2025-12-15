@@ -11,7 +11,7 @@
  */
 
 import { toolRegistry, ToolCategory } from '../../tool-registry/index.js';
-import { validateRequired } from '../../tool-registry/utils.js';
+import { validateRequired, buildFieldsParam } from '../../tool-registry/utils.js';
 
 /**
  * Register theme management tools
@@ -33,6 +33,12 @@ export function registerThemeTools() {
             description:
               'Optional filter by status (e.g., "active" or "inactive"). If omitted or set to "all", returns all themes.',
           },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              'Fields to return (e.g., ["stylesheet", "name", "status"]). Reduces response size.',
+          },
         },
         required: [],
       },
@@ -41,6 +47,10 @@ export function registerThemeTools() {
       const params = new URLSearchParams();
       if (args.status && args.status !== 'all') {
         params.append('status', args.status);
+      }
+      const fieldsParam = buildFieldsParam(args.fields);
+      if (fieldsParam) {
+        params.append('_fields', fieldsParam);
       }
 
       const qs = params.toString();
@@ -70,6 +80,12 @@ export function registerThemeTools() {
             description:
               'Theme stylesheet from wpnav_list_themes "stylesheet" field (e.g., "twentytwentyfour")',
           },
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              'Fields to return (e.g., ["stylesheet", "name", "version"]). Reduces response size.',
+          },
         },
         required: ['stylesheet'],
       },
@@ -77,7 +93,11 @@ export function registerThemeTools() {
     handler: async (args, context) => {
       validateRequired(args, ['stylesheet']);
 
-      const theme = await context.wpRequest(`/wp/v2/themes/${args.stylesheet}`);
+      const fieldsParam = buildFieldsParam(args.fields);
+      const url = fieldsParam
+        ? `/wp/v2/themes/${args.stylesheet}?_fields=${fieldsParam}`
+        : `/wp/v2/themes/${args.stylesheet}`;
+      const theme = await context.wpRequest(url);
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(theme, null, 2)) }],
