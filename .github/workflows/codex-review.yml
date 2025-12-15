@@ -1,103 +1,185 @@
-# Codex Code Review Integration
+# Codex Code Review Integration (Blocking)
 #
-# Fetches Codex review comments from PRs and surfaces them in CI check summary.
-# Does not block merges - informational only for visibility.
+# This workflow fetches Codex review comments and BLOCKS merge if P0/P1 issues found.
 #
 # How it works:
 # 1. Fetches all PR comments from users containing "codex" in login
 # 2. Counts P0 (blocker) and P1 (major) severity issues
 # 3. Generates summary table in GitHub Actions check summary
-# 4. Warns if P0 issues found (does not block)
+# 4. FAILS the check if P0 or P1 issues found (blocking merge)
 #
-# Triggers:
-# - pull_request: opened/synchronize (new PR or new commits)
-# - issue_comment: created (catches @codex review requests)
-# - pull_request_review_comment: created (catches Codex posting reviews)
+# To request a review: Comment "@codex review" on the PR
+#
+# Codex severity levels:
+# - P0 (Blocker): Must address before merge - BLOCKS
+# - P1 (Major): Should address before merge - BLOCKS
+# - P2+ (Minor): Address in follow-up if complex - Does NOT block
 
-name: Codex Review Summary
+name: Codex Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened]
   issue_comment:
     types: [created]
   pull_request_review_comment:
     types: [created]
+  pull_request_review:
+    types: [submitted]
+  # Allow manual trigger for re-checking after fixes
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to check'
+        required: true
+        type: number
 
-# Security: Least-privilege permissions (read-only)
+# Security: Least-privilege permissions
 permissions:
   contents: read
   pull-requests: read
 
+# Prevent duplicate runs but don't cancel - we want latest status
+concurrency:
+  group: codex-review-${{ github.event.pull_request.number || github.event.issue.number || github.event.inputs.pr_number }}
+  cancel-in-progress: false
+
 jobs:
-  codex-summary:
-    name: Codex Findings
+  codex-review:
+    name: Codex Review Check
     runs-on: ubuntu-latest
-    # Only run on PRs (not issues) and only for relevant comment events
+    # Only run on PRs (not issues) and for relevant comment events
     if: |
       github.event_name == 'pull_request' ||
+      github.event_name == 'pull_request_review' ||
+      github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request) ||
       github.event_name == 'pull_request_review_comment'
+
+    outputs:
+      p0_count: ${{ steps.codex.outputs.p0_count }}
+      p1_count: ${{ steps.codex.outputs.p1_count }}
+      total_count: ${{ steps.codex.outputs.codex_comment_count }}
+
     steps:
+      - name: Determine PR Number
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "number=${{ github.event.inputs.pr_number }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "pull_request_review" ]; then
+            echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          else
+            echo "number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Wait for Codex to process
+        # Give Codex time to analyze the PR (especially on synchronize events)
+        if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
+        run: |
+          echo "Waiting 30 seconds for Codex to process new commits..."
+          sleep 30
+
       - name: Fetch Codex comments
         id: codex
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          # Handle different event types for PR number
-          PR_NUM: ${{ github.event.pull_request.number || github.event.issue.number }}
+          PR_NUM: ${{ steps.pr.outputs.number }}
         run: |
+          echo "Fetching Codex comments for PR #$PR_NUM..."
+
           # Fetch PR review comments from Codex users
-          COMMENTS=$(gh api \
-            "repos/${REPO}/pulls/${PR_NUM}/comments" \
-            --jq '[.[] | select(.user.login | contains("codex"))] | length' 2>/dev/null || echo "0")
+          REVIEW_COMMENTS=$(gh api \
+            "repos/$REPO/pulls/$PR_NUM/comments" \
+            --jq '[.[] | select(.user.login | test("codex"; "i"))]' 2>/dev/null || echo "[]")
 
-          echo "codex_comment_count=${COMMENTS}" >> "$GITHUB_OUTPUT"
+          # Fetch issue comments from Codex users
+          ISSUE_COMMENTS=$(gh api \
+            "repos/$REPO/issues/$PR_NUM/comments" \
+            --jq '[.[] | select(.user.login | test("codex"; "i"))]' 2>/dev/null || echo "[]")
 
-          # Fetch P0/P1 issues (look for severity patterns in comment body)
-          P0=$(gh api \
-            "repos/${REPO}/pulls/${PR_NUM}/comments" \
-            --jq '[.[] | select(.user.login | contains("codex")) | select(.body | test("P0|blocker|critical"; "i"))] | length' 2>/dev/null || echo "0")
-          P1=$(gh api \
-            "repos/${REPO}/pulls/${PR_NUM}/comments" \
-            --jq '[.[] | select(.user.login | contains("codex")) | select(.body | test("P1|major|high"; "i"))] | length' 2>/dev/null || echo "0")
+          # Fetch PR reviews from Codex users
+          REVIEWS=$(gh api \
+            "repos/$REPO/pulls/$PR_NUM/reviews" \
+            --jq '[.[] | select(.user.login | test("codex"; "i"))]' 2>/dev/null || echo "[]")
 
-          echo "p0_count=${P0}" >> "$GITHUB_OUTPUT"
-          echo "p1_count=${P1}" >> "$GITHUB_OUTPUT"
+          # Combine all comments
+          ALL_COMMENTS=$(echo "$REVIEW_COMMENTS" "$ISSUE_COMMENTS" "$REVIEWS" | jq -s 'add')
+          TOTAL=$(echo "$ALL_COMMENTS" | jq 'length')
+          echo "codex_comment_count=$TOTAL" >> $GITHUB_OUTPUT
 
-          # Log for debugging
-          echo "Total Codex comments: ${COMMENTS}"
-          echo "P0 (blocker) issues: ${P0}"
-          echo "P1 (major) issues: ${P1}"
+          # Count P0 issues (blocker/critical patterns)
+          P0=$(echo "$ALL_COMMENTS" | jq '[.[] | select(.body | test("\\bP0\\b|\\[P0\\]|blocker|critical|severity[^a-z]*0"; "i"))] | length')
+          echo "p0_count=$P0" >> $GITHUB_OUTPUT
+
+          # Count P1 issues (major/high patterns)
+          P1=$(echo "$ALL_COMMENTS" | jq '[.[] | select(.body | test("\\bP1\\b|\\[P1\\]|major|severity[^a-z]*1"; "i"))] | length')
+          echo "p1_count=$P1" >> $GITHUB_OUTPUT
+
+          # Debug output
+          echo "Total Codex comments: $TOTAL"
+          echo "P0 (blocker) issues: $P0"
+          echo "P1 (major) issues: $P1"
 
       - name: Generate summary
         env:
           TOTAL: ${{ steps.codex.outputs.codex_comment_count }}
           P0: ${{ steps.codex.outputs.p0_count }}
           P1: ${{ steps.codex.outputs.p1_count }}
+          PR_NUM: ${{ steps.pr.outputs.number }}
         run: |
-          {
-            echo "## Codex Review Summary"
-            echo ""
+          echo "## Codex Code Review Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-            if [ "${TOTAL}" = "0" ]; then
-              echo "No Codex review comments found on this PR."
-              echo ""
-              echo "_Tip: Tag \`@codex\` in a PR comment to request a code review._"
+          if [ "$TOTAL" = "0" ]; then
+            echo "> No Codex review comments found on this PR." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "_Tip: Tag \`@codex review\` in a PR comment to request a code review._" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Severity | Count | Status |" >> $GITHUB_STEP_SUMMARY
+            echo "|----------|-------|--------|" >> $GITHUB_STEP_SUMMARY
+
+            # P0 status
+            if [ "$P0" != "0" ]; then
+              echo "| **P0 (Blocker)** | $P0 | :x: **BLOCKING** |" >> $GITHUB_STEP_SUMMARY
             else
-              echo "| Severity | Count | Action |"
-              echo "|----------|-------|--------|"
-              echo "| P0 (Blocker) | ${P0} | Must address before merge |"
-              echo "| P1 (Major) | ${P1} | Should address before merge |"
-              echo "| **Total Comments** | **${TOTAL}** | |"
-              echo ""
-              echo "Review Codex comments on the **Conversation** tab."
+              echo "| P0 (Blocker) | $P0 | :white_check_mark: None |" >> $GITHUB_STEP_SUMMARY
             fi
-          } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Warn on critical findings
-        if: steps.codex.outputs.p0_count != '0'
+            # P1 status
+            if [ "$P1" != "0" ]; then
+              echo "| **P1 (Major)** | $P1 | :x: **BLOCKING** |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| P1 (Major) | $P1 | :white_check_mark: None |" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            echo "| Total Comments | $TOTAL | |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            if [ "$P0" != "0" ] || [ "$P1" != "0" ]; then
+              echo "### :warning: How to resolve" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "1. Review Codex comments on the **Conversation** and **Files changed** tabs" >> $GITHUB_STEP_SUMMARY
+              echo "2. Address all P0 and P1 issues" >> $GITHUB_STEP_SUMMARY
+              echo "3. Push fixes" >> $GITHUB_STEP_SUMMARY
+              echo "4. Request re-review: Comment \`@codex review\` on the PR" >> $GITHUB_STEP_SUMMARY
+              echo "5. Re-run this check via Actions tab or push new commits" >> $GITHUB_STEP_SUMMARY
+            else
+              echo ":white_check_mark: **No blocking issues found!** PR is ready for merge." >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+      - name: Fail on blocking issues
+        if: steps.codex.outputs.p0_count != '0' || steps.codex.outputs.p1_count != '0'
         env:
-          P0_COUNT: ${{ steps.codex.outputs.p0_count }}
+          P0: ${{ steps.codex.outputs.p0_count }}
+          P1: ${{ steps.codex.outputs.p1_count }}
         run: |
-          echo "::warning::Codex found ${P0_COUNT} P0 (blocker) issue(s). Review before merging."
+          echo "::error::Codex found blocking issues: $P0 P0 (blocker) and $P1 P1 (major) issues."
+          echo ""
+          echo "Please address these issues before merging."
+          echo "See the Codex comments on the PR for details."
+          exit 1
