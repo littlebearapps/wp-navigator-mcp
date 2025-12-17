@@ -27,7 +27,24 @@ import {
   DEFAULT_BRAND_LAYOUT,
   DEFAULT_MANIFEST_SAFETY,
   DEFAULT_BACKUP_REMINDERS,
+  // v2 exports
+  isManifestV2,
+  isToolCategoryString,
+  isAIFocusMode,
+  isSafetyMode,
+  isOperationType,
+  getManifestTools,
+  getManifestRoles,
+  getManifestAI,
+  getManifestSafetyV2,
+  asManifestV2,
+  DEFAULT_MANIFEST_TOOLS,
+  DEFAULT_MANIFEST_ROLES,
+  DEFAULT_MANIFEST_AI,
+  DEFAULT_MANIFEST_SAFETY_V2,
   type WPNavManifest,
+  type WPNavManifestV2,
+  type WPNavManifestRuntime,
 } from './manifest.js';
 
 // Mock fs module
@@ -41,7 +58,7 @@ describe('manifest', () => {
 
   describe('CURRENT_SCHEMA_VERSION', () => {
     it('should be defined as integer', () => {
-      expect(CURRENT_SCHEMA_VERSION).toBe(1);
+      expect(CURRENT_SCHEMA_VERSION).toBe(2);
       expect(Number.isInteger(CURRENT_SCHEMA_VERSION)).toBe(true);
     });
 
@@ -197,7 +214,7 @@ describe('manifest', () => {
     });
 
     it('should include upgrade instructions in SchemaVersionError', () => {
-      const manifest = { schema_version: 2, manifest_version: '1.0', meta: { name: 'Test' } };
+      const manifest = { schema_version: 99, manifest_version: '1.0', meta: { name: 'Test' } };
       try {
         validateManifest(manifest, '/test');
         expect.fail('Should have thrown');
@@ -560,6 +577,452 @@ describe('manifest', () => {
         safety: { backup_reminders: { frequency: 'invalid' } },
       };
       expect(() => validateManifest(manifest, '/test')).toThrow(/backup_reminders\.frequency/);
+    });
+  });
+
+  // =============================================================================
+  // Schema v2 Tests
+  // =============================================================================
+
+  describe('schema v2', () => {
+    // Valid v2 manifest for tests
+    const validV2Manifest: WPNavManifestV2 = {
+      schema_version: 2,
+      manifest_version: '1.0',
+      meta: { name: 'Test Site' },
+    };
+
+    describe('type guards', () => {
+      describe('isManifestV2', () => {
+        it('should return true for schema_version >= 2', () => {
+          expect(isManifestV2(validV2Manifest)).toBe(true);
+        });
+
+        it('should return false for schema_version 1', () => {
+          const v1: WPNavManifest = {
+            schema_version: 1,
+            manifest_version: '1.0',
+            meta: { name: 'Test' },
+          };
+          expect(isManifestV2(v1)).toBe(false);
+        });
+      });
+
+      describe('isToolCategoryString', () => {
+        it('should return true for valid categories', () => {
+          const validCategories = [
+            'core',
+            'content',
+            'taxonomy',
+            'users',
+            'plugins',
+            'themes',
+            'workflows',
+            'cookbook',
+            'roles',
+            'batch',
+          ];
+          for (const cat of validCategories) {
+            expect(isToolCategoryString(cat)).toBe(true);
+          }
+        });
+
+        it('should return false for invalid categories', () => {
+          expect(isToolCategoryString('invalid')).toBe(false);
+          expect(isToolCategoryString('')).toBe(false);
+          expect(isToolCategoryString('CORE')).toBe(false);
+        });
+      });
+
+      describe('isAIFocusMode', () => {
+        it('should return true for valid focus modes', () => {
+          const validModes = ['content-editing', 'full-admin', 'read-only', 'custom'];
+          for (const mode of validModes) {
+            expect(isAIFocusMode(mode)).toBe(true);
+          }
+        });
+
+        it('should return false for invalid modes', () => {
+          expect(isAIFocusMode('invalid')).toBe(false);
+          expect(isAIFocusMode('')).toBe(false);
+        });
+      });
+
+      describe('isSafetyMode', () => {
+        it('should return true for valid safety modes', () => {
+          const validModes = ['yolo', 'normal', 'cautious'];
+          for (const mode of validModes) {
+            expect(isSafetyMode(mode)).toBe(true);
+          }
+        });
+
+        it('should return false for invalid modes', () => {
+          expect(isSafetyMode('invalid')).toBe(false);
+          expect(isSafetyMode('balanced')).toBe(false);
+        });
+      });
+
+      describe('isOperationType', () => {
+        it('should return true for valid operation types', () => {
+          const validOps = ['create', 'update', 'delete', 'activate', 'deactivate', 'batch'];
+          for (const op of validOps) {
+            expect(isOperationType(op)).toBe(true);
+          }
+        });
+
+        it('should return false for invalid types', () => {
+          expect(isOperationType('invalid')).toBe(false);
+          expect(isOperationType('read')).toBe(false);
+        });
+      });
+    });
+
+    describe('validation', () => {
+      it('should validate minimal v2 manifest', () => {
+        const result = validateManifest(validV2Manifest, '/test');
+        expect(result.schema_version).toBe(2);
+        expect(result.meta.name).toBe('Test Site');
+      });
+
+      it('should validate v2 manifest with tools section', () => {
+        const manifest = {
+          ...validV2Manifest,
+          tools: {
+            enabled: ['core', 'content'],
+            disabled: ['users'],
+            overrides: { wpnav_delete_post: false },
+          },
+        };
+        const result = validateManifest(manifest, '/test');
+        expect(isManifestV2(result)).toBe(true);
+        if (isManifestV2(result)) {
+          expect(result.tools?.enabled).toEqual(['core', 'content']);
+          expect(result.tools?.disabled).toEqual(['users']);
+          expect(result.tools?.overrides?.wpnav_delete_post).toBe(false);
+        }
+      });
+
+      it('should reject invalid tool category in enabled', () => {
+        const manifest = {
+          ...validV2Manifest,
+          tools: { enabled: ['core', 'invalid_category'] },
+        };
+        expect(() => validateManifest(manifest, '/test')).toThrow(/invalid_category/);
+      });
+
+      it('should reject invalid tool category in disabled', () => {
+        const manifest = {
+          ...validV2Manifest,
+          tools: { disabled: ['not_a_category'] },
+        };
+        expect(() => validateManifest(manifest, '/test')).toThrow(/not_a_category/);
+      });
+
+      it('should validate v2 manifest with roles section', () => {
+        const manifest = {
+          ...validV2Manifest,
+          roles: {
+            active: 'content-editor',
+            auto_detect: true,
+            project_path: './roles',
+          },
+        };
+        const result = validateManifest(manifest, '/test');
+        expect(isManifestV2(result)).toBe(true);
+        if (isManifestV2(result)) {
+          expect(result.roles?.active).toBe('content-editor');
+          expect(result.roles?.auto_detect).toBe(true);
+        }
+      });
+
+      it('should reject invalid roles.active type', () => {
+        const manifest = {
+          ...validV2Manifest,
+          roles: { active: 123 },
+        };
+        expect(() => validateManifest(manifest, '/test')).toThrow(/roles\.active/);
+      });
+
+      it('should validate v2 manifest with ai section', () => {
+        const manifest = {
+          ...validV2Manifest,
+          ai: {
+            focus: 'content-editing',
+            instructions: 'Focus on blog posts',
+            prompts_path: './prompts',
+          },
+        };
+        const result = validateManifest(manifest, '/test');
+        expect(isManifestV2(result)).toBe(true);
+        if (isManifestV2(result)) {
+          expect(result.ai?.focus).toBe('content-editing');
+          expect(result.ai?.instructions).toBe('Focus on blog posts');
+        }
+      });
+
+      it('should reject invalid ai.focus value', () => {
+        const manifest = {
+          ...validV2Manifest,
+          ai: { focus: 'invalid-focus' },
+        };
+        expect(() => validateManifest(manifest, '/test')).toThrow(/ai\.focus/);
+      });
+
+      it('should validate v2 manifest with safety v2 fields', () => {
+        const manifest = {
+          ...validV2Manifest,
+          safety: {
+            mode: 'cautious',
+            max_batch_size: 5,
+            allowed_operations: ['create', 'update'],
+            blocked_operations: ['delete'],
+          },
+        };
+        const result = validateManifest(manifest, '/test');
+        expect(isManifestV2(result)).toBe(true);
+        if (isManifestV2(result)) {
+          expect(result.safety?.mode).toBe('cautious');
+          expect(result.safety?.max_batch_size).toBe(5);
+          expect(result.safety?.allowed_operations).toEqual(['create', 'update']);
+        }
+      });
+
+      it('should reject invalid safety.mode', () => {
+        const manifest = {
+          ...validV2Manifest,
+          safety: { mode: 'invalid_mode' },
+        };
+        expect(() => validateManifest(manifest, '/test')).toThrow(/safety\.mode/);
+      });
+
+      it('should reject invalid operation type in allowed_operations', () => {
+        const manifest = {
+          ...validV2Manifest,
+          safety: { allowed_operations: ['create', 'invalid_op'] },
+        };
+        expect(() => validateManifest(manifest, '/test')).toThrow(/invalid_op/);
+      });
+
+      it('should validate v2 manifest with env section', () => {
+        const manifest = {
+          ...validV2Manifest,
+          env: {
+            local: { safety: { mode: 'yolo' } },
+            staging: { safety: { mode: 'normal' } },
+          },
+        };
+        const result = validateManifest(manifest, '/test');
+        expect(isManifestV2(result)).toBe(true);
+        if (isManifestV2(result)) {
+          expect(result.env?.local?.safety?.mode).toBe('yolo');
+        }
+      });
+
+      it('should reject invalid safety.mode in env section', () => {
+        const manifest = {
+          ...validV2Manifest,
+          env: {
+            local: { safety: { mode: 'invalid' } },
+          },
+        };
+        expect(() => validateManifest(manifest, '/test')).toThrow(/Invalid safety\.mode/);
+      });
+
+      it('should validate full v2 manifest with all sections', () => {
+        const fullV2Manifest = {
+          schema_version: 2,
+          manifest_version: '1.0',
+          meta: { name: 'Full Test', description: 'Complete v2 test' },
+          tools: {
+            enabled: ['core', 'content', 'taxonomy'],
+            disabled: ['users'],
+            overrides: { wpnav_delete_post: false },
+            cookbooks: { load: ['gutenberg'], auto_detect: true },
+          },
+          roles: {
+            active: 'content-editor',
+            auto_detect: true,
+            project_path: './roles',
+          },
+          ai: {
+            focus: 'content-editing',
+            instructions: 'Test instructions',
+          },
+          safety: {
+            mode: 'cautious',
+            max_batch_size: 10,
+            allowed_operations: ['create', 'update'],
+            blocked_operations: ['delete'],
+          },
+          env: {
+            local: { safety: { mode: 'yolo' } },
+          },
+        };
+        const result = validateManifest(fullV2Manifest, '/test');
+        expect(result.schema_version).toBe(2);
+        expect(isManifestV2(result)).toBe(true);
+      });
+    });
+
+    describe('default value helpers v2', () => {
+      describe('getManifestTools', () => {
+        it('should return defaults when no manifest provided', () => {
+          const result = getManifestTools(undefined);
+          expect(result).toEqual(DEFAULT_MANIFEST_TOOLS);
+        });
+
+        it('should return defaults for v1 manifest', () => {
+          const v1: WPNavManifest = {
+            schema_version: 1,
+            manifest_version: '1.0',
+            meta: { name: 'Test' },
+          };
+          const result = getManifestTools(v1);
+          expect(result).toEqual(DEFAULT_MANIFEST_TOOLS);
+        });
+
+        it('should merge with defaults for v2 manifest', () => {
+          const v2: WPNavManifestV2 = {
+            ...validV2Manifest,
+            tools: { enabled: ['core', 'content'] },
+          };
+          const result = getManifestTools(v2);
+          expect(result.enabled).toEqual(['core', 'content']);
+          expect(result.disabled).toEqual(DEFAULT_MANIFEST_TOOLS.disabled);
+        });
+      });
+
+      describe('getManifestRoles', () => {
+        it('should return defaults when no manifest provided', () => {
+          const result = getManifestRoles(undefined);
+          expect(result).toEqual(DEFAULT_MANIFEST_ROLES);
+        });
+
+        it('should merge with defaults for v2 manifest', () => {
+          const v2: WPNavManifestV2 = {
+            ...validV2Manifest,
+            roles: { active: 'site-admin' },
+          };
+          const result = getManifestRoles(v2);
+          expect(result.active).toBe('site-admin');
+          expect(result.auto_detect).toBe(DEFAULT_MANIFEST_ROLES.auto_detect);
+        });
+      });
+
+      describe('getManifestAI', () => {
+        it('should return defaults when no manifest provided', () => {
+          const result = getManifestAI(undefined);
+          expect(result).toEqual(DEFAULT_MANIFEST_AI);
+        });
+
+        it('should merge with defaults for v2 manifest', () => {
+          const v2: WPNavManifestV2 = {
+            ...validV2Manifest,
+            ai: { focus: 'full-admin', instructions: 'Custom' },
+          };
+          const result = getManifestAI(v2);
+          expect(result.focus).toBe('full-admin');
+          expect(result.instructions).toBe('Custom');
+          expect(result.prompts_path).toBe(DEFAULT_MANIFEST_AI.prompts_path);
+        });
+      });
+
+      describe('getManifestSafetyV2', () => {
+        it('should return defaults when no manifest provided', () => {
+          const result = getManifestSafetyV2(undefined);
+          expect(result).toEqual(DEFAULT_MANIFEST_SAFETY_V2);
+        });
+
+        it('should merge with defaults for v2 manifest', () => {
+          const v2: WPNavManifestV2 = {
+            ...validV2Manifest,
+            safety: { mode: 'yolo', max_batch_size: 20 },
+          };
+          const result = getManifestSafetyV2(v2);
+          expect(result.mode).toBe('yolo');
+          expect(result.max_batch_size).toBe(20);
+          expect(result.allowed_operations).toEqual(DEFAULT_MANIFEST_SAFETY_V2.allowed_operations);
+        });
+      });
+
+      describe('asManifestV2', () => {
+        it('should return v2 manifest as-is', () => {
+          const result = asManifestV2(validV2Manifest);
+          expect(result.schema_version).toBe(2);
+          expect(result.meta.name).toBe('Test Site');
+        });
+
+        it('should upgrade v1 manifest to v2', () => {
+          const v1: WPNavManifest = {
+            schema_version: 1,
+            manifest_version: '1.0',
+            meta: { name: 'V1 Site' },
+            safety: { require_confirmation: true },
+          };
+          const result = asManifestV2(v1);
+          expect(result.schema_version).toBe(2);
+          expect(result.meta.name).toBe('V1 Site');
+          // v1 safety fields should be preserved
+          expect(result.safety?.require_confirmation).toBe(true);
+        });
+      });
+    });
+
+    describe('backwards compatibility', () => {
+      it('should still validate v1 manifests', () => {
+        const v1: WPNavManifest = {
+          schema_version: 1,
+          manifest_version: '1.0',
+          meta: { name: 'V1 Site' },
+          pages: [{ slug: 'about', title: 'About' }],
+          plugins: { woocommerce: { enabled: true } },
+        };
+        const result = validateManifest(v1, '/test');
+        expect(result.schema_version).toBe(1);
+        expect(result.pages).toHaveLength(1);
+      });
+
+      it('should not require v2 sections in v1 manifest', () => {
+        const v1: WPNavManifest = {
+          schema_version: 1,
+          manifest_version: '1.0',
+          meta: { name: 'Minimal V1' },
+        };
+        expect(() => validateManifest(v1, '/test')).not.toThrow();
+      });
+
+      it('should still enforce v1 validation rules', () => {
+        const v1Invalid = {
+          schema_version: 1,
+          manifest_version: '1.0',
+          meta: { name: 'Test' },
+          pages: [{ slug: 'no-title' }], // Missing title
+        };
+        expect(() => validateManifest(v1Invalid, '/test')).toThrow(/title/);
+      });
+    });
+
+    describe('loadManifest with v2', () => {
+      it('should load v2 manifest with new sections', () => {
+        const v2Content = JSON.stringify({
+          schema_version: 2,
+          manifest_version: '1.0',
+          meta: { name: 'V2 Site' },
+          tools: { enabled: ['core'] },
+          ai: { focus: 'content-editing' },
+        });
+        mockFs.existsSync.mockReturnValue(true);
+        mockFs.readFileSync.mockReturnValue(v2Content);
+
+        const result = loadManifest('/test/project');
+
+        expect(result.found).toBe(true);
+        expect(result.manifest?.schema_version).toBe(2);
+        if (result.manifest && isManifestV2(result.manifest)) {
+          expect(result.manifest.tools?.enabled).toEqual(['core']);
+          expect(result.manifest.ai?.focus).toBe('content-editing');
+        }
+      });
     });
   });
 });

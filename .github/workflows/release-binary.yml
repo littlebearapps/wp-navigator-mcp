@@ -1,0 +1,266 @@
+# =============================================================================
+# Binary Release Workflow for WP Navigator MCP
+#
+# Builds standalone executables using Bun compile and attaches them to GitHub Releases.
+# Supports: macOS (arm64/x64), Linux (x64), Windows (x64)
+#
+# Triggers:
+#   - release: published (automatic on release)
+#   - workflow_dispatch (manual for testing)
+#
+# @package WP_Navigator_MCP
+# @since 2.7.0
+# =============================================================================
+
+name: Release Binaries
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build binaries for (e.g., v2.7.0)'
+        required: true
+        type: string
+
+# Workflow-level permissions (minimal by default)
+permissions:
+  contents: read
+
+env:
+  # Store release tag in env to avoid injection risks
+  RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+
+jobs:
+  # ===========================================================================
+  # Build binaries on each platform natively
+  # ===========================================================================
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS Apple Silicon (arm64)
+          - os: macos-latest
+            target: macos-arm64
+            bun-target: bun-darwin-arm64
+            binary-name: wpnav-macos-arm64
+
+          # macOS Intel (x64)
+          - os: macos-13
+            target: macos-x64
+            bun-target: bun-darwin-x64
+            binary-name: wpnav-macos-x64
+
+          # Linux x64
+          - os: ubuntu-latest
+            target: linux-x64
+            bun-target: bun-linux-x64
+            binary-name: wpnav-linux-x64
+
+          # Windows x64
+          - os: windows-latest
+            target: windows-x64
+            bun-target: bun-windows-x64
+            binary-name: wpnav-windows-x64.exe
+
+    runs-on: ${{ matrix.os }}
+    name: Build ${{ matrix.target }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Generate embedded assets
+        run: bun scripts/embed-assets.ts
+
+      - name: Rebuild with embedded assets
+        run: npm run build
+
+      - name: Get version from package.json
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building version $VERSION"
+
+      - name: Build binary
+        shell: bash
+        env:
+          BUN_TARGET: ${{ matrix.bun-target }}
+          BINARY_NAME: ${{ matrix.binary-name }}
+        run: |
+          mkdir -p dist/binary
+          bun build src/binary-entry.ts \
+            --compile \
+            --target="$BUN_TARGET" \
+            --minify \
+            --outfile "dist/binary/$BINARY_NAME"
+
+      - name: Verify binary exists
+        shell: bash
+        env:
+          BINARY_NAME: ${{ matrix.binary-name }}
+        run: |
+          ls -lh dist/binary/
+          if [[ ! -f "dist/binary/$BINARY_NAME" ]]; then
+            echo "ERROR: Binary not found!"
+            exit 1
+          fi
+
+      - name: Check binary size
+        shell: bash
+        env:
+          BINARY_NAME: ${{ matrix.binary-name }}
+        run: |
+          # Get size based on OS
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            SIZE=$(stat -f%z "dist/binary/$BINARY_NAME")
+          else
+            SIZE=$(stat -c%s "dist/binary/$BINARY_NAME")
+          fi
+          SIZE_MB=$((SIZE / 1024 / 1024))
+          echo "Binary size: ${SIZE_MB}MB"
+
+          # Warn if over 50MB (but don't fail)
+          if [[ $SIZE -gt 52428800 ]]; then
+            echo "::warning::Binary size ${SIZE_MB}MB exceeds 50MB target"
+          fi
+
+      - name: Smoke test (Unix)
+        if: runner.os != 'Windows'
+        env:
+          BINARY_NAME: ${{ matrix.binary-name }}
+        run: |
+          chmod +x "dist/binary/$BINARY_NAME"
+          "./dist/binary/$BINARY_NAME" --version
+          "./dist/binary/$BINARY_NAME" --help | head -20
+          "./dist/binary/$BINARY_NAME" tools --category core | head -10
+
+      - name: Smoke test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          BINARY_NAME: ${{ matrix.binary-name }}
+        run: |
+          & "dist/binary/$env:BINARY_NAME" --version
+          & "dist/binary/$env:BINARY_NAME" --help | Select-Object -First 20
+          & "dist/binary/$env:BINARY_NAME" tools --category core | Select-Object -First 10
+
+      - name: Rename binary with version
+        shell: bash
+        env:
+          BINARY_NAME: ${{ matrix.binary-name }}
+          PKG_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # Extract extension if present
+          if [[ "$BINARY_NAME" == *.exe ]]; then
+            BASE_NAME="${BINARY_NAME%.exe}"
+            EXT=".exe"
+          else
+            BASE_NAME="$BINARY_NAME"
+            EXT=""
+          fi
+
+          # Rename to include version
+          VERSIONED_NAME="${BASE_NAME}-${PKG_VERSION}${EXT}"
+          mv "dist/binary/$BINARY_NAME" "dist/binary/$VERSIONED_NAME"
+
+          echo "versioned_binary=$VERSIONED_NAME" >> "$GITHUB_ENV"
+          echo "Renamed to: $VERSIONED_NAME"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.versioned_binary }}
+          path: dist/binary/${{ env.versioned_binary }}
+          retention-days: 7
+
+  # ===========================================================================
+  # Attach binaries to release
+  # ===========================================================================
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    name: Attach to Release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: binaries
+          merge-multiple: false
+
+      - name: List downloaded artifacts
+        run: |
+          echo "Downloaded artifacts:"
+          find binaries -type f -ls
+
+      - name: Move binaries to flat directory
+        run: |
+          mkdir -p release-files
+          find binaries -type f -exec mv {} release-files/ \;
+          echo "Files to upload:"
+          ls -lh release-files/
+
+      - name: Generate checksums
+        working-directory: release-files
+        env:
+          TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          # Remove 'v' prefix if present
+          VERSION="${TAG#v}"
+
+          echo "Generating checksums for version $VERSION"
+
+          # Generate SHA256 checksums
+          sha256sum wpnav-* > "checksums-${VERSION}.txt"
+
+          echo ""
+          echo "Checksums:"
+          cat "checksums-${VERSION}.txt"
+
+      - name: Attach binaries to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          files: release-files/*
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          {
+            echo "## Binary Release Complete"
+            echo ""
+            echo "Release: $RELEASE_TAG"
+            echo ""
+            echo "### Uploaded Files"
+            echo ""
+            for file in release-files/*; do
+              filename=$(basename "$file")
+              echo "- \`$filename\`"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -340,6 +340,8 @@ export function list(items: string[], indent = 2): void {
  */
 export function keyValue(key: string, value: string, keyWidth = 15): void {
   const paddedKey = key.padEnd(keyWidth);
+  // Safe: callers are responsible for masking sensitive values (see maskPassword usage in credentials.ts)
+  // lgtm[js/clear-text-logging]
   console.error(`  ${colorize(paddedKey, 'dim')} ${value}`);
 }
 

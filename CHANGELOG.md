@@ -5,6 +5,36 @@ All notable changes to @littlebearapps/wp-navigator-mcp will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0](https://github.com/littlebearapps/wp-navigator-mcp-master/compare/v2.6.1...v2.7.0) (2025-12-17)
+
+
+### Features
+
+* v2.7.0 Vibecoder Transformation Release ([#39](https://github.com/littlebearapps/wp-navigator-mcp-master/issues/39)) ([125659e](https://github.com/littlebearapps/wp-navigator-mcp-master/commit/125659edcc6edd1ccbdc817399a007958a887f00))
+
+## [Unreleased]
+
+### Added
+
+- **Dynamic Toolsets architecture** (task-102): Meta-tool pattern for 97.7% token reduction
+  - `wpnav_search_tools`: Semantic search for tool discovery by natural language or category
+  - `wpnav_describe_tools`: On-demand JSON Schema retrieval for specific tools
+  - `wpnav_execute`: Dynamic tool execution with validation and error handling
+  - `wpnav_context`: Context dump for non-MCP AI agents (ChatGPT, web assistants)
+- **Embeddings infrastructure**: Pre-computed tool embeddings for semantic search
+- **META_TOOLS filter**: MCP server exposes only 5 tools instead of 75+
+- New documentation: `docs/DYNAMIC-TOOLSETS.md`
+
+### Changed
+
+- MCP clients now see ~500 tokens instead of ~19,500 on initial connection
+- Tool Registry updated to v2.0.0 with meta-tool architecture
+- CLI reference updated with MCP Tool Discovery section
+
+### Fixed
+
+- MCP protocol compliance: Changed startup banner from `console.log` to `console.error` (fixes Codex CLI discovery)
+
 ## [2.6.0](https://github.com/littlebearapps/wp-navigator-mcp-master/compare/v2.5.0...v2.6.0) (2025-12-15)
 
 

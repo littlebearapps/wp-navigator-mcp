@@ -56,8 +56,10 @@ if (CLI_COMMANDS.includes(firstArg) || CLI_FLAGS.includes(firstArg)) {
   // MCP Server mode - handles:
   // - No args (MCP clients using env vars)
   // - Config file path argument
-  import('./mcp-server.js').catch((err) => {
-    console.error('MCP Server error:', err);
-    process.exit(1);
-  });
+  import('./mcp-server.js')
+    .then(({ startMcpServer }) => startMcpServer())
+    .catch((err) => {
+      console.error('MCP Server error:', err);
+      process.exit(1);
+    });
 }

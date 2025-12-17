@@ -8,6 +8,9 @@
  *
  * Later sources extend/override earlier ones via deep merge.
  *
+ * For compiled binaries (Bun compile), bundled roles are loaded from
+ * embedded assets instead of filesystem.
+ *
  * @package WP_Navigator_MCP
  * @since 1.2.0
  */
@@ -16,8 +19,48 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { homedir } from 'os';
-import { loadRoleFile } from './parser.js';
+import { loadRoleFile, parseYaml, validateRole } from './parser.js';
 import type { RoleSource, LoadedRole, RoleLoadResult } from './types.js';
+
+// =============================================================================
+// Embedded Asset Support (for Bun-compiled binaries)
+// =============================================================================
+
+/**
+ * Cached embedded roles (loaded lazily on first access).
+ * null = not yet checked, undefined = checked but not available
+ */
+let embeddedRolesCache: Record<string, string> | null | undefined = null;
+
+/**
+ * Get embedded roles if available.
+ * Uses lazy loading to avoid top-level await issues.
+ * Returns null if not in binary mode.
+ */
+function getEmbeddedRoles(): Record<string, string> | null {
+  // Return cached result if already checked (undefined means checked but not found)
+  if (embeddedRolesCache !== null) {
+    return embeddedRolesCache === undefined ? null : embeddedRolesCache;
+  }
+
+  // Try to load embedded assets synchronously
+  // This works because embedded-assets.ts exports pure data (no async)
+  try {
+    // Use require for synchronous loading
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const embedded = require('../embedded-assets.js');
+    if (embedded.IS_EMBEDDED && embedded.EMBEDDED_ROLES) {
+      const roles: Record<string, string> = embedded.EMBEDDED_ROLES;
+      embeddedRolesCache = roles;
+      return roles;
+    }
+  } catch {
+    // Not in binary mode - filesystem fallback will be used
+  }
+
+  embeddedRolesCache = undefined;
+  return null;
+}
 
 // =============================================================================
 // Path Utilities
@@ -57,6 +100,67 @@ function getGlobalRolesPath(): string {
  */
 export function loadRole(filePath: string, source: RoleSource = 'project'): RoleLoadResult {
   return loadRoleFile(filePath, source);
+}
+
+/**
+ * Load a role from embedded string content.
+ * Used for binary distribution where roles are embedded at build time.
+ *
+ * @param filename - Original filename (e.g., "content-editor.yaml")
+ * @param content - YAML/JSON string content
+ * @param source - Source type (always 'bundled' for embedded)
+ * @returns RoleLoadResult with success status and role or error
+ */
+export function loadRoleFromContent(
+  filename: string,
+  content: string,
+  source: RoleSource = 'bundled'
+): RoleLoadResult {
+  const ext = path.extname(filename).toLowerCase();
+  const virtualPath = `[embedded]/${filename}`;
+
+  // Parse based on extension
+  let parsed: unknown;
+  try {
+    if (ext === '.json') {
+      parsed = JSON.parse(content);
+    } else if (ext === '.yaml' || ext === '.yml') {
+      parsed = parseYaml(content);
+    } else {
+      return {
+        success: false,
+        error: `Unsupported file extension: ${ext} (use .yaml, .yml, or .json)`,
+        path: virtualPath,
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to parse ${ext}: ${error instanceof Error ? error.message : String(error)}`,
+      path: virtualPath,
+    };
+  }
+
+  // Validate
+  try {
+    const role = validateRole(parsed, virtualPath);
+    const loadedRole: LoadedRole = {
+      ...role,
+      source,
+      sourcePath: virtualPath,
+    };
+    return {
+      success: true,
+      role: loadedRole,
+      path: virtualPath,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      path: virtualPath,
+    };
+  }
 }
 
 // =============================================================================
@@ -185,9 +289,22 @@ export function discoverRoles(options: DiscoveryOptions = {}): DiscoveredRoles {
   const errors: RoleLoadResult[] = [];
 
   // Load bundled first (lowest priority)
+  // Use embedded assets if available (binary mode), otherwise filesystem
   if (includeBundled) {
-    const bundledPath = getBundledRolesPath();
-    const bundledResults = loadRolesFromDirectory(bundledPath, 'bundled');
+    let bundledResults: RoleLoadResult[];
+    const embeddedRoles = getEmbeddedRoles();
+
+    if (embeddedRoles && Object.keys(embeddedRoles).length > 0) {
+      // Binary mode: load from embedded assets
+      bundledResults = Object.entries(embeddedRoles).map(([filename, content]) =>
+        loadRoleFromContent(filename, content, 'bundled')
+      );
+    } else {
+      // Normal mode: load from filesystem
+      const bundledPath = getBundledRolesPath();
+      bundledResults = loadRolesFromDirectory(bundledPath, 'bundled');
+    }
+
     for (const result of bundledResults) {
       if (result.success && result.role) {
         roles.set(result.role.name, result.role);

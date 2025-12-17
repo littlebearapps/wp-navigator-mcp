@@ -46,3 +46,16 @@ export {
   type ResolveRoleOptions,
   type ResolvedRole,
 } from './resolver.js';
+
+// Role filter types and implementation (v2.7.0)
+export * from './filter-types.js';
+export {
+  resolveEffectiveRole,
+  resolveEffectiveRoleSync,
+  autoDetectRole,
+  isValidRole,
+  getDefaultEffectiveRole,
+} from './role-filter.js';
+
+// Runtime role state (v2.7.0)
+export { runtimeRoleState, STATE_FILE_NAME } from './runtime-state.js';

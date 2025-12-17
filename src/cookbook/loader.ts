@@ -8,6 +8,9 @@
  * Unlike roles, cookbooks do NOT merge - project cookbooks
  * completely override bundled ones for the same plugin.
  *
+ * For compiled binaries (Bun compile), bundled cookbooks are loaded from
+ * embedded assets instead of filesystem.
+ *
  * @package WP_Navigator_MCP
  * @since 2.1.0
  */
@@ -34,6 +37,46 @@ import type { SkillCookbook } from './skill-types.js';
 
 // Re-export error classes
 export { CookbookValidationError, CookbookSchemaVersionError, SkillParseError };
+
+// =============================================================================
+// Embedded Asset Support (for Bun-compiled binaries)
+// =============================================================================
+
+/**
+ * Cached embedded cookbooks (loaded lazily on first access).
+ * null = not yet checked, undefined = checked but not available
+ */
+let embeddedCookbooksCache: Record<string, string> | null | undefined = null;
+
+/**
+ * Get embedded cookbooks if available.
+ * Uses lazy loading to avoid top-level await issues.
+ * Returns null if not in binary mode.
+ */
+function getEmbeddedCookbooks(): Record<string, string> | null {
+  // Return cached result if already checked (undefined means checked but not found)
+  if (embeddedCookbooksCache !== null) {
+    return embeddedCookbooksCache === undefined ? null : embeddedCookbooksCache;
+  }
+
+  // Try to load embedded assets synchronously
+  // This works because embedded-assets.ts exports pure data (no async)
+  try {
+    // Use require for synchronous loading
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const embedded = require('../embedded-assets.js');
+    if (embedded.IS_EMBEDDED && embedded.EMBEDDED_COOKBOOKS) {
+      const cookbooks: Record<string, string> = embedded.EMBEDDED_COOKBOOKS;
+      embeddedCookbooksCache = cookbooks;
+      return cookbooks;
+    }
+  } catch {
+    // Not in binary mode - filesystem fallback will be used
+  }
+
+  embeddedCookbooksCache = undefined;
+  return null;
+}
 
 // =============================================================================
 // YAML Parser
@@ -284,6 +327,106 @@ export function loadCookbook(filePath: string, source: 'bundled' | 'project'): C
   }
 }
 
+/**
+ * Load a cookbook from embedded string content.
+ * Used for binary distribution where cookbooks are embedded at build time.
+ *
+ * @param filename - Original filename (e.g., "gutenberg-SKILL.md")
+ * @param content - File content (YAML/JSON/Markdown string)
+ * @param source - Source type (always 'bundled' for embedded)
+ * @returns CookbookLoadResult with success status and cookbook or error
+ */
+export function loadCookbookFromContent(
+  filename: string,
+  content: string,
+  source: 'bundled' | 'project' = 'bundled'
+): CookbookLoadResult {
+  const ext = path.extname(filename).toLowerCase();
+  const virtualPath = `[embedded]/${filename}`;
+
+  // Handle SKILL.md format
+  if (ext === '.md') {
+    const result = parseSkillMd(content);
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error || 'Failed to parse SKILL.md',
+        path: virtualPath,
+      };
+    }
+
+    const skill = result.cookbook!;
+    const cookbook = skillToCookbook(skill);
+    const allowedToolsStr = skill.frontmatter['allowed-tools'];
+    const allowedTools = allowedToolsStr
+      ? allowedToolsStr
+          .split(',')
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0)
+      : [];
+
+    const loadedCookbook: LoadedSkillCookbook = {
+      ...cookbook,
+      source,
+      sourcePath: virtualPath,
+      skillBody: skill.body,
+      skillFrontmatter: skill.frontmatter,
+      allowedTools,
+    };
+
+    return {
+      success: true,
+      cookbook: loadedCookbook,
+      path: virtualPath,
+    };
+  }
+
+  // Parse based on extension (JSON/YAML)
+  let parsed: unknown;
+  try {
+    if (ext === '.json' || ext === '.jsonc') {
+      // Strip JSONC comments before parsing
+      const jsonContent = content.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+      parsed = JSON.parse(jsonContent);
+    } else if (ext === '.yaml' || ext === '.yml') {
+      parsed = parseYaml(content);
+    } else {
+      return {
+        success: false,
+        error: `Unsupported file extension: ${ext} (use .yaml, .yml, .json, .jsonc, or .md)`,
+        path: virtualPath,
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to parse ${ext}: ${error instanceof Error ? error.message : String(error)}`,
+      path: virtualPath,
+    };
+  }
+
+  // Validate
+  try {
+    const cookbook = validateCookbook(parsed, virtualPath);
+    const loadedCookbook: LoadedCookbook = {
+      ...cookbook,
+      source,
+      sourcePath: virtualPath,
+    };
+    return {
+      success: true,
+      cookbook: loadedCookbook,
+      path: virtualPath,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      path: virtualPath,
+    };
+  }
+}
+
 // =============================================================================
 // Directory Loading
 // =============================================================================
@@ -365,15 +508,19 @@ export function discoverCookbooks(options: CookbookDiscoveryOptions = {}): Disco
   const errors: CookbookLoadResult[] = [];
 
   // Load bundled first (lower priority)
+  // Use embedded assets if available (binary mode), otherwise filesystem
   if (includeBundled) {
-    const bundledPath = getBundledCookbooksPath();
-    const registry = loadBundledRegistry();
+    const embeddedCookbooks = getEmbeddedCookbooks();
 
-    if (registry) {
-      // Fast path: use registry to load only listed files
-      for (const entry of registry.cookbooks) {
-        const filePath = path.join(bundledPath, entry.file);
-        const result = loadCookbook(filePath, 'bundled');
+    if (embeddedCookbooks && Object.keys(embeddedCookbooks).length > 0) {
+      // Binary mode: load from embedded assets
+      // Filter out registry.json - it's metadata, not a cookbook
+      const cookbookFiles = Object.entries(embeddedCookbooks).filter(
+        ([filename]) => filename !== 'registry.json'
+      );
+
+      for (const [filename, content] of cookbookFiles) {
+        const result = loadCookbookFromContent(filename, content, 'bundled');
         if (result.success && result.cookbook) {
           cookbooks.set(result.cookbook.plugin.slug, result.cookbook);
           sources.bundled.push(result.cookbook.plugin.slug);
@@ -382,14 +529,32 @@ export function discoverCookbooks(options: CookbookDiscoveryOptions = {}): Disco
         }
       }
     } else {
-      // Fallback: scan directory (backwards compatible)
-      const bundledResults = loadCookbooksFromDirectory(bundledPath, 'bundled');
-      for (const result of bundledResults) {
-        if (result.success && result.cookbook) {
-          cookbooks.set(result.cookbook.plugin.slug, result.cookbook);
-          sources.bundled.push(result.cookbook.plugin.slug);
-        } else {
-          errors.push(result);
+      // Normal mode: load from filesystem
+      const bundledPath = getBundledCookbooksPath();
+      const registry = loadBundledRegistry();
+
+      if (registry) {
+        // Fast path: use registry to load only listed files
+        for (const entry of registry.cookbooks) {
+          const filePath = path.join(bundledPath, entry.file);
+          const result = loadCookbook(filePath, 'bundled');
+          if (result.success && result.cookbook) {
+            cookbooks.set(result.cookbook.plugin.slug, result.cookbook);
+            sources.bundled.push(result.cookbook.plugin.slug);
+          } else {
+            errors.push(result);
+          }
+        }
+      } else {
+        // Fallback: scan directory (backwards compatible)
+        const bundledResults = loadCookbooksFromDirectory(bundledPath, 'bundled');
+        for (const result of bundledResults) {
+          if (result.success && result.cookbook) {
+            cookbooks.set(result.cookbook.plugin.slug, result.cookbook);
+            sources.bundled.push(result.cookbook.plugin.slug);
+          } else {
+            errors.push(result);
+          }
         }
       }
     }

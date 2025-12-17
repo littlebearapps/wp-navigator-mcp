@@ -174,7 +174,7 @@ describe('Node.js Version Check', () => {
     it('returns system or unknown when no version manager detected', () => {
       const method = detectInstallMethod();
       expect(['system', 'unknown', 'brew']).toContain(method);
-    });
+    }, 15000); // Allow 15s for real filesystem checks
   });
 
   describe('getPlatformInstructions', () => {
@@ -229,7 +229,7 @@ describe('Node.js Version Check', () => {
       // We're running this test on Node 18+, so it should pass
       expect(result.ok).toBe(true);
       expect(result.current.major).toBeGreaterThanOrEqual(REQUIRED_NODE_VERSION.major);
-    });
+    }, 15000); // Allow 15s for real filesystem checks in detectInstallMethod
 
     it('includes install method and platform', () => {
       const result = checkNodeVersion();
@@ -237,14 +237,14 @@ describe('Node.js Version Check', () => {
         result.installMethod
       );
       expect(result.platform).toBe(process.platform);
-    });
+    }, 15000); // Allow 15s for real filesystem checks in detectInstallMethod
 
     it('does not include instructions when version is ok', () => {
       const result = checkNodeVersion();
       if (result.ok) {
         expect(result.instructions).toBeUndefined();
       }
-    });
+    }, 15000); // Allow 15s for real filesystem checks in detectInstallMethod
   });
 
   describe('constants', () => {

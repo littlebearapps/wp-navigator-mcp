@@ -95,7 +95,9 @@ export function configToEnvVars(config: ResolvedConfig): Record<string, string> 
   }
 
   // Environment and role
+  // WPNAV_ENV is the short form (preferred), WPNAV_ENVIRONMENT is the long form (legacy)
   if (config.environment) {
+    vars.WPNAV_ENV = config.environment;
     vars.WPNAV_ENVIRONMENT = config.environment;
   }
   if (config.default_role) {

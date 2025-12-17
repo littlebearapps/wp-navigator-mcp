@@ -3,6 +3,9 @@
  *
  * Provides template rendering and file generation utilities
  * for the init wizard (CLAUDE.md, .mcp.json, etc.)
+ *
+ * For compiled binaries (Bun compile), templates are loaded from
+ * embedded assets instead of filesystem.
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -10,6 +13,46 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// =============================================================================
+// Embedded Asset Support (for Bun-compiled binaries)
+// =============================================================================
+
+/**
+ * Cached embedded templates (loaded lazily on first access).
+ * null = not yet checked, undefined = checked but not available
+ */
+let embeddedTemplatesCache: Record<string, string> | null | undefined = null;
+
+/**
+ * Get embedded templates if available.
+ * Uses lazy loading to avoid top-level await issues.
+ * Returns null if not in binary mode.
+ */
+function getEmbeddedTemplates(): Record<string, string> | null {
+  // Return cached result if already checked (undefined means checked but not found)
+  if (embeddedTemplatesCache !== null) {
+    return embeddedTemplatesCache === undefined ? null : embeddedTemplatesCache;
+  }
+
+  // Try to load embedded assets synchronously
+  // This works because embedded-assets.ts exports pure data (no async)
+  try {
+    // Use require for synchronous loading
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const embedded = require('../../embedded-assets.js');
+    if (embedded.IS_EMBEDDED && embedded.EMBEDDED_TEMPLATES) {
+      const templates: Record<string, string> = embedded.EMBEDDED_TEMPLATES;
+      embeddedTemplatesCache = templates;
+      return templates;
+    }
+  } catch {
+    // Not in binary mode - filesystem fallback will be used
+  }
+
+  embeddedTemplatesCache = undefined;
+  return null;
+}
 
 /**
  * Context for CLAUDE.md template rendering
@@ -79,13 +122,21 @@ function getTemplatesPath(): string {
 }
 
 /**
- * Load a template file from the templates directory
+ * Load a template file from the templates directory.
+ * Uses embedded assets if available (binary mode), otherwise filesystem.
  *
  * @param templateName - Name of the template file (e.g., 'CLAUDE.md.template')
  * @returns Template content as string
  * @throws Error if template file not found
  */
 export function loadTemplate(templateName: string): string {
+  // Try embedded templates first (binary mode)
+  const embeddedTemplates = getEmbeddedTemplates();
+  if (embeddedTemplates && templateName in embeddedTemplates) {
+    return embeddedTemplates[templateName];
+  }
+
+  // Fall back to filesystem (normal npm mode)
   const templatePath = path.join(getTemplatesPath(), templateName);
   try {
     return fs.readFileSync(templatePath, 'utf8');

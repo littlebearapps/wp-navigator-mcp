@@ -317,64 +317,70 @@ function collectWarnings(config: WPConfig): string[] {
 
 /**
  * Print startup summary.
+ *
+ * IMPORTANT: Uses console.error (stderr) instead of console.log (stdout)
+ * because MCP protocol uses stdout exclusively for JSON-RPC messages.
+ * Writing non-JSON to stdout breaks MCP client connections (e.g., Codex CLI).
  */
 export function printStartupSummary(validation: StartupValidation, config: WPConfig): void {
-  console.log('\n🚀 WP Navigator Pro MCP Server\n');
-  console.log('━'.repeat(50));
+  console.error('\n🚀 WP Navigator Pro MCP Server\n');
+  console.error('━'.repeat(50));
 
   // Connection info
-  console.log(`\n✓ WordPress: ${config.baseUrl}`);
-  console.log(`✓ REST API: ${config.wpnavBase}`);
+  console.error(`\n✓ WordPress: ${config.baseUrl}`);
+  console.error(`✓ REST API: ${config.wpnavBase}`);
 
   if (validation.checks.auth.ok) {
-    console.log(`✓ ${validation.checks.auth.message}`);
+    console.error(`✓ ${validation.checks.auth.message}`);
   }
 
   if (validation.checks.plugin.ok) {
-    console.log(`✓ ${validation.checks.plugin.message}`);
+    console.error(`✓ ${validation.checks.plugin.message}`);
   }
 
   if (validation.checks.policy.ok) {
-    console.log(`✓ ${validation.checks.policy.message}`);
+    console.error(`✓ ${validation.checks.policy.message}`);
   }
 
   // Compatibility status
   if (validation.checks.compat) {
     const icon = validation.checks.compat.ok ? '✓' : '⚠️';
-    console.log(`${icon} ${validation.checks.compat.message}`);
+    console.error(`${icon} ${validation.checks.compat.message}`);
   }
 
   // Warnings
   if (validation.warnings.length > 0) {
-    console.log('\n⚠️  Warnings:');
+    console.error('\n⚠️  Warnings:');
     validation.warnings.forEach((warning) => {
-      console.log(`   - ${warning}`);
+      console.error(`   - ${warning}`);
     });
   }
 
   // Status
-  console.log('\n' + '━'.repeat(50));
+  console.error('\n' + '━'.repeat(50));
 
   if (validation.allPassed) {
     const agentName = getAgentName();
-    console.log(`\n✅ Ready! Waiting for requests from ${agentName}...\n`);
-    console.log('💡 Tip: Try "Use wpnav_introspect to check your site"\n');
+    console.error(`\n✅ Ready! Waiting for requests from ${agentName}...\n`);
+    console.error('💡 Tip: Try "Use wpnav_introspect to check your site"\n');
   } else {
-    console.log('\n❌ Startup validation failed\n');
+    console.error('\n❌ Startup validation failed\n');
 
     Object.entries(validation.checks).forEach(([key, check]) => {
       if (!check.ok) {
-        console.log(`   ✗ ${key}: ${check.message}`);
+        console.error(`   ✗ ${key}: ${check.message}`);
       }
     });
 
-    console.log('\n📚 Troubleshooting: https://wpnav.ai/help/connection-errors\n');
+    console.error('\n📚 Troubleshooting: https://wpnav.ai/help/connection-errors\n');
     process.exit(1);
   }
 }
 
 /**
  * Print friendly error with solution.
+ *
+ * Note: Already uses console.error (correct for MCP servers).
  */
 export function printFriendlyError(error: Error): void {
   console.error('\n❌ Connection Error\n');

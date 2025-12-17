@@ -72,13 +72,13 @@ export function makeWpRequest(config: WPConfig) {
   }
 
   return async function wpRequest(endpoint: string, options: RequestInitEx = {}): Promise<any> {
-    // Debug: log endpoint to trace URL encoding
-    console.error(`[wpRequest] endpoint received: ${endpoint}`);
+    // Debug: log endpoint to trace URL encoding (only when debug flag is set)
+    if (debugTiming) console.error(`[wpRequest] endpoint received: ${endpoint}`);
     const authHeader = Buffer.from(`${config.auth.username}:${config.auth.password}`).toString(
       'base64'
     );
     const url = buildUrl(endpoint);
-    console.error(`[wpRequest] final URL: ${url}`);
+    if (debugTiming) console.error(`[wpRequest] final URL: ${url}`);
     const method = (options.method || 'GET').toUpperCase();
     const body = options.body ? String(options.body) : '';
 

@@ -10,6 +10,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { isKeychainReference, resolvePasswordSync } from './cli/credentials/index.js';
 
 // =============================================================================
 // Schema Types
@@ -477,10 +478,17 @@ export function resolveConfig(
     );
   }
 
-  // Resolve env vars in password
+  // Resolve password - supports keychain references (keychain:wpnav:site) and env vars ($VAR)
   let password: string;
   try {
-    password = resolveEnvVars(envConfig.password);
+    // Check if password is a keychain reference first
+    if (isKeychainReference(envConfig.password)) {
+      // Resolve from keychain (synchronous)
+      password = resolvePasswordSync(envConfig.password);
+    } else {
+      // Try env var resolution
+      password = resolveEnvVars(envConfig.password);
+    }
   } catch (error) {
     throw new ConfigValidationError(
       `Failed to resolve password for environment '${envName}': ${error instanceof Error ? error.message : String(error)}`,
@@ -600,7 +608,7 @@ function loadFromEnvVars(): ResolvedConfig | null {
   }
 
   return {
-    environment: process.env.WPNAV_ENVIRONMENT ?? 'default',
+    environment: process.env.WPNAV_ENV ?? process.env.WPNAV_ENVIRONMENT ?? 'default',
     config_path: '[environment variables]',
     site: siteUrl,
     rest_api: restApi,

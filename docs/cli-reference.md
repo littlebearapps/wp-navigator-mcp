@@ -136,6 +136,42 @@ This allows credentials to be stored in environment variables rather than config
 
 ## Commands
 
+### `wpnav connect` (v2.7.0+)
+
+Connect to a WordPress site using a Magic Link from the WP Navigator plugin.
+
+```bash
+# Connect using Magic Link URL
+npx wpnav connect wpnav://connect?site=example.com&token=abc123...
+
+# Interactive mode (prompts for URL)
+npx wpnav connect
+
+# With options
+npx wpnav connect <url> --json           # JSON output instead of TUI
+npx wpnav connect <url> --local          # Allow HTTP for localhost
+npx wpnav connect <url> --skip-init      # Don't auto-scaffold project
+npx wpnav connect <url> --yes            # Skip confirmation prompts
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON instead of TUI |
+| `--local` | Allow HTTP for localhost development |
+| `--skip-init` | Don't automatically run init after connection |
+| `--yes` | Skip confirmation prompts |
+
+**Magic Link flow:**
+
+1. Open WordPress admin → WP Navigator → Settings
+2. Click "Connect AI Assistant" to generate Magic Link
+3. Copy the link and run `npx wpnav connect <link>`
+4. Credentials are stored in `.wpnav.env` (auto-gitignored)
+
+---
+
 ### `wpnav init`
 
 Initialize a new WP Navigator project with configuration files.
@@ -248,6 +284,16 @@ npx wpnav tools --json
 # Output as markdown (for documentation)
 npx wpnav tools --format markdown
 npx wpnav tools --format markdown --examples --toc
+
+# Search tools semantically (v2.7.0)
+npx wpnav tools --search "create blog post"
+npx wpnav tools --search "upload image" --limit 5
+npx wpnav tools --search "manage plugins" --category plugins
+
+# Describe tool schemas (v2.7.0)
+npx wpnav tools describe wpnav_list_posts
+npx wpnav tools describe wpnav_create_page wpnav_update_page
+npx wpnav tools describe wpnav_gutenberg_insert_block --json
 ```
 
 **Options:**
@@ -255,10 +301,19 @@ npx wpnav tools --format markdown --examples --toc
 | Flag | Description |
 |------|-------------|
 | `--category <name>` | Filter tools by category |
+| `--search <query>` | Semantic search for tools (v2.7.0) |
+| `--limit <n>` | Max results for search (default: 10) |
 | `--json` | Output as JSON (default) |
 | `--format <type>` | Output format: `json` or `markdown` |
 | `--examples` | Include example usage (markdown only) |
 | `--toc` | Include table of contents (markdown only) |
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| `describe <tool...>` | Get full JSON Schema for one or more tools (max 10) |
+| `categories` | List all available tool categories |
 
 **Categories:**
 
@@ -272,6 +327,80 @@ npx wpnav tools --format markdown --examples --toc
 - `batch` - Batch get, update, delete operations
 - `cookbook` - AI plugin guidance (Gutenberg, Elementor)
 - `roles` - AI role personas (content-editor, developer, etc.)
+
+---
+
+## MCP Tool Discovery (v2.7.0+)
+
+When running as an MCP server (for Claude Code, Codex CLI, Gemini CLI), WP Navigator uses a **Dynamic Toolsets** architecture that exposes only 5 meta-tools instead of 75+ individual tools. This reduces initial token usage from ~19,500 to ~500 tokens (97.7% reduction).
+
+### Meta-Tools
+
+| Tool | Purpose |
+|------|---------|
+| `wpnav_introspect` | Site discovery, capabilities, plugin version |
+| `wpnav_search_tools` | Find tools by natural language query or category |
+| `wpnav_describe_tools` | Get full JSON Schema for specific tools |
+| `wpnav_execute` | Execute any tool by name with arguments |
+| `wpnav_context` | Full context dump for non-MCP agents |
+
+### Workflow: Search → Describe → Execute
+
+**1. Search for relevant tools:**
+```json
+{
+  "name": "wpnav_search_tools",
+  "arguments": { "query": "list blog posts" }
+}
+```
+Returns: `["wpnav_list_posts", "wpnav_get_post", "wpnav_search"]`
+
+**2. Get tool schema (optional):**
+```json
+{
+  "name": "wpnav_describe_tools",
+  "arguments": { "tools": ["wpnav_list_posts"] }
+}
+```
+Returns: Full JSON Schema with parameters, types, defaults
+
+**3. Execute the tool:**
+```json
+{
+  "name": "wpnav_execute",
+  "arguments": {
+    "tool": "wpnav_list_posts",
+    "args": { "limit": 10, "status": "publish" }
+  }
+}
+```
+
+### Search Options
+
+```json
+// Natural language search
+{ "query": "upload images" }
+
+// Category filter
+{ "category": "content" }
+
+// Both
+{ "query": "create", "category": "gutenberg" }
+```
+
+### CLI Equivalents
+
+The CLI provides direct tool access without the meta-tool layer:
+
+```bash
+# CLI: Direct invocation (no meta-tools needed)
+npx wpnav call wpnav_list_posts --limit 10
+
+# MCP: Uses wpnav_execute internally
+wpnav_execute(tool="wpnav_list_posts", args={"limit": 10})
+```
+
+**See also:** [Dynamic Toolsets Architecture](DYNAMIC-TOOLSETS.md)
 
 ---
 
@@ -586,6 +715,93 @@ npx wpnav mcp-config --json
 | Claude Code | `.mcp.json` | JSON |
 | OpenAI Codex | `config.toml` | TOML |
 | Google Gemini CLI | `settings.json` | JSON |
+
+---
+
+### `wpnav context` (v2.7.0+)
+
+Generate context dump for non-MCP AI agents (ChatGPT, web-based assistants).
+
+```bash
+# Generate full context dump
+npx wpnav context
+
+# Include site snapshot
+npx wpnav context --include-snapshot
+
+# Specify output file
+npx wpnav context --output context.md
+
+# Compact format (less verbose)
+npx wpnav context --compact
+
+# Output as JSON
+npx wpnav context --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--include-snapshot` | Include current site snapshot in context |
+| `--output <file>` | Write context to file instead of stdout |
+| `--compact` | Generate compact format (reduced token usage) |
+| `--json` | Output as JSON instead of markdown |
+| `--env <name>` | Environment to use (local/staging/production) |
+
+**Context includes:**
+
+- Available tools with parameters and descriptions
+- Site configuration (URL, environment)
+- Active role and focus mode (if configured)
+- Tool access restrictions
+- Sample usage patterns
+
+---
+
+### `wpnav role` (v2.7.0+)
+
+Manage AI role personas for focused tool access.
+
+```bash
+# List available roles
+npx wpnav role list
+
+# Show details for a specific role
+npx wpnav role show content-editor
+npx wpnav role show developer
+
+# Validate role configuration
+npx wpnav role validate
+
+# Set active role (persists in .wpnav/state.json)
+npx wpnav role set content-editor
+
+# Clear active role
+npx wpnav role clear
+
+# Output as JSON
+npx wpnav role list --json
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| `list` | List all available roles |
+| `show <name>` | Display role details (tools, permissions) |
+| `validate` | Check role configuration in manifest |
+| `set <name>` | Set the active role |
+| `clear` | Clear the active role |
+
+**Built-in roles:**
+
+| Role | Description | Tools |
+|------|-------------|-------|
+| `content-editor` | Content creation and editing | Posts, pages, media, categories, tags |
+| `developer` | Development and debugging | All tools including testing |
+| `site-admin` | Full site administration | All tools |
+| `read-only` | Read-only access | List and get operations only |
 
 ---
 

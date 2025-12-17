@@ -208,6 +208,27 @@ npx wpnav export-env --format docker  # Dockerfile
 npx wpnav export-env --format github  # GitHub Actions
 ```
 
+### Zero-Friction Setup (v2.7.0)
+
+**Magic Link** — Connect instantly from WordPress admin:
+```bash
+# Copy link from WordPress → WP Navigator → Connect AI
+npx wpnav connect wpnav://connect?site=example.com&token=abc123...
+```
+
+**Context for non-MCP agents** — Generate context for ChatGPT and other web AI:
+```bash
+npx wpnav context                # Markdown format
+npx wpnav context --compact      # Reduced tokens
+```
+
+**Role management** — AI personas with focused tool access:
+```bash
+npx wpnav role list              # List available roles
+npx wpnav role show developer    # Show role details
+npx wpnav role set content-editor # Set active role
+```
+
 ### AI Guidance Features (v2.6.0)
 
 **Roles** — AI personas with focused tool access and behavior guidance:
@@ -290,11 +311,27 @@ snapshots/
 
 ## Available Tools
 
-**75+ tools** organized by category:
+**75+ tools** available through the [Dynamic Toolsets](#dynamic-toolsets-v270) architecture.
+
+### MCP-Exposed Tools (5)
+
+These tools are directly exposed to AI via MCP:
+
+| Tool | Purpose |
+|------|---------|
+| `wpnav_introspect` | Check connection, policy, plugin status |
+| `wpnav_search_tools` | Find tools by query or category |
+| `wpnav_describe_tools` | Load full schemas for specific tools |
+| `wpnav_execute` | Execute any tool dynamically |
+| `wpnav_context` | Get context for non-MCP AI agents |
+
+### Discoverable Tools (75+)
+
+All other tools are discovered via `wpnav_search_tools` and executed via `wpnav_execute`:
 
 | Category | Tools | Examples |
 |----------|-------|----------|
-| **Core** | 7 | `wpnav_introspect`, `wpnav_get_site_overview`, `wpnav_search`, `wpnav_list_post_types` |
+| **Core** | 7 | `wpnav_get_site_overview`, `wpnav_search`, `wpnav_list_post_types` |
 | **Posts** | 7 | `wpnav_list_posts`, `wpnav_create_post_with_blocks` |
 | **Pages** | 6 | `wpnav_list_pages`, `wpnav_snapshot_page` |
 | **Media** | 4 | `wpnav_upload_media_from_url` |
@@ -308,10 +345,13 @@ snapshots/
 | **Cookbook** | 3 | `wpnav_list_cookbooks`, `wpnav_load_cookbook` |
 | **Roles** | 2 | `wpnav_list_roles`, `wpnav_load_role` |
 
-List all tools:
+### CLI Tool Discovery
+
+List and search tools via CLI:
 ```bash
-npx wpnav tools
-npx wpnav tools --category gutenberg
+npx wpnav tools                          # List all tools
+npx wpnav tools --category gutenberg     # Filter by category
+npx wpnav tools --search "create post"   # Search by query
 ```
 
 ---
@@ -330,6 +370,45 @@ npx wpnav tools --category gutenberg
                                               │   + WP Navigator   │
                                               │      Plugin        │
                                               └────────────────────┘
+```
+
+### Dynamic Toolsets (v2.7.0)
+
+WP Navigator uses a **Dynamic Toolsets** architecture for token efficiency:
+
+| Approach | Token Usage | Tools Exposed |
+|----------|-------------|---------------|
+| **v2.6 (legacy)** | ~19,500 tokens | 75 individual tools |
+| **v2.7+ (dynamic)** | ~500 tokens | 5 meta-tools |
+
+**How it works:**
+
+1. **Search** — AI uses `wpnav_search_tools` to find relevant tools by natural language query
+2. **Describe** — AI uses `wpnav_describe_tools` to load full schemas for tools it wants to use
+3. **Execute** — AI uses `wpnav_execute` to run tools with validated arguments
+
+**Meta-tools exposed to AI:**
+
+| Tool | Purpose |
+|------|---------|
+| `wpnav_introspect` | Check connection, policy, plugin status |
+| `wpnav_search_tools` | Find tools by query or category |
+| `wpnav_describe_tools` | Get full schemas for specific tools |
+| `wpnav_execute` | Execute any tool dynamically |
+| `wpnav_context` | Get context for non-MCP AI agents |
+
+**Example flow:**
+```
+AI: "I need to create a blog post"
+
+1. wpnav_search_tools(query: "create blog post")
+   → Returns: wpnav_create_post, wpnav_create_post_with_blocks
+
+2. wpnav_describe_tools(tools: ["wpnav_create_post_with_blocks"])
+   → Returns: Full schema with parameters
+
+3. wpnav_execute(tool: "wpnav_create_post_with_blocks", arguments: {...})
+   → Creates the post
 ```
 
 ---

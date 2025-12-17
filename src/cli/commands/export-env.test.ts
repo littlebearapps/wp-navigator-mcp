@@ -125,6 +125,8 @@ describe('export-env', () => {
 
       const vars = configToEnvVars(configWithRole);
 
+      // WPNAV_ENV is the short form (preferred), WPNAV_ENVIRONMENT is legacy
+      expect(vars.WPNAV_ENV).toBe('staging');
       expect(vars.WPNAV_ENVIRONMENT).toBe('staging');
       expect(vars.WPNAV_ROLE).toBe('content-editor');
     });

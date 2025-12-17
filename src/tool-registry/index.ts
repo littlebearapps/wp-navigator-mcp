@@ -10,3 +10,5 @@
 export * from './types.js';
 export * from './registry.js';
 export * from './utils.js';
+export * from './filter-types.js';
+export { createToolFilter, ToolFilter } from './tool-filter.js';

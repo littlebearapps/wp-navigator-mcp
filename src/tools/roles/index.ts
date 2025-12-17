@@ -8,7 +8,7 @@
  */
 
 import { toolRegistry, ToolCategory } from '../../tool-registry/index.js';
-import { discoverRoles, getRole, type LoadedRole } from '../../roles/index.js';
+import { discoverRoles, getRole, runtimeRoleState, type LoadedRole } from '../../roles/index.js';
 
 /**
  * Register role tools
@@ -69,13 +69,13 @@ export function registerRoleTools() {
   });
 
   // ============================================================================
-  // wpnav_load_role - Load full role content by slug
+  // wpnav_load_role - Load full role content by slug and activate it
   // ============================================================================
   toolRegistry.register({
     definition: {
       name: 'wpnav_load_role',
       description:
-        'Load a role by slug to get AI guidance for a specific persona. Returns the full role definition including context (system prompt), focus areas, things to avoid, and allowed/denied tools lists. Use this when you need detailed role configuration.',
+        'Load and activate a role by slug. Sets the role as active for this session, applies its tool restrictions, and returns the full role definition including context (system prompt), focus areas, things to avoid, and allowed/denied tools lists. The role change takes effect immediately for tool filtering.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -121,7 +121,28 @@ export function registerRoleTools() {
         };
       }
 
+      // Set the runtime role state
+      const stateResult = runtimeRoleState.setRole(slug, 'tool');
+      if (!stateResult.success) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                error: `Failed to activate role: ${stateResult.error}`,
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // Recompute the tool filter with the new active role
+      const newFilter = toolRegistry.recomputeFilter({ activeRole: role });
+      const enabledCount = newFilter?.enabledTools.size ?? 'unknown';
+
       const result = {
+        activated: true,
         slug: role.name,
         name: role.name,
         description: role.description,
@@ -133,6 +154,7 @@ export function registerRoleTools() {
           allowed: role.tools?.allowed || [],
           denied: role.tools?.denied || [],
         },
+        enabled_tool_count: enabledCount,
         tags: role.tags || [],
         author: role.author || null,
         version: role.version || null,

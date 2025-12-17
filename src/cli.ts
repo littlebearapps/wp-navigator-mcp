@@ -72,7 +72,8 @@ import {
   hasSpecificExtractor,
 } from './plugin-extractors/index.js';
 import { parseGutenbergBlocks } from './gutenberg/index.js';
-import { loadManifest, type WPNavManifest } from './manifest.js';
+import { loadManifest, isManifestV2, getManifestAI, type WPNavManifest } from './manifest.js';
+import { getFocusMode, getFocusModePreset, estimateToolCount } from './focus-modes.js';
 import {
   computeDiff,
   formatDiffText,
@@ -90,8 +91,13 @@ import {
   type SourcePosition,
 } from './validation-errors.js';
 import { makeWpRequest } from './http.js';
-import { toolRegistry } from './tool-registry/index.js';
+import { toolRegistry, ToolCategory } from './tool-registry/index.js';
 import { registerAllTools } from './tools/index.js';
+import {
+  searchTools as embeddingsSearch,
+  getStats as getEmbeddingsStats,
+  searchByCategory,
+} from './embeddings/index.js';
 import { logger } from './logger.js';
 import { clampText } from './output.js';
 import {
@@ -125,12 +131,16 @@ import {
 } from './rollback.js';
 import { handleInit } from './cli/commands/init.js';
 import { handleCleanup } from './cli/commands/cleanup.js';
+import { handleRole } from './cli/commands/role.js';
+import { handleConnect } from './cli/commands/connect.js';
 import { isLocalUrl } from './cli/init/defaults.js';
 import { handleCodexSetup } from './cli/commands/codex-setup.js';
 import { handleClaudeSetup } from './cli/commands/claude-setup.js';
 import { handleGeminiSetup } from './cli/commands/gemini-setup.js';
 import { handleExportEnv } from './cli/commands/export-env.js';
 import { handleMcpConfig } from './cli/commands/mcp-config.js';
+import { handleCredentials, type CredentialsAction } from './cli/commands/credentials.js';
+import { handleContext } from './cli/commands/context.js';
 import {
   resolveRole,
   formatRoleInfo,
@@ -148,7 +158,7 @@ import {
 } from './cli/output/index.js';
 
 // CLI version (matches package.json)
-const CLI_VERSION = '2.6.1';
+const CLI_VERSION = '2.7.0';
 
 // Dry-run request collector
 interface DryRunRequest {
@@ -291,6 +301,7 @@ Usage: npx wpnav <command> [options]
 
 Commands:
   init                          Set up a new WP Navigator project (wizard)
+  connect [url]                 Connect via Magic Link (from WP admin)
   call <tool> [--param value]   Invoke a WordPress tool directly
   tools [options]               List available tools
     --category <cat>              Filter by category
@@ -306,6 +317,8 @@ Commands:
   configure                     Set up WordPress connection credentials
   doctor                        Run system diagnostics
   cleanup                       Remove onboarding helper files
+  role <subcommand>             Manage AI roles (list|show|use|clear)
+  credentials <action>          Manage OS keychain credentials (store|show|clear|list|status)
   codex-setup                   Add OpenAI Codex support to project
   claude-setup                  Add Claude Code support to project
   gemini-setup                  Add Google Gemini CLI support to project
@@ -363,6 +376,12 @@ Configure Options:
   --password <pass>             Application Password
   --silent                      Non-interactive mode (requires all options)
   --skip-test                   Skip connection test in silent mode
+
+Connect Options:
+  --yes                         Skip confirmation prompts
+  --json                        Output results as JSON
+  --local                       Allow HTTP for local development URLs
+  --skip-init                   Skip auto-init after connecting
 
 Doctor Options:
   --json                        Output results as JSON
@@ -427,7 +446,7 @@ Configuration:
 
   Environment selection (in order of precedence):
     1. --env flag
-    2. WPNAV_ENVIRONMENT env var
+    2. WPNAV_ENV or WPNAV_ENVIRONMENT env var
     3. default_environment in config
     4. "default" if exists, else first environment
 
@@ -556,11 +575,14 @@ async function handleCall(
 /**
  * Handle 'tools' command - list available tools
  * Supports --format json (default) or --format markdown
+ * Supports --search for semantic search
+ * Supports --limit to cap search results
  */
 async function handleTools(options: Record<string, string>): Promise<void> {
-  const allTools = toolRegistry.getAllDefinitions();
   const categoryFilter = options.category?.toLowerCase();
   const format = options.format?.toLowerCase() || 'json';
+  const searchQuery = options.search?.trim();
+  const limit = Math.min(Math.max(parseInt(options.limit || '10', 10) || 10, 1), 25);
 
   // Validate format option
   if (format !== 'json' && format !== 'markdown') {
@@ -570,6 +592,57 @@ async function handleTools(options: Record<string, string>): Promise<void> {
     );
     process.exit(1);
   }
+
+  // Search mode: use embeddings for semantic search
+  if (searchQuery) {
+    let results = embeddingsSearch(searchQuery, { limit: limit * 3 }); // Get extra for category filtering
+
+    // Apply category filter if provided
+    if (categoryFilter) {
+      results = results.filter((r) => r.category.toLowerCase() === categoryFilter);
+    }
+
+    // Apply limit
+    results = results.slice(0, limit);
+
+    if (format === 'markdown') {
+      // Markdown output for search results
+      const lines = [
+        `# Search Results: "${searchQuery}"`,
+        '',
+        `Found ${results.length} matching tools${categoryFilter ? ` in category: ${categoryFilter}` : ''}`,
+        '',
+      ];
+
+      for (const result of results) {
+        lines.push(`## ${result.name}`);
+        lines.push(`- **Category**: ${result.category}`);
+        lines.push(`- **Score**: ${result.score.toFixed(2)}`);
+        lines.push(`- **Description**: ${result.description}`);
+        lines.push('');
+      }
+
+      console.log(lines.join('\n'));
+    } else {
+      // JSON output for search results
+      outputJSON({
+        success: true,
+        query: searchQuery,
+        category: categoryFilter || null,
+        total: results.length,
+        tools: results.map((r) => ({
+          name: r.name,
+          description: r.description,
+          category: r.category,
+          score: parseFloat(r.score.toFixed(3)),
+        })),
+      });
+    }
+    return;
+  }
+
+  // List mode (original behavior)
+  const allTools = toolRegistry.getAllDefinitions();
 
   // Group tools by category with full documentation
   const toolsByCategory: Record<string, ToolDocumentation[]> = {};
@@ -617,6 +690,200 @@ async function handleTools(options: Record<string, string>): Promise<void> {
       categories: Object.keys(toolsByCategory).length,
       tools: simplifiedTools,
     });
+  }
+}
+
+/**
+ * Category name mapping from enum to lowercase string
+ */
+const CATEGORY_NAMES: Record<ToolCategory, string> = {
+  [ToolCategory.CORE]: 'core',
+  [ToolCategory.CONTENT]: 'content',
+  [ToolCategory.TAXONOMY]: 'taxonomy',
+  [ToolCategory.USERS]: 'users',
+  [ToolCategory.PLUGINS]: 'plugins',
+  [ToolCategory.THEMES]: 'themes',
+  [ToolCategory.WORKFLOWS]: 'workflows',
+  [ToolCategory.COOKBOOK]: 'cookbook',
+  [ToolCategory.ROLES]: 'roles',
+  [ToolCategory.BATCH]: 'batch',
+};
+
+/**
+ * Handle 'tools describe' subcommand - get full schemas for specific tools
+ */
+async function handleToolsDescribe(
+  toolNames: string[],
+  options: Record<string, string>
+): Promise<void> {
+  const jsonOutput = options.json === 'true';
+
+  if (toolNames.length === 0) {
+    if (jsonOutput) {
+      outputError('MISSING_TOOLS', 'No tool names provided', {
+        hint: 'Usage: wpnav tools describe <tool1> [tool2] ...',
+      });
+    } else {
+      errorMessage('No tool names provided');
+      newline();
+      info('Usage: wpnav tools describe <tool1> [tool2] ...');
+      info('Example: wpnav tools describe wpnav_create_post wpnav_update_post');
+    }
+    process.exit(1);
+  }
+
+  // Limit to 10 tools per request (same as MCP tool)
+  const MAX_TOOLS = 10;
+  const toolsToDescribe = toolNames.slice(0, MAX_TOOLS);
+  const truncated = toolNames.length > MAX_TOOLS;
+
+  const foundTools: Array<{
+    name: string;
+    description: string;
+    category: string;
+    inputSchema: unknown;
+  }> = [];
+  const notFound: string[] = [];
+
+  for (const toolName of toolsToDescribe) {
+    const tool = toolRegistry.getTool(toolName);
+
+    if (!tool) {
+      notFound.push(toolName);
+      continue;
+    }
+
+    const categoryName = CATEGORY_NAMES[tool.category] || 'other';
+    foundTools.push({
+      name: tool.definition.name,
+      description: tool.definition.description || '',
+      category: categoryName,
+      inputSchema: tool.definition.inputSchema,
+    });
+  }
+
+  if (jsonOutput) {
+    const result: Record<string, unknown> = {
+      success: true,
+      tools: foundTools,
+      not_found: notFound,
+    };
+    if (truncated) {
+      result.warning = `Only first ${MAX_TOOLS} tools described. Request contained ${toolNames.length} tools.`;
+    }
+    outputJSON(result);
+  } else {
+    // Human-readable output
+    if (foundTools.length > 0) {
+      for (const tool of foundTools) {
+        box(tool.name);
+        newline();
+        keyValue('Category', tool.category);
+        keyValue('Description', tool.description);
+        newline();
+        info('Input Schema:');
+        console.log(JSON.stringify(tool.inputSchema, null, 2));
+        newline();
+      }
+    }
+
+    if (notFound.length > 0) {
+      warning(`Tools not found: ${notFound.join(', ')}`);
+      newline();
+    }
+
+    if (truncated) {
+      warning(
+        `Only first ${MAX_TOOLS} tools shown. ${toolNames.length - MAX_TOOLS} more requested.`
+      );
+    }
+  }
+}
+
+/**
+ * Handle 'tools categories' subcommand - list all categories with counts and examples
+ */
+async function handleToolsCategories(options: Record<string, string>): Promise<void> {
+  const jsonOutput = options.json === 'true';
+
+  // Get stats from embeddings module
+  const stats = getEmbeddingsStats();
+
+  // If embeddings not loaded, fall back to registry-based counting
+  let categoryData: Record<string, { count: number; examples: string[] }>;
+
+  if (stats.total > 0) {
+    // Use embeddings stats
+    categoryData = {};
+    for (const [category, count] of Object.entries(stats.byCategory)) {
+      // Get example tools from category
+      const categoryTools = searchByCategory(category);
+      const examples = categoryTools.slice(0, 3).map((t) => t.name.replace('wpnav_', ''));
+      categoryData[category] = { count, examples };
+    }
+  } else {
+    // Fallback: count from registry
+    const allTools = toolRegistry.getAllDefinitions();
+    categoryData = {};
+
+    for (const tool of allTools) {
+      const registeredTool = toolRegistry.getTool(tool.name);
+      const category = registeredTool?.category
+        ? CATEGORY_NAMES[registeredTool.category] || 'other'
+        : 'other';
+
+      if (!categoryData[category]) {
+        categoryData[category] = { count: 0, examples: [] };
+      }
+      categoryData[category].count++;
+      if (categoryData[category].examples.length < 3) {
+        categoryData[category].examples.push(tool.name.replace('wpnav_', ''));
+      }
+    }
+  }
+
+  const totalTools = Object.values(categoryData).reduce((sum, c) => sum + c.count, 0);
+  const sortedCategories = Object.entries(categoryData).sort((a, b) => a[0].localeCompare(b[0]));
+
+  if (jsonOutput) {
+    outputJSON({
+      success: true,
+      total_tools: totalTools,
+      total_categories: sortedCategories.length,
+      categories: Object.fromEntries(
+        sortedCategories.map(([name, data]) => [
+          name,
+          {
+            count: data.count,
+            examples: data.examples,
+          },
+        ])
+      ),
+    });
+  } else {
+    // Human-readable table output
+    box('Tool Categories');
+    newline();
+
+    // Calculate column widths
+    const maxCategoryLen = Math.max(...sortedCategories.map(([name]) => name.length), 8);
+    const countWidth = 5;
+
+    // Header
+    const header = `${'Category'.padEnd(maxCategoryLen)}  ${'Tools'.padStart(countWidth)}  Examples`;
+    console.log(colorize(header, 'cyan'));
+    console.log('-'.repeat(header.length + 20));
+
+    // Rows
+    for (const [category, data] of sortedCategories) {
+      const examplesStr = data.examples.join(', ');
+      console.log(
+        `${category.padEnd(maxCategoryLen)}  ${String(data.count).padStart(countWidth)}  ${examplesStr}`
+      );
+    }
+
+    newline();
+    info(`Total: ${totalTools} tools across ${sortedCategories.length} categories`);
   }
 }
 
@@ -815,9 +1082,28 @@ async function handleStatus(context: CLIContext): Promise<void> {
       };
     }
 
-    // Determine environment from introspect or env
+    // Determine environment from introspect or env (WPNAV_ENV is the short form)
     const environment =
-      detection.fullResponse?.environment || process.env.WPNAV_ENVIRONMENT || 'default';
+      detection.fullResponse?.environment ||
+      process.env.WPNAV_ENV ||
+      process.env.WPNAV_ENVIRONMENT ||
+      'default';
+
+    // Get focus mode from manifest (v2.7.0)
+    const manifestResult = loadManifest();
+    let focusModeDisplay = 'full-admin (default)';
+    let focusModeInfo: { mode: string; description: string; toolEstimate: number } | null = null;
+    if (manifestResult.found && manifestResult.manifest && isManifestV2(manifestResult.manifest)) {
+      const focusMode = getFocusMode(manifestResult.manifest);
+      const preset = getFocusModePreset(focusMode);
+      const toolCount = estimateToolCount(focusMode);
+      focusModeDisplay = `${focusMode} (${toolCount > 0 ? `~${toolCount} tools` : preset.tokenEstimate})`;
+      focusModeInfo = {
+        mode: focusMode,
+        description: preset.description,
+        toolEstimate: toolCount,
+      };
+    }
 
     // Display TUI status box (human-readable output)
     newline();
@@ -825,6 +1111,8 @@ async function handleStatus(context: CLIContext): Promise<void> {
       [
         `Site: ${detection.siteName || context.config.baseUrl}`,
         `Plugin: WP Navigator ${detection.version || 'unknown'} (${detection.edition || 'Free'})`,
+        `Environment: ${environment}`,
+        `Focus Mode: ${focusModeDisplay}`,
       ].join('\n'),
       { title: 'WP Navigator Status' }
     );
@@ -865,6 +1153,7 @@ async function handleStatus(context: CLIContext): Promise<void> {
         timeout_ms: context.config.toggles.toolTimeoutMs,
         max_response_kb: context.config.toggles.maxResponseKb,
       },
+      focus_mode: focusModeInfo,
     });
   } catch (error) {
     outputError(
@@ -1022,7 +1311,7 @@ async function handleValidate(
   const validateSnapshotsFlag = options.snapshots === 'true';
   const strictMode = options.strict === 'true';
   const envFlag = options.env;
-  const envVar = process.env.WPNAV_ENVIRONMENT;
+  const envVar = process.env.WPNAV_ENV ?? process.env.WPNAV_ENVIRONMENT;
   const environment = envFlag || envVar || undefined;
 
   // Snapshot validation results (for JSON output)
@@ -1336,7 +1625,7 @@ async function handleValidate(
   // 4. Test connection if requested (skip if --manifest-only)
   if (!manifestOnly && checkConnection && context) {
     try {
-      const introspect = await context.wpRequest('/introspect');
+      const introspect = await context.wpRequest('/wpnav/v1/introspect');
       checks.push({
         name: 'connection',
         status: 'pass',
@@ -2561,7 +2850,7 @@ async function captureSiteSnapshot(context: CLIContext): Promise<SiteIndexSnapsh
     wpRequest('/wp/v2/pages?per_page=100&status=any').catch(() => []),
     wpRequest('/wp/v2/posts?per_page=100&status=any').catch(() => []),
     wpRequest('/wp/v2/media?per_page=1').catch(() => []),
-    wpRequest('/introspect').catch(() => ({})),
+    wpRequest('/wpnav/v1/introspect').catch(() => ({})),
     // Theme customizer data (v2.1.0 - task-81.11)
     wpRequest('/wpnav/v1/theme_mods').catch(() => ({})),
     wpRequest('/wp/v2/widgets').catch(() => []), // WP 5.8+
@@ -3145,9 +3434,9 @@ function loadConfiguration(options: Record<string, string>): {
   resolved?: ResolvedConfig;
   insecureMode: 'flag' | 'auto' | false;
 } {
-  // Determine environment from --env flag or WPNAV_ENVIRONMENT
+  // Determine environment from --env flag or WPNAV_ENV/WPNAV_ENVIRONMENT
   const envFlag = options.env;
-  const envVar = process.env.WPNAV_ENVIRONMENT;
+  const envVar = process.env.WPNAV_ENV ?? process.env.WPNAV_ENVIRONMENT;
   const environment = envFlag || envVar || undefined;
 
   // v2.4.0: Check for --local or --insecure flags
@@ -3782,9 +4071,12 @@ export async function main(): Promise<void> {
   // Check for known commands before loading config
   const knownCommands = [
     'init',
+    'connect',
     'call',
     'tools',
     'roles',
+    'role',
+    'context',
     'status',
     'validate',
     'configure',
@@ -3794,6 +4086,7 @@ export async function main(): Promise<void> {
     'sync',
     'rollback',
     'cleanup',
+    'credentials',
     'codex-setup',
     'claude-setup',
     'gemini-setup',
@@ -3828,7 +4121,7 @@ export async function main(): Promise<void> {
     // Try to load config for connection test using only the new loader (no process.exit on failure)
     let context: CLIContext | undefined;
     const envFlag = options.env;
-    const envVar = process.env.WPNAV_ENVIRONMENT;
+    const envVar = process.env.WPNAV_ENV ?? process.env.WPNAV_ENVIRONMENT;
     const environment = envFlag || envVar || undefined;
 
     const result = loadWpnavConfig({
@@ -3860,11 +4153,48 @@ export async function main(): Promise<void> {
     process.exit(0);
   }
 
+  // Handle connect command separately (doesn't require valid config)
+  if (command === 'connect') {
+    const exitCode = await handleConnect(args, {
+      yes: options.yes === 'true',
+      json: options.json === 'true',
+      local: options.local === 'true',
+      skipInit: options['skip-init'] === 'true',
+    });
+    process.exit(exitCode);
+  }
+
   // Handle cleanup command separately (doesn't require valid config)
   if (command === 'cleanup') {
     const exitCode = await handleCleanup({
       yes: options.yes === 'true',
       json: options.json === 'true',
+    });
+    process.exit(exitCode);
+  }
+
+  // Handle role command separately (doesn't require valid config)
+  if (command === 'role') {
+    const subcommand = args[0];
+    const roleArgs = args.slice(1);
+    const exitCode = await handleRole(subcommand, roleArgs, {
+      json: options.json === 'true',
+    });
+    process.exit(exitCode);
+  }
+
+  // Handle credentials command separately (doesn't require valid config)
+  if (command === 'credentials') {
+    const action = args[0] as CredentialsAction | undefined;
+    if (!action) {
+      errorMessage('Missing action. Use: credentials <store|show|clear|list|status>');
+      process.exit(1);
+    }
+    const exitCode = await handleCredentials(action, {
+      json: options.json === 'true',
+      site: options.site,
+      yes: options.yes === 'true',
+      reveal: options.reveal === 'true',
     });
     process.exit(exitCode);
   }
@@ -3905,7 +4235,20 @@ export async function main(): Promise<void> {
   // Handle tools command separately (doesn't require valid config)
   if (command === 'tools') {
     registerAllTools();
-    await handleTools(options);
+
+    // Check for subcommands
+    const subcommand = args[0];
+
+    if (subcommand === 'describe') {
+      // wpnav tools describe <tool1> [tool2] ...
+      await handleToolsDescribe(args.slice(1), options);
+    } else if (subcommand === 'categories') {
+      // wpnav tools categories
+      await handleToolsCategories(options);
+    } else {
+      // wpnav tools [--search <query>] [--category <cat>] [--limit <n>]
+      await handleTools(options);
+    }
     process.exit(0);
   }
 
@@ -4031,6 +4374,23 @@ export async function main(): Promise<void> {
       await handleRollback(args, options, context);
       break;
 
+    case 'context':
+      const contextExitCode = await handleContext(
+        {
+          json: options.json === 'true',
+          format: options.format as 'compact' | 'full' | undefined,
+          includeTools: options['include-tools'] === 'true',
+          includeRole: options['include-role'] === 'true',
+          includeCookbooks: options['include-cookbooks'] === 'true',
+        },
+        {
+          config: context.config,
+          wpRequest: context.wpRequest,
+        }
+      );
+      process.exit(contextExitCode);
+      break;
+
     default:
       outputError('UNKNOWN_COMMAND', `Unknown command: ${command}`, {
         available: [
@@ -4038,6 +4398,7 @@ export async function main(): Promise<void> {
           'call',
           'tools',
           'status',
+          'context',
           'snapshot',
           'diff',
           'sync',
@@ -4046,6 +4407,8 @@ export async function main(): Promise<void> {
           'configure',
           'doctor',
           'cleanup',
+          'role',
+          'credentials',
           'codex-setup',
           'claude-setup',
           'gemini-setup',

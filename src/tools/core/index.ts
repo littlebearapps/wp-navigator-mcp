@@ -8,6 +8,10 @@
 import { toolRegistry, ToolCategory } from '../../tool-registry/index.js';
 import { discoverCookbooks, type LoadedSkillCookbook } from '../../cookbook/index.js';
 import { discoverRoles } from '../../roles/index.js';
+import { registerSearchTools } from './search-tools.js';
+import { registerDescribeTools } from './describe-tools.js';
+import { registerExecuteTool } from './execute.js';
+import { registerContextTool } from './context.js';
 
 /**
  * Register core tools (introspection, help, status)
@@ -305,4 +309,12 @@ export function registerCoreTools() {
     },
     category: ToolCategory.CORE,
   });
+
+  // ============================================================================
+  // Register meta-tools for dynamic tool discovery (v2.7.0)
+  // ============================================================================
+  registerSearchTools();
+  registerDescribeTools();
+  registerExecuteTool();
+  registerContextTool();
 }
