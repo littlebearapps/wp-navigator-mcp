@@ -4,6 +4,9 @@ name: Publish to npm
 # 1. Automatically via release-please.yml after a release is created (primary method)
 # 2. Manually via workflow_dispatch for re-runs or recovery
 # 3. On release published event (backup, may require manual draft toggle due to GITHUB_TOKEN limitations)
+#
+# NOTE: This workflow only runs in the PUBLIC repo (littlebearapps/wp-navigator-mcp).
+# The master repo (private) should not publish - provenance requires public repos.
 
 on:
   release:
@@ -18,6 +21,8 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # Skip if running in master (private) repo - provenance requires public repo
+    if: github.repository == 'littlebearapps/wp-navigator-mcp'
     permissions:
       contents: read
       id-token: write  # Required for npm provenance
@@ -32,7 +37,9 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        run: npm ci
+        # Use --ignore-scripts to skip native builds (sharp from @xenova/transformers)
+        # We only need TypeScript compilation, not ML inference
+        run: npm ci --ignore-scripts
 
       - name: Build TypeScript
         run: npm run build
