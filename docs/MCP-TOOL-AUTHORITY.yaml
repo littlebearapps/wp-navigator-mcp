@@ -5,9 +5,9 @@
 # DO NOT EDIT MANUALLY - regenerate with: npm run generate:authority
 
 schema_version: "1.0"
-mcp_version: "2.6.1"
+mcp_version: "2.7.0"
 min_plugin_version: "1.4.0"
-generated: "2025-12-17"
+generated: "2025-12-19"
 
 # Tool categories with endpoint mappings
 categories:
@@ -22,6 +22,18 @@ categories:
         description: "Get WP Navigator Pro API capabilities, policy configuration, and environment hints. Call this first to understand what the API can do."
         endpoint: "GET /wpnav/v1/introspect"
         since_mcp: "1.0.0"
+      - name: wpnav_jwt_token
+        description: "Generate a JWT access token and refresh token using WordPress credentials."
+        endpoint: "UNKNOWN"
+        since_mcp: "1.0.0"
+      - name: wpnav_jwt_refresh
+        description: "Refresh an expired JWT access token using a valid refresh token."
+        endpoint: "UNKNOWN"
+        since_mcp: "1.0.0"
+      - name: wpnav_jwt_revoke
+        description: "Revoke a JWT access token, invalidating both the access and refresh tokens."
+        endpoint: "UNKNOWN"
+        since_mcp: "1.0.0"
       - name: wpnav_batch_get
         description: "Fetch multiple WordPress items by ID in a single call. Supports ${BATCH_CONTENT_TYPES.join("
         endpoint: "UNKNOWN"
@@ -33,6 +45,11 @@ categories:
       - name: wpnav_batch_delete
         description: "DELETE multiple WordPress items in a single call. HIGH RISK: Requires confirm_destructive=true and WPNAV_ENABLE_WRITES=1. Supports ${BATCH_CONTENT_TYPES.join("
         endpoint: "UNKNOWN"
+        since_mcp: "1.0.0"
+      - name: wpnav_get_full_content
+        description: "Fetch full untruncated content for a specific post, page, or media item. Use after seeing truncated content in list/get responses."
+        endpoint: "GET /wp/v2/full_contents/{id}"
+        wordpress_core: true
         since_mcp: "1.0.0"
       - name: wpnav_search
         description: "Unified search across WordPress content. Searches posts, pages, media, and optionally users in parallel. Returns grouped results by content type."
@@ -60,6 +77,20 @@ categories:
         description: "Introspect Gutenberg capabilities: available blocks, patterns, and attributes. Use this to discover what blocks you can create."
         endpoint: "GET /wpnav/v1/gutenberg/introspect"
         since_mcp: "1.0.0"
+      - name: wpnav_get_maintenance
+        description: "Check WordPress maintenance mode status. Returns whether maintenance mode is currently enabled."
+        endpoint: "GET /wp/v2/maintenances/{id}"
+        wordpress_core: true
+        since_mcp: "1.0.0"
+      - name: wpnav_set_maintenance
+        description: "Enable or disable WordPress maintenance mode. Can set a custom message, timeout duration,"
+        endpoint: "UNKNOWN"
+        since_mcp: "1.0.0"
+      - name: wpnav_get_rewrite_rules
+        description: "List WordPress permalink rewrite rules. Returns all registered URL rewrite patterns,"
+        endpoint: "GET /wp/v2/rewrite_ruless/{id}"
+        wordpress_core: true
+        since_mcp: "1.0.0"
       - name: wpnav_list_roles
         description: "List all available AI roles with metadata. Roles define how AI assistants should interact with WordPress - including focus areas, things to avoid, and allowed/denied tools. Returns slug, description, focus areas, tool counts, and source (bundled/global/project)."
         endpoint: "GET /wp/v2/role"
@@ -68,6 +99,11 @@ categories:
       - name: wpnav_load_role
         description: "Load and activate a role by slug. Sets the role as active for this session, applies its tool restrictions, and returns the full role definition including context (system prompt), focus areas, things to avoid, and allowed/denied tools lists. The role change takes effect immediately for tool filtering."
         endpoint: "UNKNOWN"
+        since_mcp: "1.0.0"
+      - name: wpnav_update_settings
+        description: "Update WordPress core settings. Accepts an object of setting key-value pairs."
+        endpoint: "PUT /wp/v2/settingss/{id}"
+        wordpress_core: true
         since_mcp: "1.0.0"
   pages:
     description: "Page management"
@@ -393,8 +429,63 @@ categories:
         description: "Generate bulk test data (comments, posts, users) via REST API. Works with any WordPress instance (local, Hetzner, production)."
         endpoint: null  # Client-side only
         since_mcp: "1.0.0"
+  options:
+    description: "WordPress options read/write (v2.8.0)"
+    tools:
+      - name: wpnav_get_option
+        description: "Read a WordPress option by name. Returns the option value or default if not found."
+        endpoint: "GET /wpnav/v1/options/{option}"
+        since_mcp: "1.0.0"
+      - name: wpnav_set_option
+        description: "Modify a WordPress option. SAFETY: Only options from detected plugins are allowed (e.g., woocommerce_*, yoast_*, elementor_*). Core WordPress options are blocked."
+        endpoint: "POST /wpnav/v1/options/{option}"
+        since_mcp: "1.0.0"
+  settings:
+    description: "Site settings and statistics (v2.8.0)"
+    tools:
+      - name: wpnav_site_settings
+        description: "Read WordPress core settings like blogname, blogdescription, timezone, date format, etc."
+        endpoint: "GET /wpnav/v1/site/settings"
+        since_mcp: "1.0.0"
+      - name: wpnav_site_statistics
+        description: "Get WordPress site statistics including counts for posts, pages, users, comments, media, and taxonomy terms."
+        endpoint: "GET /wpnav/v1/site/statistics"
+        since_mcp: "1.0.0"
+  health:
+    description: "WordPress Site Health integration (v2.8.0)"
+    tools:
+      - name: wpnav_site_health
+        description: "Get WordPress Site Health diagnostics including tests, system info, and recommendations."
+        endpoint: "GET /wpnav/v1/site/health"
+        since_mcp: "1.0.0"
+  discovery:
+    description: "REST routes, shortcodes, block patterns (v2.8.0)"
+    tools:
+      - name: wpnav_list_block_patterns
+        description: "List all registered WordPress block patterns. Patterns are pre-designed block layouts that can be inserted into content."
+        endpoint: "GET /wpnav/v1/discovery/block-patterns"
+        since_mcp: "1.0.0"
+      - name: wpnav_list_block_templates
+        description: "List WordPress Full Site Editing templates and template parts. Includes headers, footers, and page templates."
+        endpoint: "GET /wpnav/v1/discovery/block-templates"
+        since_mcp: "1.0.0"
+      - name: wpnav_list_rest_routes
+        description: "List all registered WordPress REST API endpoints. Useful for discovering available APIs from plugins and themes."
+        endpoint: "GET /wpnav/v1/discovery/routes"
+        since_mcp: "1.0.0"
+      - name: wpnav_list_shortcodes
+        description: "List all registered WordPress shortcodes. Shows which shortcodes are available for use in content."
+        endpoint: "GET /wpnav/v1/discovery/shortcodes"
+        since_mcp: "1.0.0"
+  maintenance:
+    description: "Flush rewrites, maintenance mode (v2.8.0)"
+    tools:
+      - name: wpnav_flush_rewrite
+        description: "Flush WordPress rewrite rules. Use this to regenerate permalink rules after changes."
+        endpoint: "POST /wpnav/v1/maintenance/flush-rewrite"
+        since_mcp: "1.0.0"
 
 # Summary
 summary:
-  total_tools: 75
-  categories: 13
+  total_tools: 93
+  categories: 18

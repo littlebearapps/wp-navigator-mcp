@@ -254,3 +254,52 @@ describe('wpnav_search', () => {
     expect(user.email).toBeUndefined(); // Not extracted
   });
 });
+
+// =============================================================================
+// List tools - summary_only
+// =============================================================================
+
+describe('wpnav_list_posts summary_only', () => {
+  it('exposes summary_only parameter on input schema', () => {
+    const tool = toolRegistry.getTool('wpnav_list_posts');
+    expect(tool).toBeDefined();
+
+    const props = tool!.definition.inputSchema.properties as any;
+    expect(props).toHaveProperty('summary_only');
+    expect(props.summary_only.type).toBe('boolean');
+    expect(props.summary_only.default).toBe(false);
+  });
+
+  it('returns summary-only response when requested', async () => {
+    const mockPosts = [
+      {
+        id: 1,
+        title: { rendered: 'Hello World' },
+        status: 'publish',
+        modified: '2024-01-01T00:00:00',
+        link: 'https://example.com/hello-world',
+      },
+      {
+        id: 2,
+        title: { rendered: 'Second Post' },
+        status: 'draft',
+        modified: '2024-01-02T00:00:00',
+        link: 'https://example.com/second-post',
+      },
+    ];
+
+    const mockWpRequest = vi.fn().mockResolvedValue(mockPosts);
+    const tool = toolRegistry.getTool('wpnav_list_posts');
+    const result = await tool!.handler({ summary_only: true }, createMockContext(mockWpRequest));
+
+    expect(result.content).toHaveLength(1);
+    const payload = JSON.parse(result.content[0].text!);
+
+    expect(payload).toHaveProperty('ai_summary');
+    expect(typeof payload.ai_summary).toBe('string');
+    expect(payload).toHaveProperty('full_count', mockPosts.length);
+    expect(payload).toHaveProperty('_meta');
+    expect(payload._meta.summary_only).toBe(true);
+    expect(payload._meta.compact).toBe(true);
+  });
+});

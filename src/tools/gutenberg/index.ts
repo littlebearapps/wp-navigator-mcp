@@ -13,6 +13,10 @@
 import { toolRegistry, ToolCategory } from '../../tool-registry/index.js';
 import { validateRequired, validateId, extractSummary } from '../../tool-registry/utils.js';
 import {
+  createCompactListResponse,
+  createSummaryOnlyListResponse,
+} from '../../compression/index.js';
+import {
   buildIRNode,
   validatePath,
   parseIRDocument,
@@ -65,6 +69,17 @@ export function registerGutenbergTools() {
             type: 'number',
             description: 'WordPress post or page ID to load blocks from',
           },
+          compact: {
+            type: 'boolean',
+            default: false,
+            description: 'Return AI-optimized compact response with summary and top items only',
+          },
+          summary_only: {
+            type: 'boolean',
+            default: false,
+            description:
+              'Return AI-focused natural language summary only without item list (maximum compression)',
+          },
         },
         required: ['post_id'],
       },
@@ -89,6 +104,23 @@ export function registerGutenbergTools() {
 
       // Include both full IR and summary
       const summary = formatIRSummary(result.ir_document);
+
+      if (args.summary_only) {
+        const blocks = result.ir_document.blocks || [];
+        const summaryOnly = createSummaryOnlyListResponse('blocks', blocks);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(summaryOnly, null, 2) }],
+        };
+      }
+
+      if (args.compact) {
+        const compact = createCompactListResponse('blocks', result.ir_document.blocks || [], 5, {
+          post_id: id,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(compact, null, 2) }],
+        };
+      }
 
       return {
         content: [
@@ -617,7 +649,19 @@ export function registerGutenbergTools() {
         'List all available Gutenberg block patterns and reusable blocks. Patterns are pre-designed block combinations.',
       inputSchema: {
         type: 'object',
-        properties: {},
+        properties: {
+          compact: {
+            type: 'boolean',
+            default: false,
+            description: 'Return AI-optimized compact response with summary and top items only',
+          },
+          summary_only: {
+            type: 'boolean',
+            default: false,
+            description:
+              'Return AI-focused natural language summary only without item list (maximum compression)',
+          },
+        },
         required: [],
       },
     },
@@ -643,6 +687,20 @@ export function registerGutenbergTools() {
         type: p.type,
         categories: p.categories,
       }));
+
+      if (args.summary_only) {
+        const summaryOnly = createSummaryOnlyListResponse('patterns', summary);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(summaryOnly, null, 2) }],
+        };
+      }
+
+      if (args.compact) {
+        const compact = createCompactListResponse('patterns', summary, 5);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(compact, null, 2) }],
+        };
+      }
 
       return {
         content: [

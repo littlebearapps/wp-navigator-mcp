@@ -327,12 +327,17 @@ npx wpnav tools describe wpnav_gutenberg_insert_block --json
 - `batch` - Batch get, update, delete operations
 - `cookbook` - AI plugin guidance (Gutenberg, Elementor)
 - `roles` - AI role personas (content-editor, developer, etc.)
+- `options` - WordPress options read/write (v2.8.0)
+- `settings` - Site settings and statistics (v2.8.0)
+- `health` - WordPress Site Health integration (v2.8.0)
+- `discovery` - REST routes, shortcodes, block patterns, templates (v2.8.0)
+- `maintenance` - Flush rewrites, maintenance mode (v2.8.0)
 
 ---
 
 ## MCP Tool Discovery (v2.7.0+)
 
-When running as an MCP server (for Claude Code, Codex CLI, Gemini CLI), WP Navigator uses a **Dynamic Toolsets** architecture that exposes only 5 meta-tools instead of 75+ individual tools. This reduces initial token usage from ~19,500 to ~500 tokens (97.7% reduction).
+When running as an MCP server (for Claude Code, Codex CLI, Gemini CLI), WP Navigator uses a **Dynamic Toolsets** architecture that exposes only 5 meta-tools instead of 86+ individual tools. This reduces initial token usage from ~19,500 to ~500 tokens (97.7% reduction).
 
 ### Meta-Tools
 
@@ -488,6 +493,78 @@ npx wpnav configure --silent \
 | `--site <url>` | WordPress site URL |
 | `--user <username>` | WordPress username |
 | `--password <pass>` | Application password |
+
+---
+
+### `wpnav credentials` (v2.7.0+)
+
+Manage credentials stored in OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service).
+
+```bash
+# Store credential in keychain
+npx wpnav credentials store --site example.com
+
+# Show stored credential
+npx wpnav credentials show --site example.com
+
+# Show credential with password revealed
+npx wpnav credentials show --site example.com --reveal
+
+# Remove credential from keychain
+npx wpnav credentials clear --site example.com
+
+# List all stored credentials
+npx wpnav credentials list
+
+# Check keychain status
+npx wpnav credentials status
+
+# Output as JSON
+npx wpnav credentials list --json
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| `store --site <domain>` | Store credential in keychain (prompts for password) |
+| `show --site <domain>` | Display stored credential (masked by default) |
+| `clear --site <domain>` | Remove credential from keychain |
+| `list` | List all stored credentials |
+| `status` | Show keychain provider status |
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--site <domain>` | Site domain (required for store/show/clear) |
+| `--reveal` | Show password in clear text (default: masked) |
+| `--yes` | Skip confirmation prompts |
+| `--json` | Output as JSON |
+
+**Keychain reference in config:**
+
+After storing credentials, use the keychain reference in `wpnav.config.json`:
+
+```json
+{
+  "environments": {
+    "production": {
+      "site": "https://example.com",
+      "user": "admin",
+      "password": "keychain://wp-navigator/example.com"
+    }
+  }
+}
+```
+
+**Platform support:**
+
+| Platform | Provider | Status |
+|----------|----------|--------|
+| macOS | Keychain | Full support |
+| Windows | Credential Manager | Full support |
+| Linux | Secret Service (libsecret) | Requires libsecret-tools |
 
 ---
 
@@ -759,6 +836,54 @@ npx wpnav context --json
 
 ---
 
+### `wpnav suggest` (v2.8.0+)
+
+Get context-aware AI guidance based on current state.
+
+```bash
+# Get contextual suggestions
+npx wpnav suggest
+
+# Limit number of suggestions
+npx wpnav suggest --limit 3
+
+# Output as JSON
+npx wpnav suggest --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--limit <n>` | Maximum number of suggestions (default: 5) |
+| `--json` | Output as JSON |
+| `--config <path>` | Path to configuration file |
+| `--env <name>` | Environment to use (local/staging/production) |
+
+**Context analyzed:**
+
+- Current project state (config, manifest, snapshots)
+- Recent tool usage patterns
+- WordPress site health status
+- Common next actions based on current state
+
+**Example output:**
+
+```
+📌 Suggestions based on your current context:
+
+1. Run wpnav doctor to check system health
+   → No recent health check found
+
+2. Take a site snapshot before making changes
+   → wpnav snapshot site
+
+3. Update your manifest after recent WordPress changes
+   → wpnav diff to see what changed
+```
+
+---
+
 ### `wpnav role` (v2.7.0+)
 
 Manage AI role personas for focused tool access.
@@ -802,6 +927,113 @@ npx wpnav role list --json
 | `developer` | Development and debugging | All tools including testing |
 | `site-admin` | Full site administration | All tools |
 | `read-only` | Read-only access | List and get operations only |
+
+---
+
+### `wpnav set` (v2.8.0+)
+
+Update configuration values in `wpnav.config.json`.
+
+```bash
+# Set a config value
+npx wpnav set safety.enable_writes true
+
+# Set default environment
+npx wpnav set default_environment production
+
+# List current configuration values
+npx wpnav set --list
+
+# Output as JSON
+npx wpnav set --list --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--list` | Show current configuration values |
+| `--json` | Output as JSON |
+
+**Settable Keys:**
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `default_environment` | string | Default environment to use |
+| `default_role` | string | Default AI role for context |
+| `safety.enable_writes` | boolean | Enable write operations |
+| `safety.allow_insecure_http` | boolean | Allow HTTP for localhost |
+| `safety.tool_timeout_ms` | number | Per-tool timeout in milliseconds |
+| `safety.max_response_kb` | number | Maximum response size in KB |
+| `safety.sign_headers` | boolean | Enable HMAC request signing |
+| `safety.hmac_secret` | string | HMAC secret for signing |
+| `safety.ca_bundle` | string | Custom CA bundle path |
+| `features.workflows` | boolean | Enable AI workflows |
+| `features.bulk_validator` | boolean | Enable bulk content validator |
+| `features.seo_audit` | boolean | Enable SEO audit tool |
+| `features.content_reviewer` | boolean | Enable content reviewer |
+| `features.migration_planner` | boolean | Enable migration planner |
+| `features.performance_analyzer` | boolean | Enable performance analyzer |
+
+**Value formats:**
+
+| Type | Accepted Values |
+|------|-----------------|
+| boolean | `true`, `false`, `yes`, `no`, `1`, `0`, `on`, `off` |
+| number | Positive integers (e.g., `600000`, `64`) |
+| string | Any text value |
+
+---
+
+### `wpnav use` (v2.8.0+)
+
+Switch the active environment in `wpnav.config.json`.
+
+```bash
+# Switch to production environment
+npx wpnav use production
+
+# Switch to staging
+npx wpnav use staging
+
+# List available environments
+npx wpnav use --list
+
+# Output as JSON
+npx wpnav use --list --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--list` | List all available environments with details |
+| `--json` | Output as JSON |
+
+**Example output:**
+
+```
+Available Environments
+
+Active: production
+
+→ production
+    Site: https://example.com
+    User: admin
+
+  staging
+    Site: https://staging.example.com
+    User: admin
+
+  local
+    Site: http://localhost:8080
+    User: admin
+
+Total: 3
+Config: /path/to/wpnav.config.json
+```
+
+**Note:** After switching environments, new CLI sessions will use the selected environment by default. You can still override with `--env <name>` for individual commands.
 
 ---
 
@@ -865,24 +1097,120 @@ npx wpnav rollback --list
 npx wpnav rollback <sync-id>
 ```
 
+### Site Understanding (v2.8.0)
+
+```bash
+# Check site health
+npx wpnav call wpnav_site_health
+
+# Get site statistics
+npx wpnav call wpnav_site_statistics
+
+# Explore available REST routes
+npx wpnav call wpnav_list_rest_routes --namespace wpnav/v1
+
+# Discover block patterns
+npx wpnav call wpnav_list_block_patterns
+
+# Find registered shortcodes
+npx wpnav call wpnav_list_shortcodes
+```
+
+### Plugin Settings (v2.8.0)
+
+```bash
+# Read plugin option
+npx wpnav call wpnav_get_option --option woocommerce_currency
+
+# Modify plugin option (requires writes enabled + allowed prefix)
+WPNAV_ENABLE_WRITES=1 npx wpnav call wpnav_set_option \
+  --option yoast_wpseo_titles \
+  --value '{"title-home-wpseo": "My Site"}'
+
+# Note: Only plugin-detected prefixes allowed (woocommerce_*, yoast_*, etc.)
+```
+
+### Maintenance (v2.8.0)
+
+```bash
+# Enable maintenance mode
+WPNAV_ENABLE_WRITES=1 npx wpnav call wpnav_maintenance_mode --enable true
+
+# Flush rewrite rules (useful after permalink changes)
+WPNAV_ENABLE_WRITES=1 npx wpnav call wpnav_flush_rewrite
+
+# Disable maintenance mode
+WPNAV_ENABLE_WRITES=1 npx wpnav call wpnav_maintenance_mode --enable false
+```
+
 ---
 
-## Exit Codes
+## Exit Codes (v2.8.0 Standardized)
 
-| Code | Meaning |
-|------|---------|
-| `0` | Success |
-| `1` | General error |
-| `2` | Configuration error |
-| `3` | Connection error |
-| `4` | Authentication error |
-| `5` | Validation error |
+WP Navigator uses category-based exit codes for shell scripting and CI/CD integration.
+
+| Code | Category | Description |
+|------|----------|-------------|
+| `0` | Success | Operation completed successfully |
+| `1` | System | General system errors (unknown, timeout) |
+| `2` | Config | Configuration errors (missing file, invalid format, missing fields) |
+| `3` | Connection | Network errors (unreachable, DNS failure, SSL issues) |
+| `4` | WordPress | WordPress-specific errors (REST disabled, plugin missing/inactive) |
+| `5` | Validation | Input validation failures (invalid parameters, format errors) |
+| `6` | Auth | Authentication failures (invalid credentials, expired tokens, insufficient permissions) |
+| `7` | Not Found | Resource not found (page, post, plugin, theme not found) |
+| `8` | Conflict | Resource conflicts (already exists, concurrent modification) |
+| `9` | Safety | Safety-related rejections (writes disabled, policy denied, blocked option) |
+
+**Example usage in scripts:**
+
+```bash
+#!/bin/bash
+npx wpnav call wpnav_list_posts --limit 5
+exit_code=$?
+
+case $exit_code in
+  0) echo "Success" ;;
+  6) echo "Authentication failed - check credentials" ;;
+  9) echo "Writes disabled - set WPNAV_ENABLE_WRITES=1" ;;
+  *) echo "Error occurred (code: $exit_code)" ;;
+esac
+```
+
+**JSON error format (v2.8.0):**
+
+When using `--json` output, errors include structured metadata:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "AUTH_FAILED",
+    "category": "auth",
+    "message": "Invalid application password",
+    "suggestions": [
+      "Regenerate application password in WordPress admin",
+      "Verify username is correct"
+    ],
+    "commands": [
+      "wpnav configure",
+      "wpnav doctor"
+    ]
+  }
+}
+```
 
 ---
 
 ## See Also
 
-- [README](../README.md) - Quick start guide
+- [Getting Started](getting-started.md) - Quick setup guide
+- [MCP Setup](mcp-setup.md) - Configure Claude Code, Codex, Gemini
 - [Security](security.md) - Security practices
 - [Troubleshooting](troubleshooting.md) - Common issues
 - [FAQ](faq.md) - Frequently asked questions
+- [README](../README.md) - Project overview
+
+---
+
+**Last Updated**: 2025-12-18

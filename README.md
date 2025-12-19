@@ -251,6 +251,49 @@ npx wpnav call wpnav_load_cookbook --slug gutenberg  # Load cookbook
 - `wpnav://roles/{slug}` — Role definitions
 - `wpnav://cookbooks/{slug}` — Plugin guidance
 
+### Site Understanding Tools (v2.8.0)
+
+**Site Health** — WordPress Site Health integration:
+```bash
+npx wpnav call wpnav_site_health                      # Full health report
+npx wpnav call wpnav_site_health --categories security,performance
+```
+
+**Site Statistics & Settings** — Comprehensive site metrics:
+```bash
+npx wpnav call wpnav_site_statistics     # Posts, users, comments counts
+npx wpnav call wpnav_site_settings       # General settings overview
+```
+
+**Discovery** — Explore WordPress capabilities:
+```bash
+npx wpnav call wpnav_list_rest_routes    # All REST API endpoints
+npx wpnav call wpnav_list_shortcodes     # Registered shortcodes
+npx wpnav call wpnav_list_block_patterns # Available block patterns
+npx wpnav call wpnav_list_block_templates # FSE block templates
+```
+
+**Options Management** — Plugin options (safe by default):
+```bash
+npx wpnav call wpnav_get_option --option woocommerce_currency
+npx wpnav call wpnav_set_option --option yoast_seo_title --value "My Site"
+```
+
+> **Security**: `wpnav_set_option` only allows plugin-detected prefixes (e.g., `woocommerce_*`, `yoast_*`). Core WordPress options are blocked.
+
+**Maintenance** — Site maintenance operations:
+```bash
+npx wpnav call wpnav_flush_rewrite       # Flush rewrite rules
+npx wpnav call wpnav_maintenance_mode --enable true   # Enable maintenance
+npx wpnav call wpnav_maintenance_mode --enable false  # Disable maintenance
+```
+
+**AI-Friendly Suggestions** — Context-aware guidance:
+```bash
+npx wpnav suggest                        # Get contextual suggestions
+npx wpnav suggest --limit 3              # Limit suggestions
+```
+
 ### Snapshot & Sync Workflow
 
 ```bash
@@ -311,7 +354,7 @@ snapshots/
 
 ## Available Tools
 
-**75+ tools** available through the [Dynamic Toolsets](#dynamic-toolsets-v270) architecture.
+**93 tools** available through the [Dynamic Toolsets](#dynamic-toolsets-v270) architecture.
 
 ### MCP-Exposed Tools (5)
 
@@ -325,7 +368,7 @@ These tools are directly exposed to AI via MCP:
 | `wpnav_execute` | Execute any tool dynamically |
 | `wpnav_context` | Get context for non-MCP AI agents |
 
-### Discoverable Tools (75+)
+### Discoverable Tools (93)
 
 All other tools are discovered via `wpnav_search_tools` and executed via `wpnav_execute`:
 
@@ -344,6 +387,11 @@ All other tools are discovered via `wpnav_search_tools` and executed via `wpnav_
 | **Batch** | 3 | `wpnav_batch_get`, `wpnav_batch_update`, `wpnav_batch_delete` |
 | **Cookbook** | 3 | `wpnav_list_cookbooks`, `wpnav_load_cookbook` |
 | **Roles** | 2 | `wpnav_list_roles`, `wpnav_load_role` |
+| **Options** | 2 | `wpnav_get_option`, `wpnav_set_option` |
+| **Settings** | 2 | `wpnav_site_settings`, `wpnav_site_statistics` |
+| **Health** | 1 | `wpnav_site_health` |
+| **Discovery** | 4 | `wpnav_list_rest_routes`, `wpnav_list_shortcodes`, `wpnav_list_block_patterns` |
+| **Maintenance** | 2 | `wpnav_flush_rewrite`, `wpnav_maintenance_mode` |
 
 ### CLI Tool Discovery
 
@@ -379,7 +427,7 @@ WP Navigator uses a **Dynamic Toolsets** architecture for token efficiency:
 | Approach | Token Usage | Tools Exposed |
 |----------|-------------|---------------|
 | **v2.6 (legacy)** | ~19,500 tokens | 75 individual tools |
-| **v2.7+ (dynamic)** | ~500 tokens | 5 meta-tools |
+| **v2.7+ (dynamic)** | ~500 tokens | 5 meta-tools (93 discoverable) |
 
 **How it works:**
 
@@ -492,10 +540,41 @@ This validates existing files and regenerates any that are missing or invalid.
 
 ---
 
+## Quick Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| "Command starts MCP server" | Update to v2.8.0+, use `npx @littlebearapps/wp-navigator-mcp@latest` |
+| "Config not found" | Config auto-discovers from parent dirs; use `--config` for explicit path |
+| "401 Unauthorized" | Regenerate Application Password in WordPress Admin → Users → Profile |
+| "WRITES_DISABLED" | Set `WPNAV_ENABLE_WRITES=1` environment variable |
+| "Plugin not found" (404) | Ensure WP Navigator plugin is installed and activated |
+| SSL errors | Use `ALLOW_INSECURE_HTTP=1` for localhost development |
+
+**Full diagnostics:**
+```bash
+npx wpnav doctor          # Run system health checks
+npx wpnav doctor --json   # JSON output for debugging
+```
+
+See [Troubleshooting Guide](docs/troubleshooting.md) for detailed solutions.
+
+---
+
 ## Documentation
 
+**Getting Started:**
+- **[Getting Started](docs/getting-started.md)** — Quick setup in 5 minutes
+- **[MCP Setup](docs/mcp-setup.md)** — Configure Claude Code, Codex, Gemini CLI
+
+**Reference:**
 - **[CLI Reference](docs/cli-reference.md)** — Complete command documentation
+- **[Dynamic Toolsets](docs/DYNAMIC-TOOLSETS.md)** — Token-efficient tool discovery architecture
 - **[Security](docs/security.md)** — Security model and best practices
+
+**Guides:**
+- **[Best Practices](docs/best-practices.md)** — Token optimization, security, and workflow tips
+- **[AI Agent Guide](docs/ai-agent-guide.md)** — Dynamic Toolsets workflow for AI agents
 - **[Troubleshooting](docs/troubleshooting.md)** — Common issues and solutions
 - **[FAQ](docs/faq.md)** — Frequently asked questions
 - **[Contributing](docs/contributing.md)** — How to contribute

@@ -5,6 +5,18 @@ All notable changes to @littlebearapps/wp-navigator-mcp will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0](https://github.com/littlebearapps/wp-navigator-mcp-master/compare/v2.7.0...v2.8.0) (2025-12-19)
+
+
+### Features
+
+* v2.8.0 Essential Access & Understanding ([#42](https://github.com/littlebearapps/wp-navigator-mcp-master/issues/42)) ([4474d65](https://github.com/littlebearapps/wp-navigator-mcp-master/commit/4474d65e553ab484f42da31602305a64dc2ad68d))
+
+
+### Bug Fixes
+
+* **ci:** use PAT for release-please to trigger CI on PRs ([#41](https://github.com/littlebearapps/wp-navigator-mcp-master/issues/41)) ([a5f841f](https://github.com/littlebearapps/wp-navigator-mcp-master/commit/a5f841f05f6c599176a4571e303ec6b4ee654812))
+
 ## [2.7.0](https://github.com/littlebearapps/wp-navigator-mcp-master/compare/v2.6.1...v2.7.0) (2025-12-17)
 
 
@@ -16,24 +28,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Dynamic Toolsets architecture** (task-102): Meta-tool pattern for 97.7% token reduction
-  - `wpnav_search_tools`: Semantic search for tool discovery by natural language or category
-  - `wpnav_describe_tools`: On-demand JSON Schema retrieval for specific tools
-  - `wpnav_execute`: Dynamic tool execution with validation and error handling
-  - `wpnav_context`: Context dump for non-MCP AI agents (ChatGPT, web assistants)
-- **Embeddings infrastructure**: Pre-computed tool embeddings for semantic search
-- **META_TOOLS filter**: MCP server exposes only 5 tools instead of 75+
-- New documentation: `docs/DYNAMIC-TOOLSETS.md`
+- **v2.8.0 Essential Access & Understanding tools** (task-99): 7 new tools for programmatic access and site understanding
+  - **Options tools**: `wpnav_get_option`, `wpnav_set_option` (plugin-detected prefixes only for safety)
+  - **Health tools**: `wpnav_site_health` (WordPress Site Health integration)
+  - **Discovery tools**: `wpnav_list_rest_routes`, `wpnav_list_shortcodes`, `wpnav_list_block_patterns`, `wpnav_list_block_templates`
+- **Standardized error format** (task-99.8): Machine-parseable errors with codes, categories, and actionable suggestions
+- **Exit codes** (task-99.10): Category-based exit codes (0-9) for shell scripting and CI/CD
+- **Suggest command** (task-99.9): `wpnav suggest` for context-aware AI guidance
+- Integration tests for v2.8.0 tools
 
 ### Changed
 
-- MCP clients now see ~500 tokens instead of ~19,500 on initial connection
-- Tool Registry updated to v2.0.0 with meta-tool architecture
-- CLI reference updated with MCP Tool Discovery section
+- Error responses now include structured `code`, `category`, `suggestions`, and `commands` fields
+- Total tool count increased from 75 to 82
+- CLI reference updated with new tool categories and exit codes
 
-### Fixed
+### Security
 
-- MCP protocol compliance: Changed startup banner from `console.log` to `console.error` (fixes Codex CLI discovery)
+- `wpnav_set_option` restricted to plugin-detected option prefixes only (e.g., `woocommerce_*`, `yoast_*`)
+- Core WordPress options (`siteurl`, `home`, `admin_email`, etc.) are blocked from modification
+- Options allowlist derived from introspect `detected_plugins` for dynamic security
 
 ## [2.6.0](https://github.com/littlebearapps/wp-navigator-mcp-master/compare/v2.5.0...v2.6.0) (2025-12-15)
 

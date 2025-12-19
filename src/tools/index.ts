@@ -18,6 +18,15 @@ import { registerGutenbergTools } from './gutenberg/index.js';
 import { registerCookbookTools } from './cookbook/index.js';
 import { registerRoleTools } from './roles/index.js';
 import { registerBatchTools } from './batch/index.js';
+import {
+  registerOptionsTools,
+  registerStatisticsTools,
+  registerSettingsTools,
+} from './settings/index.js';
+import { registerAnalyticsTools } from './analytics/index.js';
+import { registerDiscoveryTools } from './discovery/index.js';
+import { registerMaintenanceTools } from './maintenance/index.js';
+import { registerAuthTools } from './auth/index.js';
 
 /**
  * Register all tools with the tool registry
@@ -36,4 +45,11 @@ export function registerAllTools() {
   registerCookbookTools();
   registerRoleTools();
   registerBatchTools();
+  registerOptionsTools();
+  registerStatisticsTools();
+  registerSettingsTools();
+  registerAnalyticsTools();
+  registerDiscoveryTools();
+  registerMaintenanceTools();
+  registerAuthTools();
 }

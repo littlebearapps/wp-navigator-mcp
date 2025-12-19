@@ -34,6 +34,11 @@ const CATEGORY_NAMES: Record<ToolCategory, string> = {
   [ToolCategory.COOKBOOK]: 'cookbook',
   [ToolCategory.ROLES]: 'roles',
   [ToolCategory.BATCH]: 'batch',
+  [ToolCategory.SETTINGS]: 'settings',
+  [ToolCategory.ANALYTICS]: 'analytics',
+  [ToolCategory.DISCOVERY]: 'discovery',
+  [ToolCategory.MAINTENANCE]: 'maintenance',
+  [ToolCategory.AUTH]: 'auth',
 };
 
 /**

@@ -123,6 +123,24 @@ describe('wpnav_list_cookbooks', () => {
     // Elementor requires wpnav-pro according to the SKILL.md file
     expect(elementor.requires_wpnav_pro).toBeDefined();
   });
+
+  it('supports summary_only parameter', async () => {
+    const tool = toolRegistry.getTool('wpnav_list_cookbooks');
+    expect(tool).toBeDefined();
+
+    const props = tool!.definition.inputSchema.properties as any;
+    expect(props).toHaveProperty('summary_only');
+    expect(props.summary_only.type).toBe('boolean');
+    expect(props.summary_only.default).toBe(false);
+
+    const result = await tool!.handler({ summary_only: true }, createMockContext());
+    const data = JSON.parse(result.content[0].text!);
+
+    expect(data).toHaveProperty('ai_summary');
+    expect(typeof data.ai_summary).toBe('string');
+    expect(data).toHaveProperty('full_count');
+    expect(data._meta.summary_only).toBe(true);
+  });
 });
 
 // =============================================================================

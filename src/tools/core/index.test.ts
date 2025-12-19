@@ -535,4 +535,20 @@ describe('wpnav_list_post_types', () => {
     expect(postType.rest_base).toBe('post'); // Falls back to slug
     expect(postType.rest_namespace).toBe('wp/v2'); // Default
   });
+
+  it('supports summary_only parameter', async () => {
+    const mockWpRequest = vi.fn().mockResolvedValue({
+      post: { name: 'Posts', hierarchical: false, rest_base: 'posts' },
+      page: { name: 'Pages', hierarchical: true, rest_base: 'pages' },
+    });
+
+    const tool = toolRegistry.getTool('wpnav_list_post_types');
+    const result = await tool!.handler({ summary_only: true }, createMockContext(mockWpRequest));
+
+    const data = JSON.parse(result.content[0].text!);
+    expect(data).toHaveProperty('ai_summary');
+    expect(typeof data.ai_summary).toBe('string');
+    expect(data).toHaveProperty('full_count', 2);
+    expect(data._meta.summary_only).toBe(true);
+  });
 });

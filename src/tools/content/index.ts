@@ -19,6 +19,17 @@ import {
 import { applyContentChanges, applyContentCreation } from '../../safety.js';
 import fetch from 'cross-fetch';
 import FormData from 'form-data';
+import {
+  createCompactListResponse,
+  createSummaryOnlyListResponse,
+  addMetadata,
+  getPostCreationHints,
+  getPageCreationHints,
+  getMediaUploadHints,
+  getUpdateHints,
+  getDeleteHints,
+} from '../../compression/index.js';
+import './get-full-content.js';
 
 /**
  * Register content management tools (pages, posts, media, comments)
@@ -55,6 +66,17 @@ export function registerContentTools() {
             description:
               'Fields to return (e.g., ["id", "title", "status"]). Reduces response size.',
           },
+          compact: {
+            type: 'boolean',
+            default: false,
+            description: 'Return AI-optimized compact response with summary and top items only',
+          },
+          summary_only: {
+            type: 'boolean',
+            default: false,
+            description:
+              'Return AI-focused natural language summary only without item list (maximum compression)',
+          },
         },
         required: [],
       },
@@ -72,9 +94,23 @@ export function registerContentTools() {
       });
       const pages = await context.wpRequest(`/wp/v2/pages?${qs}`);
 
+      if (args.summary_only) {
+        const summaryOnly = createSummaryOnlyListResponse('pages', pages);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(summaryOnly, null, 2) }],
+        };
+      }
+
       const summary = pages.map((p: any) =>
         extractSummary(p, ['id', 'title.rendered', 'status', 'modified', 'link'])
       );
+
+      if (args.compact) {
+        const compact = createCompactListResponse('pages', summary, 5, { status });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(compact, null, 2) }],
+        };
+      }
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(summary, null, 2)) }],
@@ -194,8 +230,16 @@ export function registerContentTools() {
           force: !!args.force,
         });
 
+        const hints = getUpdateHints('page', id);
+        const wrapped = addMetadata(result, { hints });
+
         return {
-          content: [{ type: 'text', text: context.clampText(JSON.stringify(result, null, 2)) }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(JSON.stringify(wrapped, null, 2)),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
@@ -251,31 +295,32 @@ export function registerContentTools() {
       try {
         validateRequired(args, ['title']);
 
+        const status = (args.status as 'draft' | 'publish' | 'private') || 'draft';
+
         const result = await applyContentCreation(context.wpRequest as any, context.config, {
           postType: 'page',
           title: String(args.title),
           content: args.content ? String(args.content) : undefined,
-          status: (args.status as 'draft' | 'publish' | 'private') || 'draft',
+          status,
         });
+
+        const responsePayload = {
+          success: true,
+          post_id: result.apply.post_id,
+          title: args.title,
+          status,
+          plan_id: result.plan.plan_id,
+          message: 'Page created successfully',
+        };
+
+        const hints = getPageCreationHints(result.apply.post_id, status);
+        const wrapped = addMetadata(responsePayload, { hints });
 
         return {
           content: [
             {
               type: 'text',
-              text: context.clampText(
-                JSON.stringify(
-                  {
-                    success: true,
-                    post_id: result.apply.post_id,
-                    title: args.title,
-                    status: args.status || 'draft',
-                    plan_id: result.plan.plan_id,
-                    message: 'Page created successfully',
-                  },
-                  null,
-                  2
-                )
-              ),
+              text: context.clampText(JSON.stringify(wrapped, null, 2)),
             },
           ],
         };
@@ -336,23 +381,22 @@ export function registerContentTools() {
           method: 'DELETE',
         });
 
+        const responsePayload = {
+          success: true,
+          id: result.id,
+          title: result.title?.rendered || result.title?.raw || 'Unknown',
+          status: result.status,
+          message: args.force ? 'Page permanently deleted' : 'Page moved to trash',
+        };
+
+        const hints = getDeleteHints('page');
+        const wrapped = addMetadata(responsePayload, { hints });
+
         return {
           content: [
             {
               type: 'text',
-              text: context.clampText(
-                JSON.stringify(
-                  {
-                    success: true,
-                    id: result.id,
-                    title: result.title?.rendered || result.title?.raw || 'Unknown',
-                    status: result.status,
-                    message: args.force ? 'Page permanently deleted' : 'Page moved to trash',
-                  },
-                  null,
-                  2
-                )
-              ),
+              text: context.clampText(JSON.stringify(wrapped, null, 2)),
             },
           ],
         };
@@ -562,6 +606,17 @@ export function registerContentTools() {
             description:
               'Fields to return (e.g., ["id", "title", "status"]). Reduces response size.',
           },
+          compact: {
+            type: 'boolean',
+            default: false,
+            description: 'Return AI-optimized compact response with summary and top items only',
+          },
+          summary_only: {
+            type: 'boolean',
+            default: false,
+            description:
+              'Return AI-focused natural language summary only without item list (maximum compression)',
+          },
         },
         required: [],
       },
@@ -579,9 +634,23 @@ export function registerContentTools() {
       });
       const posts = await context.wpRequest(`/wp/v2/posts?${qs}`);
 
+      if (args.summary_only) {
+        const summaryOnly = createSummaryOnlyListResponse('posts', posts);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(summaryOnly, null, 2) }],
+        };
+      }
+
       const summary = posts.map((p: any) =>
         extractSummary(p, ['id', 'title.rendered', 'status', 'modified', 'link'])
       );
+
+      if (args.compact) {
+        const compact = createCompactListResponse('posts', summary, 5, { status });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(compact, null, 2) }],
+        };
+      }
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(summary, null, 2)) }],
@@ -701,8 +770,16 @@ export function registerContentTools() {
           force: !!args.force,
         });
 
+        const hints = getUpdateHints('post', id);
+        const wrapped = addMetadata(result, { hints });
+
         return {
-          content: [{ type: 'text', text: context.clampText(JSON.stringify(result, null, 2)) }],
+          content: [
+            {
+              type: 'text',
+              text: context.clampText(JSON.stringify(wrapped, null, 2)),
+            },
+          ],
         };
       } catch (error: any) {
         const errorMessage = error.message || 'Unknown error';
@@ -759,32 +836,33 @@ export function registerContentTools() {
       try {
         validateRequired(args, ['title']);
 
+        const status = (args.status as 'draft' | 'publish' | 'private') || 'draft';
+
         const result = await applyContentCreation(context.wpRequest as any, context.config, {
           postType: 'post',
           title: String(args.title),
           content: args.content ? String(args.content) : undefined,
           excerpt: args.excerpt ? String(args.excerpt) : undefined,
-          status: (args.status as 'draft' | 'publish' | 'private') || 'draft',
+          status,
         });
+
+        const responsePayload = {
+          success: true,
+          post_id: result.apply.post_id,
+          title: args.title,
+          status,
+          plan_id: result.plan.plan_id,
+          message: 'Post created successfully',
+        };
+
+        const hints = getPostCreationHints(result.apply.post_id, status);
+        const wrapped = addMetadata(responsePayload, { hints });
 
         return {
           content: [
             {
               type: 'text',
-              text: context.clampText(
-                JSON.stringify(
-                  {
-                    success: true,
-                    post_id: result.apply.post_id,
-                    title: args.title,
-                    status: args.status || 'draft',
-                    plan_id: result.plan.plan_id,
-                    message: 'Post created successfully',
-                  },
-                  null,
-                  2
-                )
-              ),
+              text: context.clampText(JSON.stringify(wrapped, null, 2)),
             },
           ],
         };
@@ -952,23 +1030,22 @@ export function registerContentTools() {
           method: 'DELETE',
         });
 
+        const responsePayload = {
+          success: true,
+          id: result.id,
+          title: result.title?.rendered || result.title?.raw || 'Unknown',
+          status: result.status,
+          message: args.force ? 'Post permanently deleted' : 'Post moved to trash',
+        };
+
+        const hints = getDeleteHints('post');
+        const wrapped = addMetadata(responsePayload, { hints });
+
         return {
           content: [
             {
               type: 'text',
-              text: context.clampText(
-                JSON.stringify(
-                  {
-                    success: true,
-                    id: result.id,
-                    title: result.title?.rendered || result.title?.raw || 'Unknown',
-                    status: result.status,
-                    message: args.force ? 'Post permanently deleted' : 'Post moved to trash',
-                  },
-                  null,
-                  2
-                )
-              ),
+              text: context.clampText(JSON.stringify(wrapped, null, 2)),
             },
           ],
         };
@@ -1034,6 +1111,17 @@ export function registerContentTools() {
             description:
               'Fields to return (e.g., ["id", "title", "source_url"]). Reduces response size.',
           },
+          compact: {
+            type: 'boolean',
+            default: false,
+            description: 'Return AI-optimized compact response with summary and top items only',
+          },
+          summary_only: {
+            type: 'boolean',
+            default: false,
+            description:
+              'Return AI-focused natural language summary only without item list (maximum compression)',
+          },
         },
         required: [],
       },
@@ -1050,9 +1138,25 @@ export function registerContentTools() {
 
       const media = await context.wpRequest(`/wp/v2/media?${qs}`);
 
+      if (args.summary_only) {
+        const summaryOnly = createSummaryOnlyListResponse('media', media);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(summaryOnly, null, 2) }],
+        };
+      }
+
       const summary = media.map((item: any) =>
         extractSummary(item, ['id', 'title.rendered', 'source_url', 'mime_type', 'modified'])
       );
+
+      if (args.compact) {
+        const compact = createCompactListResponse('media', summary, 5, {
+          media_type: args.media_type,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(compact, null, 2) }],
+        };
+      }
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(summary, null, 2)) }],
@@ -1222,11 +1326,16 @@ export function registerContentTools() {
           body: JSON.stringify(sideloadData),
         });
 
+        const mediaId = typeof result?.id === 'number' ? result.id : undefined;
+        const wrapped = mediaId
+          ? addMetadata(result, { hints: getMediaUploadHints(mediaId) })
+          : addMetadata(result);
+
         return {
           content: [
             {
               type: 'text',
-              text: context.clampText(JSON.stringify(result, null, 2)),
+              text: context.clampText(JSON.stringify(wrapped, null, 2)),
             },
           ],
         };
@@ -1288,6 +1397,17 @@ export function registerContentTools() {
             description:
               'Fields to return (e.g., ["id", "author_name", "content"]). Reduces response size.',
           },
+          compact: {
+            type: 'boolean',
+            default: false,
+            description: 'Return AI-optimized compact response with summary and top items only',
+          },
+          summary_only: {
+            type: 'boolean',
+            default: false,
+            description:
+              'Return AI-focused natural language summary only without item list (maximum compression)',
+          },
         },
         required: [],
       },
@@ -1304,9 +1424,26 @@ export function registerContentTools() {
 
       const comments = await context.wpRequest(`/wp/v2/comments?${qs}`);
 
+      if (args.summary_only) {
+        const summaryOnly = createSummaryOnlyListResponse('comments', comments);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(summaryOnly, null, 2) }],
+        };
+      }
+
       const summary = comments.map((c: any) =>
         extractSummary(c, ['id', 'author_name', 'content.rendered', 'status', 'post', 'date'])
       );
+
+      if (args.compact) {
+        const compact = createCompactListResponse('comments', summary, 5, {
+          status: args.status,
+          post: args.post,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(compact, null, 2) }],
+        };
+      }
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(summary, null, 2)) }],

@@ -42,6 +42,15 @@ const CLI_COMMANDS = [
   'claude-setup',
   'codex-setup',
   'gemini-setup',
+  // v2.7.0 commands
+  'connect',
+  'credentials',
+  'role',
+  'context',
+  // v2.8.0 commands
+  'set',
+  'use',
+  'suggest',
 ];
 const CLI_FLAGS = ['--version', '--help', '-h', '-v'];
 

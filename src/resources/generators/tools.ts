@@ -55,6 +55,26 @@ const CATEGORY_INFO: Record<ToolCategory, { name: string; description: string }>
     name: 'Batch',
     description: 'Multi-item operations for efficiency',
   },
+  [ToolCategory.SETTINGS]: {
+    name: 'Settings',
+    description: 'Site options and configuration management',
+  },
+  [ToolCategory.ANALYTICS]: {
+    name: 'Analytics',
+    description: 'Site health and performance analysis',
+  },
+  [ToolCategory.DISCOVERY]: {
+    name: 'Discovery',
+    description: 'REST routes, shortcodes, block patterns, and templates',
+  },
+  [ToolCategory.MAINTENANCE]: {
+    name: 'Maintenance',
+    description: 'Site maintenance mode and rewrite rules management',
+  },
+  [ToolCategory.AUTH]: {
+    name: 'Authentication',
+    description: 'JWT token generation, refresh, and revocation',
+  },
 };
 
 /**

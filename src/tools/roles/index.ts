@@ -9,6 +9,7 @@
 
 import { toolRegistry, ToolCategory } from '../../tool-registry/index.js';
 import { discoverRoles, getRole, runtimeRoleState, type LoadedRole } from '../../roles/index.js';
+import { createSummaryOnlyListResponse } from '../../compression/index.js';
 
 /**
  * Register role tools
@@ -24,11 +25,18 @@ export function registerRoleTools() {
         'List all available AI roles with metadata. Roles define how AI assistants should interact with WordPress - including focus areas, things to avoid, and allowed/denied tools. Returns slug, description, focus areas, tool counts, and source (bundled/global/project).',
       inputSchema: {
         type: 'object',
-        properties: {},
+        properties: {
+          summary_only: {
+            type: 'boolean',
+            default: false,
+            description:
+              'Return AI-focused natural language summary only without role list (maximum compression)',
+          },
+        },
         required: [],
       },
     },
-    handler: async (_args, _context) => {
+    handler: async (args, _context) => {
       const { roles, sources } = discoverRoles();
 
       const roleList = Array.from(roles.entries()).map(([slug, role]) => ({
@@ -43,6 +51,18 @@ export function registerRoleTools() {
         tags: role.tags || [],
         author: role.author || null,
       }));
+
+      if (args.summary_only) {
+        const summaryOnly = createSummaryOnlyListResponse('roles', roleList);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(summaryOnly, null, 2),
+            },
+          ],
+        };
+      }
 
       return {
         content: [

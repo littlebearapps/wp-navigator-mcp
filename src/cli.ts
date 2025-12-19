@@ -141,6 +141,9 @@ import { handleExportEnv } from './cli/commands/export-env.js';
 import { handleMcpConfig } from './cli/commands/mcp-config.js';
 import { handleCredentials, type CredentialsAction } from './cli/commands/credentials.js';
 import { handleContext } from './cli/commands/context.js';
+import { handleUse } from './cli/commands/use.js';
+import { handleSet } from './cli/commands/set.js';
+import { suggestCommand, type SuggestOptions } from './cli/commands/suggest.js';
 import {
   resolveRole,
   formatRoleInfo,
@@ -302,6 +305,10 @@ Usage: npx wpnav <command> [options]
 Commands:
   init                          Set up a new WP Navigator project (wizard)
   connect [url]                 Connect via Magic Link (from WP admin)
+  use <env>                     Switch active environment (local, staging, production)
+    --list                        List available environments
+  set <key> <value>             Update config value (supports dot notation)
+    --list                        Show current configuration
   call <tool> [--param value]   Invoke a WordPress tool directly
   tools [options]               List available tools
     --category <cat>              Filter by category
@@ -310,6 +317,10 @@ Commands:
     --toc                         Include table of contents in markdown
   roles [<name>]                List roles or show role details
   status                        Check WordPress connection status
+  suggest [options]             Get context-aware next action suggestions
+    --category <cat>              Filter by category (setup, content, plugins, themes, maintenance, discovery)
+    --limit <n>                   Limit number of suggestions
+    --json                        Output as JSON
   snapshot <subcommand>         Capture WordPress state to local files
   diff                          Compare manifest with WordPress state
   sync                          Apply manifest changes to WordPress
@@ -707,6 +718,11 @@ const CATEGORY_NAMES: Record<ToolCategory, string> = {
   [ToolCategory.COOKBOOK]: 'cookbook',
   [ToolCategory.ROLES]: 'roles',
   [ToolCategory.BATCH]: 'batch',
+  [ToolCategory.SETTINGS]: 'settings',
+  [ToolCategory.ANALYTICS]: 'analytics',
+  [ToolCategory.DISCOVERY]: 'discovery',
+  [ToolCategory.MAINTENANCE]: 'maintenance',
+  [ToolCategory.AUTH]: 'auth',
 };
 
 /**
@@ -1059,10 +1075,13 @@ async function handleRoles(args: string[], options: Record<string, string>): Pro
 async function handleStatus(context: CLIContext): Promise<void> {
   try {
     // Use plugin detection module for comprehensive info
+    // Pass the configured introspect URL if available (don't hardcode URL derivation)
     const detection = await detectPlugin(
       context.config.baseUrl,
       context.config.auth.username,
-      context.config.auth.password
+      context.config.auth.password,
+      15000, // default timeout
+      context.config.wpnavIntrospect
     );
 
     if (!detection.detected) {
@@ -3444,11 +3463,24 @@ function loadConfiguration(options: Record<string, string>): {
   const insecureFlag = options.insecure === 'true';
 
   // Try new wpnav.config.json first
-  const result = loadWpnavConfig({
+  let result = loadWpnavConfig({
     configPath: options.config,
     environment,
     fallbackToEnv: false, // Don't fallback yet, try legacy loader
   });
+
+  // v2.8.0: If initial load failed and no explicit --config was provided,
+  // try walk-up discovery to find config in parent directories
+  if (!result.success && !options.config) {
+    const discovery = discoverConfigFile();
+    if (discovery.found && discovery.path) {
+      result = loadWpnavConfig({
+        configPath: discovery.path,
+        environment,
+        fallbackToEnv: false,
+      });
+    }
+  }
 
   let config: WPConfig;
   let resolved: ResolvedConfig | undefined;
@@ -4072,6 +4104,8 @@ export async function main(): Promise<void> {
   const knownCommands = [
     'init',
     'connect',
+    'use',
+    'set',
     'call',
     'tools',
     'roles',
@@ -4179,6 +4213,24 @@ export async function main(): Promise<void> {
     const roleArgs = args.slice(1);
     const exitCode = await handleRole(subcommand, roleArgs, {
       json: options.json === 'true',
+    });
+    process.exit(exitCode);
+  }
+
+  // Handle use command separately (doesn't require valid config - it updates config)
+  if (command === 'use') {
+    const exitCode = await handleUse(args, {
+      json: options.json === 'true',
+      list: options.list === 'true',
+    });
+    process.exit(exitCode);
+  }
+
+  // Handle set command separately (doesn't require valid config - it updates config)
+  if (command === 'set') {
+    const exitCode = await handleSet(args, {
+      json: options.json === 'true',
+      list: options.list === 'true',
     });
     process.exit(exitCode);
   }
@@ -4391,14 +4443,40 @@ export async function main(): Promise<void> {
       process.exit(contextExitCode);
       break;
 
+    case 'suggest':
+      {
+        const suggestOpts: SuggestOptions = {
+          json: options.json === 'true',
+          category: options.category as SuggestOptions['category'],
+          limit: options.limit ? parseInt(options.limit, 10) : undefined,
+        };
+
+        // Fetch introspect data if connection is available
+        if (context.config && context.wpRequest) {
+          try {
+            const introspect = await context.wpRequest(context.config.wpnavIntrospect);
+            suggestOpts.introspect = introspect;
+          } catch {
+            // Connection failed, proceed without introspect
+          }
+        }
+
+        await suggestCommand(suggestOpts);
+      }
+      break;
+
     default:
       outputError('UNKNOWN_COMMAND', `Unknown command: ${command}`, {
         available: [
           'init',
+          'connect',
+          'use',
+          'set',
           'call',
           'tools',
           'status',
           'context',
+          'suggest',
           'snapshot',
           'diff',
           'sync',

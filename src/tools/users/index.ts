@@ -15,6 +15,10 @@ import {
   buildQueryString,
   buildFieldsParam,
 } from '../../tool-registry/utils.js';
+import {
+  createCompactListResponse,
+  createSummaryOnlyListResponse,
+} from '../../compression/index.js';
 
 /**
  * Register user management tools
@@ -49,6 +53,17 @@ export function registerUserTools() {
             items: { type: 'string' },
             description: 'Fields to return (e.g., ["id", "name", "email"]). Reduces response size.',
           },
+          compact: {
+            type: 'boolean',
+            default: false,
+            description: 'Return AI-optimized compact response with summary and top items only',
+          },
+          summary_only: {
+            type: 'boolean',
+            default: false,
+            description:
+              'Return AI-focused natural language summary only without item list (maximum compression)',
+          },
         },
         required: [],
       },
@@ -64,6 +79,22 @@ export function registerUserTools() {
       });
 
       const users = await context.wpRequest(`/wp/v2/users?${qs}`);
+
+      if (args.summary_only) {
+        const summaryOnly = createSummaryOnlyListResponse('users', users);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(summaryOnly, null, 2) }],
+        };
+      }
+
+      if (args.compact) {
+        const compact = createCompactListResponse('users', users, 5, {
+          roles: args.roles,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(compact, null, 2) }],
+        };
+      }
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(users, null, 2)) }],

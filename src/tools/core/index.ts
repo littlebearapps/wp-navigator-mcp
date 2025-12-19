@@ -8,6 +8,7 @@
 import { toolRegistry, ToolCategory } from '../../tool-registry/index.js';
 import { discoverCookbooks, type LoadedSkillCookbook } from '../../cookbook/index.js';
 import { discoverRoles } from '../../roles/index.js';
+import { createSummaryOnlyListResponse } from '../../compression/index.js';
 import { registerSearchTools } from './search-tools.js';
 import { registerDescribeTools } from './describe-tools.js';
 import { registerExecuteTool } from './execute.js';
@@ -286,7 +287,14 @@ export function registerCoreTools() {
         'List all registered WordPress post types including custom types (products, events, etc.). Returns REST API support status, capabilities, and hierarchical status for each type.',
       inputSchema: {
         type: 'object',
-        properties: {},
+        properties: {
+          summary_only: {
+            type: 'boolean',
+            default: false,
+            description:
+              'Return AI-focused natural language summary only without post types list (maximum compression)',
+          },
+        },
         required: [],
       },
     },
@@ -302,6 +310,18 @@ export function registerCoreTools() {
         rest_base: typeData.rest_base || slug,
         rest_namespace: typeData.rest_namespace || 'wp/v2',
       }));
+
+      if (args.summary_only) {
+        const summaryOnly = createSummaryOnlyListResponse('post_types', typeList);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(summaryOnly, null, 2),
+            },
+          ],
+        };
+      }
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(typeList, null, 2)) }],

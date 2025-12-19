@@ -12,6 +12,10 @@
 
 import { toolRegistry, ToolCategory } from '../../tool-registry/index.js';
 import { validateRequired, buildFieldsParam } from '../../tool-registry/utils.js';
+import {
+  createCompactListResponse,
+  createSummaryOnlyListResponse,
+} from '../../compression/index.js';
 
 /**
  * Register theme management tools
@@ -39,6 +43,17 @@ export function registerThemeTools() {
             description:
               'Fields to return (e.g., ["stylesheet", "name", "status"]). Reduces response size.',
           },
+          compact: {
+            type: 'boolean',
+            default: false,
+            description: 'Return AI-optimized compact response with summary and top items only',
+          },
+          summary_only: {
+            type: 'boolean',
+            default: false,
+            description:
+              'Return AI-focused natural language summary only without item list (maximum compression)',
+          },
         },
         required: [],
       },
@@ -56,6 +71,22 @@ export function registerThemeTools() {
       const qs = params.toString();
       const endpoint = qs ? `/wp/v2/themes?${qs}` : '/wp/v2/themes';
       const themes = await context.wpRequest(endpoint);
+
+      if (args.summary_only) {
+        const summaryOnly = createSummaryOnlyListResponse('themes', themes);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(summaryOnly, null, 2) }],
+        };
+      }
+
+      if (args.compact) {
+        const compact = createCompactListResponse('themes', themes, 5, {
+          status: args.status,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(compact, null, 2) }],
+        };
+      }
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(themes, null, 2)) }],

@@ -1,8 +1,12 @@
 export default {
   extends: ['@commitlint/config-conventional'],
+  // Ignore merge commits
+  ignores: [(commit) => commit.startsWith('Merge')],
   rules: {
     // Allow longer subjects for detailed commit messages
     'header-max-length': [2, 'always', 100],
+    // Disable body line length limit (common in detailed commits)
+    'body-max-line-length': [0, 'always'],
     // Conventional commit types
     'type-enum': [
       2,

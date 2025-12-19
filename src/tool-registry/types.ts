@@ -34,6 +34,16 @@ export enum ToolCategory {
   ROLES = 'roles',
   /** Batch operations (v2.6+) */
   BATCH = 'batch',
+  /** Settings/options management (v2.8+) */
+  SETTINGS = 'settings',
+  /** Analytics/health monitoring (v2.8+) */
+  ANALYTICS = 'analytics',
+  /** Discovery/introspection tools (v2.8+) */
+  DISCOVERY = 'discovery',
+  /** Maintenance operations (v2.8+) */
+  MAINTENANCE = 'maintenance',
+  /** Authentication tools (v2.8+) */
+  AUTH = 'auth',
 }
 
 /**

@@ -66,7 +66,8 @@ export async function runSmokeTest(
   siteUrl: string,
   username: string,
   password: string,
-  timeoutMs: number = 15000
+  timeoutMs: number = 15000,
+  customIntrospectUrl?: string
 ): Promise<SmokeTestResult> {
   try {
     // Use detectPlugin which calls the introspect endpoint
@@ -74,7 +75,8 @@ export async function runSmokeTest(
       siteUrl,
       username,
       password,
-      timeoutMs
+      timeoutMs,
+      customIntrospectUrl
     );
 
     if (!result.detected) {

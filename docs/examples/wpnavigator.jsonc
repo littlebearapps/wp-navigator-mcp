@@ -1,0 +1,304 @@
+{
+  // ==========================================================================
+  // WP Navigator Configuration File (wpnavigator.jsonc)
+  // ==========================================================================
+  //
+  // This file configures how WP Navigator MCP Server connects to and manages
+  // your WordPress site. Place this file in your project root directory.
+  //
+  // Schema version 2 - Compatible with WP Navigator MCP v2.7.0+
+  // Full documentation: https://wpnav.ai/docs/configuration
+  //
+  // ==========================================================================
+
+  // JSON Schema for IDE autocomplete and validation
+  // Enables autocomplete in VS Code, Cursor, and other editors
+  "$schema": "https://wpnav.ai/schemas/wpnavigator-v2.json",
+
+  // Schema version - determines which features are available
+  // Version 2 adds: tools, roles, ai, safety, env sections
+  "schema_version": 2,
+
+  // ==========================================================================
+  // SITE CONNECTION
+  // ==========================================================================
+  // Configure how to connect to your WordPress site.
+  // Credentials should NEVER be stored directly - use references instead.
+
+  "site": {
+    // Your WordPress site URL (no trailing slash)
+    "url": "https://example.com",
+
+    // REST API base path (usually /wp-json/wpnav/v1)
+    "api_base": "/wp-json/wpnav/v1",
+
+    // Credential reference - choose ONE of these formats:
+    //
+    // Option 1: Environment variable (recommended for CI/CD)
+    // "credentials": "$env:WPNAV_CREDENTIALS"
+    //
+    // Option 2: OS Keychain (most secure, recommended for local dev)
+    // "credentials": "$keychain:wpnav-example-com"
+    //
+    // Option 3: Local file (gitignored .wpnav.env file)
+    "credentials": "$file:.wpnav.env"
+
+    // NEVER store credentials directly like this:
+    // "credentials": "admin:xxxx xxxx xxxx xxxx"  // BAD - don't do this!
+  },
+
+  // ==========================================================================
+  // TOOL CONFIGURATION
+  // ==========================================================================
+  // Control which WP Navigator tools are available to AI agents.
+  // This reduces token usage and prevents accidental misuse.
+
+  "tools": {
+    // Enable specific tool categories
+    // Available categories: core, content, gutenberg, taxonomy, users,
+    // plugins, themes, media, comments, testing, settings, analytics,
+    // discovery, maintenance, auth, batch, cookbook, roles
+    "enabled": [
+      "core",       // introspect, help, site_overview, search
+      "content",    // posts, pages, media, comments
+      "gutenberg",  // block editor operations
+      "taxonomy"    // categories, tags
+    ],
+
+    // Disable categories (overrides enabled)
+    // Useful when you want to prevent certain operations
+    "disabled": [
+      "users",      // Prevent user management
+      "plugins",    // Prevent plugin installation/activation
+      "themes"      // Prevent theme changes
+    ],
+
+    // Override individual tools (takes precedence over categories)
+    "overrides": {
+      // Disable a specific tool even if its category is enabled
+      "wpnav_delete_post": false,
+      "wpnav_delete_page": false,
+
+      // Enable a specific tool even if its category is disabled
+      "wpnav_list_users": true
+    },
+
+    // Cookbook configuration for plugin-specific AI guidance
+    "cookbooks": {
+      // Always load these cookbooks (by name)
+      "load": ["gutenberg"],
+
+      // Auto-detect and suggest cookbooks based on installed plugins
+      "auto_detect": true,
+
+      // Path to project-specific cookbooks (optional)
+      "project_path": "./cookbooks"
+    }
+  },
+
+  // ==========================================================================
+  // AI ROLE CONFIGURATION
+  // ==========================================================================
+  // Roles define AI personas with focused tool access and behavior.
+  // This helps AI agents understand their responsibilities.
+
+  "roles": {
+    // Active role - affects AI behavior and available tools
+    // Built-in roles: content-editor, seo-specialist, developer, site-admin
+    "active": "content-editor",
+
+    // Auto-suggest role based on WordPress user capabilities
+    "auto_detect": true,
+
+    // Path to project-specific role definitions (optional)
+    "project_path": "./roles",
+
+    // Override the active role's tool permissions
+    "overrides": {
+      // Add tools to the role's allowed list
+      "tools_allow": ["wpnav_list_users"],
+
+      // Add tools to the role's denied list
+      "tools_deny": ["wpnav_delete_post", "wpnav_delete_page"]
+    }
+  },
+
+  // ==========================================================================
+  // AI AGENT CONFIGURATION
+  // ==========================================================================
+  // Configure AI behavior, context, and detected site features.
+
+  "ai": {
+    // Focus preset - dramatically reduces token usage
+    // Options: content-editing | full-admin | read-only | custom
+    //
+    // content-editing (~5,000 tokens): Core + content tools only
+    // full-admin (~13,000 tokens): All tools available
+    // read-only (~2,000 tokens): List/get operations only
+    // custom: Uses explicit tools.enabled configuration
+    "focus": "content-editing",
+
+    // Custom instructions for AI (always included in context)
+    // Use this to guide AI behavior for your specific site
+    "instructions": "This is a WooCommerce store selling outdoor gear. Focus on product pages and blog posts. Avoid modifying the checkout flow or payment settings.",
+
+    // Path to sample prompts directory
+    "prompts_path": "./prompts/",
+
+    // Auto-populated by 'wpnav snapshot' - lists detected plugins
+    // AI uses this to understand site capabilities
+    "detected_plugins": [
+      "woocommerce",
+      "yoast-seo",
+      "elementor"
+    ],
+
+    // Auto-populated - detected page builder
+    "page_builder": "elementor",
+
+    // Recommended cookbooks based on detected plugins
+    "recommended_cookbooks": ["elementor", "woocommerce", "yoast-seo"],
+
+    // Recommended role based on user capabilities
+    "recommended_role": "content-editor"
+  },
+
+  // ==========================================================================
+  // SAFETY SETTINGS
+  // ==========================================================================
+  // Control write operations and destructive actions.
+
+  "safety": {
+    // Safety mode affects AI behavior and confirmations
+    // Options: cautious | balanced | trusted (yolo)
+    //
+    // cautious: Maximum safety, all writes require confirmation
+    // balanced: Standard safety, destructive operations require confirmation
+    // trusted: Minimal prompts, suitable for local development
+    "mode": "cautious",
+
+    // Require backup reminder before sync operations
+    "require_backup_reminder": true,
+
+    // Maximum items allowed in batch operations
+    "max_batch_size": 10,
+
+    // Require confirmation for destructive operations (delete, etc.)
+    "confirm_destructive": true,
+
+    // Whitelist of allowed operation types
+    // Empty array = all operations allowed (subject to mode)
+    "allowed_operations": ["create", "update"],
+
+    // Blacklist of blocked operations (overrides allowed)
+    "blocked_operations": ["delete"]
+  },
+
+  // ==========================================================================
+  // BRAND & STYLE
+  // ==========================================================================
+  // Define your site's brand for AI-generated content consistency.
+
+  "brand": {
+    "name": "Outdoor Gear Co",
+    "tagline": "Adventure awaits",
+    "voice": "Friendly, knowledgeable, enthusiastic about the outdoors",
+    "colors": {
+      "primary": "#2d5a27",
+      "secondary": "#8b4513",
+      "accent": "#f4a460"
+    }
+  },
+
+  // ==========================================================================
+  // ENVIRONMENT OVERRIDES
+  // ==========================================================================
+  // Define environment-specific configuration.
+  // Use: wpnav --env local status
+  // Or: WPNAV_ENV=staging wpnav sync
+
+  "env": {
+    // Local development environment
+    "local": {
+      "site": {
+        "url": "http://localhost:8080",
+        "credentials": "$env:WPNAV_LOCAL_CREDENTIALS"
+      },
+      "safety": {
+        // Relaxed safety for local dev
+        "mode": "trusted",
+        "confirm_destructive": false,
+        "blocked_operations": []
+      },
+      "tools": {
+        // Enable all tools for local development
+        "enabled": ["core", "content", "gutenberg", "taxonomy", "users", "plugins", "themes", "settings", "discovery", "maintenance"]
+      }
+    },
+
+    // Staging environment
+    "staging": {
+      "site": {
+        "url": "https://staging.example.com",
+        "credentials": "$keychain:wpnav-staging"
+      },
+      "safety": {
+        "mode": "balanced"
+      }
+    },
+
+    // Production environment (default)
+    "production": {
+      "site": {
+        "url": "https://example.com",
+        "credentials": "$keychain:wpnav-production"
+      },
+      "safety": {
+        "mode": "cautious",
+        "require_backup_reminder": true,
+        "blocked_operations": ["delete"]
+      }
+    }
+  },
+
+  // ==========================================================================
+  // SNAPSHOTS CONFIGURATION
+  // ==========================================================================
+  // Configure snapshot storage and behavior.
+
+  "snapshots": {
+    // Directory for storing snapshots
+    "path": "./snapshots",
+
+    // Automatically create snapshot before sync operations
+    "auto_snapshot_before_sync": true
+  },
+
+  // ==========================================================================
+  // PAGES CONFIGURATION
+  // ==========================================================================
+  // Define pages that should exist on the site (for sync operations).
+
+  "pages": [
+    {
+      "slug": "home",
+      "template": "front-page",
+      "title": "Welcome to Outdoor Gear Co"
+    },
+    {
+      "slug": "about",
+      "template": "page",
+      "title": "About Us"
+    },
+    {
+      "slug": "shop",
+      "template": "archive-product",
+      "title": "Shop All Products"
+    },
+    {
+      "slug": "contact",
+      "template": "page",
+      "title": "Contact Us"
+    }
+  ]
+}

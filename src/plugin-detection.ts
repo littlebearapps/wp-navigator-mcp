@@ -133,17 +133,20 @@ export function compareSemver(a: string, b: string): number {
  * @param username - WordPress username
  * @param password - WordPress application password
  * @param timeoutMs - Request timeout in milliseconds (default: 15000)
+ * @param customIntrospectUrl - Optional custom introspect URL (overrides derived URL)
  * @returns Plugin detection result
  */
 export async function detectPlugin(
   siteUrl: string,
   username: string,
   password: string,
-  timeoutMs: number = 15000
+  timeoutMs: number = 15000,
+  customIntrospectUrl?: string
 ): Promise<PluginDetectionResult> {
   // Normalize site URL
   const normalizedUrl = siteUrl.replace(/\/+$/, '');
-  const introspectUrl = `${normalizedUrl}/wp-json/wpnav/v1/introspect`;
+  // Use custom introspect URL if provided, otherwise derive from site URL
+  const introspectUrl = customIntrospectUrl || `${normalizedUrl}/wp-json/wpnav/v1/introspect`;
 
   const auth = Buffer.from(`${username}:${password}`).toString('base64');
   const headers = {

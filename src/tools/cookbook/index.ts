@@ -15,6 +15,7 @@ import {
   type LoadedSkillCookbook,
   type PluginInfo,
 } from '../../cookbook/index.js';
+import { createSummaryOnlyListResponse } from '../../compression/index.js';
 
 /**
  * Register cookbook tools
@@ -30,11 +31,18 @@ export function registerCookbookTools() {
         'List all available plugin cookbooks with metadata. Cookbooks provide AI guidance for specific WordPress plugins like Gutenberg, Elementor, etc. Returns slug, name, version, source (bundled/project), and version requirements.',
       inputSchema: {
         type: 'object',
-        properties: {},
+        properties: {
+          summary_only: {
+            type: 'boolean',
+            default: false,
+            description:
+              'Return AI-focused natural language summary only without cookbook list (maximum compression)',
+          },
+        },
         required: [],
       },
     },
-    handler: async (_args, _context) => {
+    handler: async (args, _context) => {
       const { cookbooks, sources } = discoverCookbooks();
 
       const cookbookList = Array.from(cookbooks.entries()).map(([slug, cookbook]) => {
@@ -52,6 +60,18 @@ export function registerCookbookTools() {
           allowed_tools_count: skillCookbook.allowedTools?.length || 0,
         };
       });
+
+      if (args.summary_only) {
+        const summaryOnly = createSummaryOnlyListResponse('cookbooks', cookbookList);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(summaryOnly, null, 2),
+            },
+          ],
+        };
+      }
 
       return {
         content: [

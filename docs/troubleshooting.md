@@ -16,6 +16,57 @@ This checks Node.js, configuration, network, and authentication.
 
 ---
 
+## CLI Command Issues
+
+### "Command starts MCP server instead of CLI"
+
+**Symptoms:**
+- Running `npx wpnav connect` starts MCP server mode
+- Command hangs waiting for MCP input
+- No CLI output, just waiting
+
+**Solutions:**
+
+1. **Update to v2.8.0+:**
+   ```bash
+   npx @littlebearapps/wp-navigator-mcp@latest --version
+   ```
+
+2. **Clear npm cache:**
+   ```bash
+   npm cache clean --force
+   ```
+
+3. **Use explicit package name:**
+   ```bash
+   npx @littlebearapps/wp-navigator-mcp connect
+   ```
+
+### "Command not recognized"
+
+**Symptoms:**
+- Error: `Unknown command`
+- Command not listed in help
+
+**Solutions:**
+
+1. **Check spelling:**
+   ```bash
+   npx wpnav --help
+   ```
+
+2. **Update to latest version:**
+   ```bash
+   npx @littlebearapps/wp-navigator-mcp@latest --help
+   ```
+
+3. **Common commands:**
+   - `init`, `connect`, `status`, `doctor`
+   - `call`, `tools`, `validate`, `configure`
+   - `snapshot`, `diff`, `sync`, `rollback`
+
+---
+
 ## Connection Issues
 
 ### "Connection refused" or "ECONNREFUSED"
@@ -216,21 +267,34 @@ This checks Node.js, configuration, network, and authentication.
 
 **Solutions:**
 
-1. **Check current directory:**
+1. **Check walk-up discovery (v2.8.0+):**
+
+   WP Navigator searches for config in parent directories automatically:
+   ```
+   /project/subdir/     ← you are here
+   /project/            ← wpnav.config.json found here ✓
+   ```
+
+2. **Check current directory:**
    ```bash
    ls -la wpnav.config.json
    ls -la wp-config.json
    ```
 
-2. **Use explicit path:**
+3. **Use explicit path:**
    ```bash
    npx wpnav --config /full/path/to/wpnav.config.json status
    ```
 
-3. **Create config file:**
+4. **Create config file:**
    ```bash
    npx wpnav init
    ```
+
+5. **Supported config file names:**
+   - `wpnav.config.json` (recommended)
+   - `wpnav.config.jsonc` (with comments)
+   - `wp-config.json` (legacy)
 
 ### "Invalid JSON in config file"
 
@@ -253,6 +317,8 @@ This checks Node.js, configuration, network, and authentication.
 3. **Use JSONC format** (allows comments):
    - Rename to `wpnav.config.jsonc`
    - Or use `wpnavigator.jsonc`
+
+4. **See example configuration:** [wpnavigator.jsonc example](./examples/wpnavigator.jsonc)
 
 ### "Missing required field"
 
@@ -484,6 +550,12 @@ If these solutions don't help:
 
 ## See Also
 
+- [Getting Started](getting-started.md) - Quick setup guide
+- [MCP Setup](mcp-setup.md) - Configure Claude Code, Codex, Gemini
 - [CLI Reference](cli-reference.md) - Command documentation
 - [Security](security.md) - Security configuration
 - [FAQ](faq.md) - Frequently asked questions
+
+---
+
+**Last Updated**: 2025-12-18

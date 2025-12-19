@@ -106,6 +106,57 @@ Check logs in WordPress admin for security monitoring.
 
 ---
 
+## Option Safety (v2.8.0)
+
+The `wpnav_set_option` tool provides controlled access to WordPress options with prefix-based restrictions.
+
+### Plugin-Detected Prefixes Only
+
+`wpnav_set_option` can only modify options from detected plugins:
+
+| Plugin | Allowed Prefixes |
+|--------|-----------------|
+| WooCommerce | `woocommerce_*` |
+| Yoast SEO | `wpseo_*` |
+| Rank Math | `rank_math_*` |
+| ACF | `acf_*` |
+| Elementor | `elementor_*` |
+
+Options without recognized prefixes are blocked.
+
+### Protected Core Options
+
+The following WordPress core options **cannot** be modified:
+
+- `siteurl`, `home` (site URLs)
+- `admin_email`, `users_can_register` (user settings)
+- `blogname`, `blogdescription` (site identity)
+- `default_role` (security-sensitive)
+- All `_transient_*` options
+
+### Reading vs Writing
+
+- `wpnav_get_option` - Reads any option (no restrictions)
+- `wpnav_set_option` - Writes only plugin-prefixed options
+
+```bash
+# Allowed - WooCommerce option
+npx wpnav call wpnav_set_option --option woocommerce_store_city --value "Sydney"
+
+# Blocked - Core option
+npx wpnav call wpnav_set_option --option siteurl --value "..."
+# Error: OPTION_PROTECTED - Core options cannot be modified
+```
+
+### Best Practices
+
+- **Read first** - Use `wpnav_get_option` to check current values
+- **Test in staging** - Verify option changes before production
+- **Check plugin docs** - Ensure the option is meant to be modified
+- **Use structured values** - Some options expect JSON or serialized data
+
+---
+
 ## Data Handling
 
 ### What Data Is Sent
@@ -193,6 +244,7 @@ Before using WP Navigator MCP in production:
 - [ ] Configuration file excluded from version control
 - [ ] `WPNAV_ENABLE_WRITES` only enabled when needed
 - [ ] Regular review of WordPress audit logs
+- [ ] Option modifications limited to plugin prefixes (v2.8.0+)
 
 ---
 

@@ -15,6 +15,10 @@ import {
   buildQueryString,
   buildFieldsParam,
 } from '../../tool-registry/utils.js';
+import {
+  createCompactListResponse,
+  createSummaryOnlyListResponse,
+} from '../../compression/index.js';
 
 /**
  * Register taxonomy management tools (categories, tags, taxonomies)
@@ -43,6 +47,17 @@ export function registerTaxonomyTools() {
             items: { type: 'string' },
             description: 'Fields to return (e.g., ["id", "name", "count"]). Reduces response size.',
           },
+          compact: {
+            type: 'boolean',
+            default: false,
+            description: 'Return AI-optimized compact response with summary and top items only',
+          },
+          summary_only: {
+            type: 'boolean',
+            default: false,
+            description:
+              'Return AI-focused natural language summary only without item list (maximum compression)',
+          },
         },
         required: [],
       },
@@ -58,6 +73,22 @@ export function registerTaxonomyTools() {
       });
 
       const categories = await context.wpRequest(`/wp/v2/categories?${qs}`);
+
+      if (args.summary_only) {
+        const summaryOnly = createSummaryOnlyListResponse('categories', categories);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(summaryOnly, null, 2) }],
+        };
+      }
+
+      if (args.compact) {
+        const compact = createCompactListResponse('categories', categories, 5, {
+          parent: args.parent,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(compact, null, 2) }],
+        };
+      }
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(categories, null, 2)) }],
@@ -395,6 +426,17 @@ export function registerTaxonomyTools() {
             items: { type: 'string' },
             description: 'Fields to return (e.g., ["id", "name", "count"]). Reduces response size.',
           },
+          compact: {
+            type: 'boolean',
+            default: false,
+            description: 'Return AI-optimized compact response with summary and top items only',
+          },
+          summary_only: {
+            type: 'boolean',
+            default: false,
+            description:
+              'Return AI-focused natural language summary only without item list (maximum compression)',
+          },
         },
         required: [],
       },
@@ -409,6 +451,20 @@ export function registerTaxonomyTools() {
       });
 
       const tags = await context.wpRequest(`/wp/v2/tags?${qs}`);
+
+      if (args.summary_only) {
+        const summaryOnly = createSummaryOnlyListResponse('tags', tags);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(summaryOnly, null, 2) }],
+        };
+      }
+
+      if (args.compact) {
+        const compact = createCompactListResponse('tags', tags, 5);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(compact, null, 2) }],
+        };
+      }
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(tags, null, 2)) }],
@@ -731,6 +787,17 @@ export function registerTaxonomyTools() {
             description:
               'Fields to return (e.g., ["name", "slug", "hierarchical"]). Reduces response size.',
           },
+          compact: {
+            type: 'boolean',
+            default: false,
+            description: 'Return AI-optimized compact response with summary and top items only',
+          },
+          summary_only: {
+            type: 'boolean',
+            default: false,
+            description:
+              'Return AI-focused natural language summary only without item list (maximum compression)',
+          },
         },
         required: [],
       },
@@ -742,6 +809,22 @@ export function registerTaxonomyTools() {
       });
 
       const taxonomies = await context.wpRequest(`/wp/v2/taxonomies?${qs}`);
+
+      if (args.summary_only) {
+        const summaryOnly = createSummaryOnlyListResponse('taxonomies', taxonomies);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(summaryOnly, null, 2) }],
+        };
+      }
+
+      if (args.compact) {
+        const compact = createCompactListResponse('taxonomies', taxonomies, 5, {
+          type: args.type,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(compact, null, 2) }],
+        };
+      }
 
       return {
         content: [{ type: 'text', text: context.clampText(JSON.stringify(taxonomies, null, 2)) }],

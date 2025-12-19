@@ -1,4 +1,9 @@
 import type { WPConfig } from './config.js';
+import {
+  createCompressionState,
+  type CompressionOptions,
+  type CompressionState,
+} from './compression/index.js';
 
 /**
  * Clamp a text payload to maxResponseKb from config toggles.
@@ -19,6 +24,33 @@ export function clampText(text: string, config: WPConfig): string {
     out = safeSliceByBytes(out, maxBytes - noteBytes);
   }
   return out + note;
+}
+
+/**
+ * Format a JSON‑serializable payload using the compression
+ * infrastructure and clamp it to the configured response limit.
+ *
+ * This helper is intended for new tools that want a consistent
+ * compact/full envelope. Existing tools can continue to use
+ * clampText directly until they are migrated.
+ */
+export function formatCompressedJson(
+  payload: unknown,
+  config: WPConfig,
+  options?: CompressionOptions
+): { json: string; compression: CompressionState } {
+  const compression = createCompressionState(config, options);
+
+  const envelope = {
+    _meta: {
+      mode: compression.mode,
+    },
+    data: payload,
+  };
+
+  const json = clampText(JSON.stringify(envelope, null, 2), config);
+
+  return { json, compression };
 }
 
 function byteLength(s: string): number {
