@@ -160,8 +160,19 @@ import {
   type ToolDocumentation,
 } from './cli/output/index.js';
 
-// CLI version (matches package.json)
-const CLI_VERSION = '2.8.0';
+// CLI version (read from package.json)
+function getPackageVersion(): string {
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const packagePath = path.resolve(__dirname, '..', 'package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
+    return packageJson.version || '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
+const CLI_VERSION = getPackageVersion();
 
 // Dry-run request collector
 interface DryRunRequest {

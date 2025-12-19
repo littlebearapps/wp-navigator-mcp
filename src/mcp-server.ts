@@ -38,6 +38,26 @@ import {
   handleListResources,
   handleReadResource,
 } from './resources/index.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+/**
+ * Read version from package.json at runtime.
+ * This ensures the MCP server version stays in sync with the npm package.
+ */
+function getPackageVersion(): string {
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    // Navigate from dist/ to package.json in project root
+    const packagePath = path.resolve(__dirname, '..', 'package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
+    return packageJson.version || '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
 
 /**
  * Meta-tools exposed via MCP ListTools (v2.7.0 Dynamic Toolsets)
@@ -170,7 +190,7 @@ export async function startMcpServer(): Promise<void> {
   const server = new Server(
     {
       name: 'wp-navigator',
-      version: '2.8.0',
+      version: getPackageVersion(),
     },
     {
       capabilities: {
