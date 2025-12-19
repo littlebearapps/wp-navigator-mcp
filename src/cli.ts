@@ -161,7 +161,7 @@ import {
 } from './cli/output/index.js';
 
 // CLI version (matches package.json)
-const CLI_VERSION = '2.7.0';
+const CLI_VERSION = '2.8.0';
 
 // Dry-run request collector
 interface DryRunRequest {

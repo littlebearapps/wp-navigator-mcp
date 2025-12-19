@@ -170,7 +170,7 @@ export async function startMcpServer(): Promise<void> {
   const server = new Server(
     {
       name: 'wp-navigator',
-      version: '2.7.0',
+      version: '2.8.0',
     },
     {
       capabilities: {
