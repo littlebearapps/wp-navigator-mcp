@@ -189,7 +189,7 @@ jobs:
           echo "Renamed to: $VERSIONED_NAME"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ env.versioned_binary }}
           path: dist/binary/${{ env.versioned_binary }}
